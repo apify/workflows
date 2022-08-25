@@ -1,0 +1,225 @@
+name: deploy helmfile
+
+on:
+  workflow_call:
+    inputs:
+      imageTag:
+        description: Tag given to container image
+        required: true
+        type: string
+      eksClusterName:
+        description: EKS cluster name
+        required: true
+        type: string
+      helmfilePath:
+        description: Path to helmfile.yaml
+        required: true
+        type: string
+      helmfileEnvironment:
+        description: Helmfile environment
+        required: false
+        type: string
+      helmfileOtherArgs:
+        description: Other helmfile parameters
+        required: false
+        type: string
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
+      awsRegion:
+        description: AWS region
+        required: false
+        type: string
+        default: us-east-1
+      awsSessionDuration:
+        description: AWS session duration
+        required: false
+        type: number
+        default: 3600
+      envVariables:
+        description: Space separated list of environment variables to be set during helmfile sync
+        required: false
+        type: string
+        # example:
+        # envVariables: >
+        #   FOO=bar
+        #   BAR=foo
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+
+    secrets:
+      awsAccessKeyId:
+        description: AWS access key ID
+        required: true
+      awsSecretAccessKey:
+        description: AWS secret access key
+        required: true
+      slackToken:
+        description: Slack API token
+        required: true
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.awsAccessKeyId }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.awsSecretAccessKey }}
+  AWS_REGION: ${{ inputs.awsRegion }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification to slack
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":large_blue_circle: *${{ github.repository }} deploy started*",
+              "attachments": [
+                {
+                  "color": "#0066ff",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      # There is no public action that would give us the abilities we need. Meaning:
+      #   - helmfile
+      #   - eksctl
+      #   - sops
+      #   - helm secret plugin
+      # NOTE: This will go away with terraform
+      - name: setup dependencies
+        env:
+          EKSCTL_VERSION: v0.98.0
+          HELMFILE_VERSION: v0.144.0
+          SOPS_VERSION: v3.7.2
+          HELM_SECRETS_PLUGIN_VERSION: v3.8.3
+        run: |
+          curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
+          curl -fsSL -o helmfile https://github.com/roboll/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_linux_amd64
+          curl -fsSL -o sops https://github.com/mozilla/sops/releases/download/${{ env.SOPS_VERSION }}/sops-${{ env.SOPS_VERSION }}.linux
+          
+          helm plugin install https://github.com/jkroepke/helm-secrets --version ${{ env.HELM_SECRETS_PLUGIN_VERSION }}
+
+          mkdir -p $HOME/.local/bin
+
+          tar -C $HOME/.local/bin/ -xf ./eksctl.tar.gz
+          mv helmfile $HOME/.local/bin/
+          mv sops $HOME/.local/bin/
+
+          chmod +x $HOME/.local/bin/*
+
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: assume IAM role
+        if: inputs.awsRoleArn != ''
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.awsAccessKeyId }}
+          aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+        
+
+      - name: setup kubeconfig
+        run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
+      
+      - name: helmfile sync
+        run: |
+          export $(echo ${{ inputs.envVariables }})
+          HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
+          [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
+          [ ! -z ${{ inputs.helmfileOtherArgs }} ] && HELMFILE_PARAMS+=" ${{ inputs.helmfileOtherArgs }}"
+          helmfile $HELMFILE_PARAMS sync
+
+      - name: helper - get slack message formatting
+        id: helper
+        if: ${{ always() }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]
+          then
+              echo ::set-output name=color::#00cc00
+              echo ::set-output name=emoji::large_green_circle
+          else
+              echo ::set-output name=color::#ff0000
+              echo ::set-output name=emoji::red_circle
+          fi 
+      
+      - name: send result to slack
+        if: ${{ always() }}
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "attachments": [
+                {
+                  "color": "${{ steps.helper.outputs.color }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }

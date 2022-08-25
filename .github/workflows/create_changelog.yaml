@@ -1,0 +1,97 @@
+name: create release
+
+on:
+  workflow_call:
+    inputs:
+      changelogScopes:
+        description: 'changelog scopes (i.e { "App": ["app", "application"] })'
+        required: true
+        type: string
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+    
+    secrets:
+      slackToken:
+        description: Slack API token
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: get changelog
+        id: changelog
+        # TODO: change reference once this PR is merged https://github.com/apify/release-pr-action/pull/4
+        uses: apify/release-pr-action@v2.1.0
+        with: 
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          changelog-scopes: ${{ inputs.changelogScopes }}
+          create-pull-request: false
+          compare-method: tag
+
+      - name: create github release
+        uses: actions/github-script@v4
+        id: release
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # result-encoding: string
+          script: |
+            // TODO: maybe parametrize
+            const releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
+            let alreadyExists = false;
+
+            try {
+                await github.repos.createRelease({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    tag_name: releaseName,
+                    name: releaseName,
+                    body: `${{ steps.changelog.outputs.changelog }}`,
+                });
+            } catch (error) {
+                if (error.response.data.errors[0].code === 'already_exists') {
+                    console.log(`Release with name ${releaseName} already exists! Refusing to override!`);
+                    alreadyExists = true;
+                } else {
+                    throw error;
+                }
+            }
+            return { releaseName, alreadyExists };
+
+      # This step changes format of changelog from Github to Slack markdown-ish
+      # and replaces newline chars with literal \n
+      # TODO: should probably be part of apify/release-pr-action
+      - name: format changelog for slack api
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        id: format
+        run: |
+          echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
+          changelog=$(awk '{printf "%s\\n", $0}' changelog.txt)
+          echo ::set-output name=changelog::$changelog
+      
+      - name: send changelog to slack
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "_Repository_: *${{ github.repository }}* _Revision_: *${{ fromJSON(steps.release.outputs.result).releaseName }}*\n${{ steps.format.outputs.changelog }}"
+                  }
+                }
+              ]
+            }

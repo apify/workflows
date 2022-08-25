@@ -1,0 +1,39 @@
+# This workflow ... TODO: finish description
+name: open release pull request
+
+on:
+  workflow_call:
+    inputs:
+      changelogScopes:
+        description: 'Changelog scopes (i.e { "App": ["app", "application"] })'
+        required: true
+        type: string
+      releaseBranch:
+        description: Release branch name
+        required: false
+        type: string
+        default: master
+    
+    secrets:
+      # If you want to trigger GH workflow run with this you need to provide real user token not secrets.GITHUB_TOKEN
+      githubToken:
+       description: Github token with read/write permission
+       required: true
+
+
+jobs:
+  # TODO: these steps could be separate wf
+  open-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 
+
+      - name: open release pull-request
+        uses: apify/release-pr-action@v2.1.0
+        with: 
+          repo-token: ${{ secrets.githubToken }}
+          changelog-scopes: ${{ inputs.changelogScopes }}
+          base-branch: ${{ inputs.releaseBranch }}

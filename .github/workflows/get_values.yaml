@@ -1,0 +1,52 @@
+# This workflow get values from file of curated values in AWS SSM and github context
+name: get values
+
+on:
+  workflow_call:
+    inputs:
+      commitSha:
+        description: Commit SHA
+        required: false
+        type: string
+        default: ${{ github.event.pull_request.head.sha }}
+
+    outputs:
+      short_commit_sha:
+        description: Short commit sha
+        value: ${{ jobs.get_short_commit_sha.outputs.short_commit_sha }}
+      commit_author:
+        description: Author of give commit
+        value: ${{ jobs.get_commit_author.outputs.commit_author }}
+
+jobs:
+  get_short_commit_sha:
+    runs-on: ubuntu-latest
+    outputs:
+      short_commit_sha: ${{ steps.get_short_commit_sha.outputs.short_commit_sha }}
+    steps:
+        # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
+      - id: get_short_commit_sha
+        run: |
+          COMMIT_SHA=${{ inputs.commitSha }}
+          echo "::set-output name=short_commit_sha::${COMMIT_SHA::10}"
+
+  get_commit_author:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_author: ${{ steps.get_commit_author.outputs.result }}
+    steps:
+      - uses: actions/github-script@v6
+        id: get_commit_author
+        with:
+          result-encoding: string
+          script: |
+            const commitSha = '${{ inputs.commitSha }}';
+            if (!commitSha) throw new Error(`Input: "commitSha" has invalid value ${commitSha}`)
+
+            const payload = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: commitSha,
+            });
+
+            return payload.data.author.login;

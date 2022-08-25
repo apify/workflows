@@ -1,0 +1,71 @@
+name: sync branches
+
+on:
+  workflow_call:
+    inputs:
+      baseBranch:
+        description: Branch that will be synchronized with current branch
+        required: false
+        type: string
+        default: develop
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+    
+    secrets:
+      slackToken:
+        description: Slack API token
+        required: true
+    
+jobs:
+  sync_branches:
+    runs-on: ubuntu-latest
+    steps:   
+      - name: git
+        run: |
+          mkdir repo
+          cd repo
+          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+          git switch ${{ github.base_ref }}
+          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${{ github.base_ref }}:${{ inputs.baseBranch }}
+
+      - name: report failure to slack
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":red_circle: *${{ github.repository }} syncing ${{ github.base_ref }} to ${{ inputs.baseBranch }}: ${{ job.status }}*",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
