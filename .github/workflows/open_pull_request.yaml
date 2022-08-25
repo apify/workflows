@@ -1,5 +1,4 @@
-# This workflow ... TODO: finish description
-name: open release pull request
+name: open pull request with changelog
 
 on:
   workflow_call:
@@ -8,8 +7,8 @@ on:
         description: 'Changelog scopes (i.e { "App": ["app", "application"] })'
         required: true
         type: string
-      releaseBranch:
-        description: Release branch name
+      baseBranch:
+        description: Base branch name
         required: false
         type: string
         default: master
@@ -36,4 +35,4 @@ jobs:
         with: 
           repo-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}
-          base-branch: ${{ inputs.releaseBranch }}
+          base-branch: ${{ inputs.baseBranch }}
