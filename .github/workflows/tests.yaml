@@ -1,73 +1,71 @@
-name: build docker image and push it to ECR
+name: run tests
 
 on:
   workflow_call:
     inputs:
-      imageTag:
-        description: Tag given to container image
-        required: true
-        type: string
-      repository:
-        description: Container repository
-        required: true
-        type: string
-      registry:
-        description: Container registry
-        required: true
-        type: string
-      dockerFilePath:
-        description: Path to Dockerfile
+      # TODO: All these inputs are not entirely necessary, they are just there for convenience of "setup Node.js" step,
+      #       where they are required. Making them optional requires additional logic, that might be un-necessary for our purposes
+      #       Best would be if "actions/setup-node" would be able to parse these from .npmrc and .nvmrc (except token of course)
+      npmAuth:
+        description: Whether to authenticate to NPM registry
+        required: false
+        type: boolean
+        default: true
+      nodeVersionFile:
+        description: Path to node version file
         required: false
         type: string
-        default: ./deploy/Dockerfile
-      awsRegion:
-        description: AWS region
+        default: ./.nvmrc
+      npmRegistryUrl:
+        description: NPM registry url
         required: false
         type: string
-        default: us-east-1
+        default: https://npm.pkg.github.com
+      npmScope:
+        description: NPM scope
+        required: true
+        type: string
+      npmTestScript:
+        description: Script for test in package.json
+        required: true
+        type: string
+      title:
+        description: Title displayed in slack message
+        required: false
+        type: string
+        default: "integration tests"
+      revision:
+        description: Revision that is being tested (This is strictly informative)
+        required: true
+        type: string
       slackChannelId:
         description: Slack Channel ID
         required: true
         type: string
-      setNodeVersion:
-        description: Put NODE_VERSION from .nvmrc to docker build args
-        required: true
-        type: string
-        default: ""
-      dockerBuildArgs:
-        description: Values for --build-arg argument
-        required: false
-        type: string
-        # This is just a dummy default, so docker does not complain
-        default: FOO=BAR
       actorOverride:
         description: Override the author of event
         required: false
         type: string
-
+      envVariables:
+        description: Space separated list of environment variables to be set during test phase
+        required: false
+        type: string
+        # example:
+        # envVariables: >
+        #   FOO=bar
+        #   BAR=foo
+    
     secrets:
-      awsAccessKeyId:
-        description: AWS access key ID
-        required: true
-      awsSecretAccessKey:
-        description: AWS secret access key
-        required: true
+      npmToken:
+        description: NPM token
+        required: false
       slackToken:
         description: Slack API token
         required: true
-      npmToken:
-        description: Put NPM_TOKEN to docker build args
-        required: false
-
-env:
-  AWS_ACCESS_KEY_ID: ${{ secrets.awsAccessKeyId }}
-  AWS_SECRET_ACCESS_KEY: ${{ secrets.awsSecretAccessKey }}
-  AWS_REGION: ${{ inputs.awsRegion }}
-
-  NPMRC_TEMP_FILE: npmrc-temp-file
-
+      
+    
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to slack
@@ -78,7 +76,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":large_blue_circle: *${{ github.repository }} build started*",
+              "text": ":large_blue_circle: *${{ github.repository }} ${{ inputs.title }} started*",
               "attachments": [
                 {
                   "color": "#0066ff",
@@ -92,7 +90,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
@@ -109,46 +107,32 @@ jobs:
               ]
             }
 
-      - name: clone repository
+      - name: clone local repository
         uses: actions/checkout@v3
-      
-      - name: set docker build args and secrets
+
+      # TODO: turn on caching
+      - name: setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          always-auth: ${{ inputs.npmAuth }}
+          node-version-file: ${{ inputs.npmAuth }}
+          registry-url: ${{ inputs.registryUrl }}
+          scope: ${{ inputs.npmScope }}
+
+      - name: run tests
         run: |
-          BUILD_ARGS=${{ inputs.dockerBuildArgs }}
-          if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS} NODE_VERSION=$(head -1 .nvmrc)"
+          if [ "${{ inputs.envVariables }}" != "" ]; then
+              export $(echo ${{ inputs.envVariables }})
           fi
-      
+
           if [ "${{ secrets.npmToken }}" != "" ]; then
-              BUILD_ARGS="${BUILD_ARGS} ${{ secrets.NPM_TOKEN }}"
+              export NODE_AUTH_TOKEN=${{ secrets.npmToken }}
           fi
 
-          echo "BUILD_ARGS=${BUILD_ARGS}" >> $GITHUB_ENV
+          npm install
+          npm run ${{ inputs.npmTestScrip }}
 
-      # NOTE: can be useful
-      # - name: Set up QEMU
-      #   uses: docker/setup-qemu-action@v2
-      
-      - name: setup Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      
-      - name: login to AWS ECR
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ inputs.registry }}
-          username: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          password: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-
-      - name: build and push
-        id: build_and_push
-        uses: docker/build-push-action@v3
-        with:
-          file: ${{ inputs.dockerFilePath }}
-          push: true
-          tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
-          build-args: ${{ env.BUILD_ARGS }}
-
-      - name: helper - get slack message attachment color
+      - name: helper - get slack message formatting
         id: helper
         if: ${{ always() }}
         run: |
@@ -160,7 +144,7 @@ jobs:
               echo ::set-output name=color::#ff0000
               echo ::set-output name=emoji::red_circle
           fi 
-      
+
       - name: send result to slack
         if: ${{ always() }}
         uses: slackapi/slack-github-action@v1.19.0
@@ -170,7 +154,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} build result: ${{ job.status }}*",
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} ${{ inputs.title }} result: ${{ job.status }}*",
               "attachments": [
                 {
                   "color": "${{ steps.helper.outputs.color }}",
@@ -184,7 +168,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
