@@ -31,9 +31,9 @@ on:
         type: string
       setNodeVersion:
         description: Put NODE_VERSION from .nvmrc to docker build args
-        required: true
+        required: false
         type: string
-        default: ""
+        default: true
       dockerBuildArgs:
         description: Values for --build-arg argument
         required: false
