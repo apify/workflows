@@ -114,8 +114,7 @@ jobs:
       
       - name: set docker build args and secrets
         run: |
-          echo 'BUILD_ARGS<<EOF' >> $GITHUB_ENV
-          ${{ inputs.dockerBuildArgs }} >> $GITHUB_ENV
+          BUILD_ARGS=${{ inputs.dockerBuildArgs }}
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
               BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)" >> $GITHUB_ENV
           fi
@@ -124,6 +123,8 @@ jobs:
               BUILD_ARGS="${BUILD_ARGS}\nNPM_TOKEN=${{ secrets.NPM_TOKEN }}" >> $GITHUB_ENV
           fi
 
+          echo 'BUILD_ARGS<<EOF' >> $GITHUB_ENV
+          echo -e ${BUILD_ARGS}
           echo 'EOF' >> $GITHUB_ENV
 
       # NOTE: can be useful
