@@ -114,16 +114,17 @@ jobs:
       
       - name: set docker build args and secrets
         run: |
-          BUILD_ARGS=${{ inputs.dockerBuildArgs }}
+          echo BUILD_ARGS<<EOF >> $GITHUB_ENV
+          ${{ inputs.dockerBuildArgs }} >> $GITHUB_ENV
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)"
+              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)" >> $GITHUB_ENV
           fi
       
           if [ "${{ secrets.npmToken }}" != "" ]; then
-              BUILD_ARGS="${BUILD_ARGS}\nNPM_TOKEN=${{ secrets.NPM_TOKEN }}"
+              BUILD_ARGS="${BUILD_ARGS}\nNPM_TOKEN=${{ secrets.NPM_TOKEN }}" >> $GITHUB_ENV
           fi
 
-          echo "BUILD_ARGS=$(echo -e ${BUILD_ARGS})" >> $GITHUB_ENV
+          echo EOF >> $GITHUB_ENV
 
       # NOTE: can be useful
       # - name: Set up QEMU
