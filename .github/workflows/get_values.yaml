@@ -8,39 +8,43 @@ on:
         description: Commit SHA
         required: false
         type: string
-        default: ${{ github.event.pull_request.head.sha }}
 
     outputs:
       short_commit_sha:
         description: Short commit sha
-        value: ${{ jobs.get_short_commit_sha.outputs.short_commit_sha }}
+        value: ${{ jobs.get_values.outputs.short_commit_sha }}
       commit_author:
-        description: Author of give commit
-        value: ${{ jobs.get_commit_author.outputs.commit_author }}
+        description: Author of last commit
+        value: ${{ jobs.get_values.outputs.commit_author }}
 
 jobs:
-  get_short_commit_sha:
+  get_values:
     runs-on: ubuntu-latest
     outputs:
       short_commit_sha: ${{ steps.get_short_commit_sha.outputs.short_commit_sha }}
-    steps:
-        # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
-      - id: get_short_commit_sha
-        run: |
-          COMMIT_SHA=${{ inputs.commitSha }}
-          echo "::set-output name=short_commit_sha::${COMMIT_SHA::10}"
-
-  get_commit_author:
-    runs-on: ubuntu-latest
-    outputs:
       commit_author: ${{ steps.get_commit_author.outputs.result }}
     steps:
-      - uses: actions/github-script@v6
+        # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
+      - name: get short commit sha
+        id: get_short_commit_sha
+        run: |
+          if [ "${{ inputs.commitSha }}" != "" ]; then
+            COMMIT_SHA=${{ inputs.commitSha }}
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+              COMMIT_SHA=${{ github.event.pull_request.head.sha }}
+          else
+              COMMIT_SHA=${{ github.sha }}
+          fi
+          echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
+          echo "::set-output name=short_commit_sha::${COMMIT_SHA::10}"
+
+      - name: get last commit author  
+        uses: actions/github-script@v6
         id: get_commit_author
         with:
           result-encoding: string
           script: |
-            const commitSha = '${{ inputs.commitSha }}';
+            const commitSha = process.env.SHORT_COMMIT_SHA;
             if (!commitSha) throw new Error(`Input: "commitSha" has invalid value ${commitSha}`)
 
             const payload = await github.rest.repos.getCommit({
