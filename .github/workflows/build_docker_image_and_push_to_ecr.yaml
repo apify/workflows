@@ -64,7 +64,7 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.awsSecretAccessKey }}
   AWS_REGION: ${{ inputs.awsRegion }}
 
-  NPMRC_TEMP_FILE: npmrc-temp-file
+  # NPMRC_TEMP_FILE: npmrc-temp-file
 
 jobs:
   build:
@@ -116,14 +116,15 @@ jobs:
         run: |
           BUILD_ARGS=${{ inputs.dockerBuildArgs }}
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS} NODE_VERSION=$(head -1 .nvmrc)"
+              BUILD_ARGS="${BUILD_ARGS}, NODE_VERSION=$(head -1 .nvmrc)"
           fi
       
           if [ "${{ secrets.npmToken }}" != "" ]; then
-              BUILD_ARGS="${BUILD_ARGS} ${{ secrets.NPM_TOKEN }}"
+              BUILD_ARGS="${BUILD_ARGS}, NPM_TOKEN=${{ secrets.NPM_TOKEN }}"
           fi
 
-          echo "BUILD_ARGS=${BUILD_ARGS}" >> $GITHUB_ENV
+          BUILD_ARGS_ARRAY="[ ${BUILD_ARGS} ]"
+          echo "BUILD_ARGS=${BUILD_ARGS_ARRAY}" >> $GITHUB_ENV
 
       # NOTE: can be useful
       # - name: Set up QEMU
