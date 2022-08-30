@@ -118,10 +118,6 @@ jobs:
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
               BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)"
           fi
-      
-          if [ "${{ secrets.npmToken }}" != "" ]; then
-              BUILD_ARGS="${BUILD_ARGS}\nNPM_TOKEN=${{ secrets.NPM_TOKEN }}"
-          fi
 
           echo 'BUILD_ARGS<<EOF' >> $GITHUB_ENV
           echo -e ${BUILD_ARGS} >> $GITHUB_ENV
@@ -150,6 +146,7 @@ jobs:
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
           build-args: |
             ${{ env.BUILD_ARGS }}
+            NPM_TOKEN=${{ secrets.npmToken }}
 
       - name: helper - get slack message attachment color
         id: helper
