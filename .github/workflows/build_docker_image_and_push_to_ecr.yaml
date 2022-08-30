@@ -116,15 +116,14 @@ jobs:
         run: |
           BUILD_ARGS=${{ inputs.dockerBuildArgs }}
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS}, NODE_VERSION=$(head -1 .nvmrc)"
+              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)"
           fi
       
           if [ "${{ secrets.npmToken }}" != "" ]; then
-              BUILD_ARGS="${BUILD_ARGS}, NPM_TOKEN=${{ secrets.NPM_TOKEN }}"
+              BUILD_ARGS="${BUILD_ARGS}\nNPM_TOKEN=${{ secrets.NPM_TOKEN }}"
           fi
 
-          BUILD_ARGS_ARRAY="[ ${BUILD_ARGS} ]"
-          echo "BUILD_ARGS=${BUILD_ARGS_ARRAY}" >> $GITHUB_ENV
+          echo "BUILD_ARGS=${BUILD_ARGS}" >> $GITHUB_ENV
 
       # NOTE: can be useful
       # - name: Set up QEMU
@@ -147,7 +146,8 @@ jobs:
           file: ${{ inputs.dockerFilePath }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
-          build-args: ${{ env.BUILD_ARGS }}
+          build-args: |
+            ${{ env.BUILD_ARGS }}
 
       - name: helper - get slack message attachment color
         id: helper
