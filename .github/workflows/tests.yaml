@@ -15,12 +15,12 @@ on:
         description: Path to node version file
         required: false
         type: string
-        default: ./.nvmrc
+        default: .nvmrc
       npmRegistryUrl:
         description: NPM registry url
         required: false
         type: string
-        default: https://npm.pkg.github.com
+        default: https://npm.pkg.github.com/
       npmScope:
         description: NPM scope
         required: true
@@ -114,7 +114,7 @@ jobs:
       - name: setup Node.js
         uses: actions/setup-node@v3
         with:
-          always-auth: ${{ inputs.npmAuth }}
+          always-auth: "${{ inputs.npmAuth }}"
           node-version-file: ${{ inputs.nodeVersionFile }}
           registry-url: ${{ inputs.registryUrl }}
           scope: ${{ inputs.npmScope }}
