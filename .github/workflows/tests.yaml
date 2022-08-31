@@ -121,7 +121,7 @@ jobs:
 
       - name: run tests
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.npmToken }}
         run: |
           if [ "${{ inputs.envVariables }}" != "" ]; then
               export $(echo ${{ inputs.envVariables }})
