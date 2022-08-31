@@ -120,15 +120,14 @@ jobs:
           scope: ${{ inputs.npmScope }}
 
       - name: run tests
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.envVariables }}" != "" ]; then
               export $(echo ${{ inputs.envVariables }})
           fi
 
-          if [ "${{ secrets.npmToken }}" != "" ]; then
-              NODE_AUTH_TOKEN=${{ secrets.npmToken }} npm install
-          fi
-
+          npm install
           npm run ${{ inputs.npmTestScript }}
 
       - name: helper - get slack message formatting
