@@ -137,7 +137,7 @@ jobs:
 
       - name: helper - get slack message formatting
         id: helper
-        if: always() && inputs.slackChannelId != ""
+        if: always() && inputs.slackChannelId != ''
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
@@ -149,7 +149,7 @@ jobs:
           fi 
 
       - name: send result to slack
-        if: always() && inputs.slackChannelId != ""
+        if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
