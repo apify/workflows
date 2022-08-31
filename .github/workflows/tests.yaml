@@ -25,10 +25,14 @@ on:
         description: NPM scope
         required: true
         type: string
-      npmTestScript:
+      scripts:
         description: Script for test in package.json
         required: true
         type: string
+        # example:
+        #   scripts: |
+        #     npm run build
+        #     npm run test
       title:
         description: Title displayed in slack message
         required: false
@@ -129,7 +133,7 @@ jobs:
               export NODE_AUTH_TOKEN=${{ secrets.npmToken }}
           fi
           npm install
-          npm run ${{ inputs.npmTestScript }}
+          eval "${{ inputs.scripts }}"
 
       - name: helper - get slack message formatting
         id: helper
