@@ -116,7 +116,7 @@ jobs:
         with:
           always-auth: ${{ inputs.npmAuth }}
           node-version-file: ${{ inputs.nodeVersionFile }}
-          registry-url: ${{ inputs.registryUrl }}
+          registry-url: ${{ inputs.npmRegistryUrl }}
           scope: ${{ inputs.npmScope }}
 
       - name: run tests
