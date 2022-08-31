@@ -9,8 +9,8 @@ on:
       npmAuth:
         description: Whether to authenticate to NPM registry
         required: false
-        type: boolean
-        default: true
+        type: string
+        default: 'true'
       nodeVersionFile:
         description: Path to node version file
         required: false
@@ -114,7 +114,7 @@ jobs:
       - name: setup Node.js
         uses: actions/setup-node@v3
         with:
-          always-auth: "${{ inputs.npmAuth }}"
+          always-auth: ${{ inputs.npmAuth }}
           node-version-file: ${{ inputs.nodeVersionFile }}
           registry-url: ${{ inputs.registryUrl }}
           scope: ${{ inputs.npmScope }}
