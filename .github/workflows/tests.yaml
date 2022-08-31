@@ -9,8 +9,8 @@ on:
       npmAuth:
         description: Whether to authenticate to NPM registry
         required: false
-        type: string
-        default: 'true'
+        type: boolean
+        default: true
       nodeVersionFile:
         description: Path to node version file
         required: false
@@ -120,13 +120,14 @@ jobs:
           scope: ${{ inputs.npmScope }}
 
       - name: run tests
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.npmToken }}
         run: |
           if [ "${{ inputs.envVariables }}" != "" ]; then
               export $(echo ${{ inputs.envVariables }})
           fi
 
+          if [ "${{ secrets.npmToken }}" != "" ]; then
+              export NODE_AUTH_TOKEN=${{ secrets.npmToken }}
+          fi
           npm install
           npm run ${{ inputs.npmTestScript }}
 
