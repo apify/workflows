@@ -126,11 +126,10 @@ jobs:
           fi
 
           if [ "${{ secrets.npmToken }}" != "" ]; then
-              export NODE_AUTH_TOKEN=${{ secrets.npmToken }}
+              NODE_AUTH_TOKEN=${{ secrets.npmToken }} npm install
           fi
 
-          npm install
-          npm run ${{ inputs.npmTestScrip }}
+          npm run ${{ inputs.npmTestScript }}
 
       - name: helper - get slack message formatting
         id: helper
