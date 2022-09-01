@@ -1,0 +1,184 @@
+name: deploy cloudformation
+
+on:
+  workflow_call:
+    inputs:
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
+      awsRegion:
+        description: AWS region
+        required: false
+        type: string
+        default: us-east-1
+      awsSessionDuration:
+        description: AWS session duration
+        required: false
+        type: number
+        default: 3600
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+      stackName:
+        description: Cloudformation stack name
+        required: true
+        type: string
+      templateFile:
+        description: Path to cloudformation template file
+        required: true
+        type: string
+      s3Bucket:
+        description: S3 bucket where templates will be stored
+        required: false
+        type: string
+      parameters:
+        description: Parameters (plaint text or file) for cloudformation template
+        required: false
+        type: string
+      capabilities:
+        description: Cloudformation stack capabilities
+        required: false
+        type: string
+
+    secrets:
+      awsAccessKeyId:
+        description: AWS access key ID
+        required: true
+      awsSecretAccessKey:
+        description: AWS secret access key
+        required: true
+      slackToken:
+        description: Slack API token
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: send notification to slack
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":large_blue_circle: *${{ github.repository }} deploy of cloudformation stack ${{ inputs.stackName }} started*",
+              "attachments": [
+                {
+                  "color": "#0066ff",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      - name: assume IAM role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.awsAccessKeyId }}
+          aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+
+      # Since the official cloudformation deploy action is archived for some reason, let's script this!
+      - name: deploy
+        run: |
+          OPTIONAL_PARAMETERS=""
+          if [ "${{ inputs.s3Bucket }}" != "" ]; then
+              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --s3-bucket ${{ inputs.s3Bucket }}"
+          fi
+          if [ "${{ inputs.parameters }}" != "" ]; then
+              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --parameter-overrides ${{ inputs.parameters }}"
+          fi
+          if [ "${{ inputs.capabilities }}" != "" ]; then
+              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --capabilities ${{ inputs.capabilities }}"
+          fi
+          aws cloudformation deploy \
+              --stack-name ${{ inputs.stackName }} \
+              --template-file ${{ inputs.templateFile }} ${OPTIONAL_PARAMETERS}
+
+
+      - name: helper - get slack message formatting
+        id: helper
+        if: ${{ always() }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]
+          then
+              echo ::set-output name=color::#00cc00
+              echo ::set-output name=emoji::large_green_circle
+          else
+              echo ::set-output name=color::#ff0000
+              echo ::set-output name=emoji::red_circle
+          fi 
+      
+      - name: send result to slack
+        if: ${{ always() }}
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "attachments": [
+                {
+                  "color": "${{ steps.helper.outputs.color }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
