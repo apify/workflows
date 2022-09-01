@@ -45,7 +45,7 @@ on:
         description: Cloudformation stack capabilities
         required: false
         type: string
-      roleArn:
+      cloudformationRoleArn:
         description: IAM role ARN assumed by Cloudformation service
         required: false
         type: string
@@ -129,8 +129,8 @@ jobs:
           if [ "${{ inputs.capabilities }}" != "" ]; then
               OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --capabilities ${{ inputs.capabilities }}"
           fi
-          if [ "${{ inputs.roleArn }}" ]; then
-              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --role-arn ${{ inputs.roleArn }}"
+          if [ "${{ inputs.cloudformationRoleArn }}" ]; then
+              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --role-arn ${{ inputs.cloudformationRoleArn }}"
           fi
           aws cloudformation deploy \
               --stack-name ${{ inputs.stackName }} \
