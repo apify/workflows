@@ -28,6 +28,7 @@ jobs:
           cd repo
           git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
           git switch ${{ github.base_ref }}
+          git merge ${{ inputs.baseBranch }} --no-edit
           git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${{ github.base_ref }}:${{ inputs.baseBranch }}
 
       - name: report failure to slack
