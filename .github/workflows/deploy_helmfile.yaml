@@ -47,7 +47,7 @@ on:
         #   BAR=foo
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       actorOverride:
         description: Override the author of event
@@ -75,6 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to slack
+        if: inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -173,7 +174,7 @@ jobs:
 
       - name: helper - get slack message formatting
         id: helper
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
@@ -185,7 +186,7 @@ jobs:
           fi 
       
       - name: send result to slack
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
