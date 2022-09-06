@@ -1,0 +1,10 @@
+name: dependent
+
+on:
+  workflow_call:
+
+jobs:
+  dependent:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "I have been run!!!"
