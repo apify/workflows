@@ -63,7 +63,7 @@ on:
         required: true
       slackToken:
         description: Slack API token
-        required: true
+        required: false
 
 jobs:
   deploy:
