@@ -53,6 +53,11 @@ on:
         description: Override the author of event
         required: false
         type: string
+      helmfileCommand:
+        description: Command run by helmfile
+        required: false
+        type: string
+        default: sync
 
     secrets:
       awsAccessKeyId:
@@ -164,13 +169,13 @@ jobs:
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
       
-      - name: helmfile sync
+      - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
           export $(echo ${{ inputs.envVariables }})
           HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
           [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
           [ ! -z ${{ inputs.helmfileOtherArgs }} ] && HELMFILE_PARAMS+=" ${{ inputs.helmfileOtherArgs }}"
-          helmfile $HELMFILE_PARAMS sync
+          helmfile $HELMFILE_PARAMS ${{ inputs.helmfileCommand }}
 
       - name: helper - get slack message formatting
         id: helper

@@ -1,8 +1,0 @@
-name: main
-
-on:
-  workflow_call:
-
-jobs:
-  main:
-    uses: ./.github/workflows/dependent.yaml
