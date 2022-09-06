@@ -3,15 +3,19 @@ name: sync branches
 on:
   workflow_call:
     inputs:
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+      revision:
+        description: Tag given to container image
+        required: true
+        type: string
       baseBranch:
         description: Branch that will be synchronized with current branch
         required: false
         type: string
         default: develop
-      slackChannelId:
-        description: Slack Channel ID
-        required: true
-        type: string
     
     secrets:
       slackToken:
@@ -54,7 +58,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",

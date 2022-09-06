@@ -33,6 +33,10 @@ on:
         description: Path to cloudformation template file
         required: true
         type: string
+      revision:
+        description: Revision of change
+        required: true
+        type: string
       s3Bucket:
         description: S3 bucket where templates will be stored
         required: false
@@ -87,7 +91,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
@@ -134,8 +138,8 @@ jobs:
           fi
           aws cloudformation deploy \
               --stack-name ${{ inputs.stackName }} \
-              --template-file ${{ inputs.templateFile }} ${OPTIONAL_PARAMETERS}
-
+              --template-file ${{ inputs.templateFile }} \
+              --tags revision=${{ inputs.revision }} ${OPTIONAL_PARAMETERS}
 
       - name: helper - get slack message formatting
         id: helper
@@ -173,7 +177,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",

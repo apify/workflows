@@ -3,7 +3,7 @@ name: deploy helmfile
 on:
   workflow_call:
     inputs:
-      imageTag:
+      revision:
         description: Tag given to container image
         required: true
         type: string
@@ -96,7 +96,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
@@ -207,7 +207,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
