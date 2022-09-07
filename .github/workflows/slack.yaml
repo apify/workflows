@@ -1,0 +1,102 @@
+name: slack
+
+on:
+  workflow_call:
+    inputs:
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+      subject:
+        description: Subject of message (i.e. deploy, tests,..)
+        required: true
+        type: string
+      revision:
+        description: Revision (semver, short commit sha,..)
+        required: false
+        type: string
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+      jobStatus:
+        description: > 
+          Determines the color and status of message (use ${{ job.status }})
+          If omitted blue info message is send
+        required: false
+        type: string
+
+    secrets:
+      slackToken:
+        description: Slack API token
+        required: true
+
+jobs:
+  slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: format message
+        id: format
+        run: |
+          jobStatus=${{ inputs.jobStatus }}
+          if [ "${{ inputs.jobStatus }}" = "" ]; then
+              color=#0066ff
+              emoji=large_blue_circle
+              jobStatus="started"
+          elif [ "${{ inputs.jobStatus }}" = "success" ]; then
+              color=#00cc00
+              emoji=large_green_circle
+          else
+              color=#ff0000
+              emoji=red_circle
+          fi
+
+          if [ "${{ inputs.revision }}" = "" ]; then
+              revision=${GITHUB_SHA::10}
+          else
+              revision=${{ inputs.revision }}
+          fi
+
+          echo ::set-output name=color::${color}
+          echo ::set-output name=emoji::${emoji}
+          echo ::set-output name=revision::${revision}
+          echo ::set-output name=jobStatus::${jobStatus}
+
+      - name: send message
+        uses: slackapi/slack-github-action@v1.19.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":${{ steps.format.outputs.emoji }}: *${{ github.repository }} ${{ inputs.subject }} ${{ steps.format.outputs.jobStatus }}*",
+              "attachments": [
+                {
+                  "color": "${{ steps.format.outputs.color }}",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.revision }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
