@@ -21,8 +21,7 @@ on:
         type: string
       jobStatus:
         description: > 
-          Determines the color and status of message (use ${{ job.status }})
-          If omitted blue info message is send
+          Determines the color and status of message. If omitted blue info message is send
         required: false
         type: string
 
