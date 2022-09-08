@@ -121,6 +121,10 @@ jobs:
           role-to-assume: ${{ inputs.awsRoleArn }}
           role-duration-seconds: ${{ inputs.awsSessionDuration }}
 
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
       - name: deploy
         run: |
@@ -172,7 +176,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy of cloudformation stack ${{ inputs.stackName }} result: ${{ job.status }}*",
               "attachments": [
                 {
                   "color": "${{ steps.helper.outputs.color }}",
