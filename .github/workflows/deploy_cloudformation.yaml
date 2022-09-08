@@ -126,10 +126,12 @@ jobs:
         run: |
           OUTPUT_TEMPLATE_FILE=${{ inputs.templateFile }}
           if [ "${{ inputs.s3Bucket }}" != "" ]; then
+              echo ">>> Checking of bucket exists. If not, will try to create it"
+              aws s3 ls | grep ${BUCKET_NAME} > /dev/null || aws s3 mb s3://${BUCKET_NAME} > /dev/null
               OUTPUT_TEMPLATE_FILE=$(dirname ${{ inputs.templateFile }})/pkg_$(basename ${{ inputs.templateFile }})
               aws cloudformation package \
-                  --template-file ${{ inputs.templateFile }}
-                  --s3-bucket ${{ inputs.s3Bucket }}
+                  --template-file ${{ inputs.templateFile }} \
+                  --s3-bucket ${{ inputs.s3Bucket }} \
                   --output-template-file ${OUTPUT_TEMPLATE_FILE}
           fi
 
