@@ -88,7 +88,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":large_blue_circle: *${{ github.repository }} deploy started*",
+              "text": ":large_blue_circle: *${{ github.repository }} deploy of helmfile started*",
               "attachments": [
                 {
                   "color": "#0066ff",
@@ -199,7 +199,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy of helmfile result: ${{ job.status }}*",
               "attachments": [
                 {
                   "color": "${{ steps.helper.outputs.color }}",
