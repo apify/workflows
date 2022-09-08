@@ -27,19 +27,29 @@ on:
         default: us-east-1
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       setNodeVersion:
-        description: Put NODE_VERSION from .nvmrc to docker build args
+        description: Put NODE_VERSION from path/to/.nvmrc to docker build args
         required: false
         type: string
         default: true
+      nvmrcPath:
+        description: Path to nvmrc file
+        required: false
+        type: string
+        default: .nvmrc
       dockerBuildArgs:
         description: Values for --build-arg argument
         required: false
         type: string
         # This is just a dummy default, so docker does not complain
         default: FOO=BAR
+      dockerContext:
+        description: Relative path to git context
+        required: false
+        type: string
+        default: '.'
       actorOverride:
         description: Override the author of event
         required: false
@@ -54,7 +64,7 @@ on:
         required: true
       slackToken:
         description: Slack API token
-        required: true
+        required: false
       npmToken:
         description: Put NPM_TOKEN to docker build args
         required: false
@@ -64,13 +74,12 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.awsSecretAccessKey }}
   AWS_REGION: ${{ inputs.awsRegion }}
 
-  # NPMRC_TEMP_FILE: npmrc-temp-file
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to slack
+        if: inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -116,7 +125,7 @@ jobs:
         run: |
           BUILD_ARGS=${{ inputs.dockerBuildArgs }}
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 .nvmrc)"
+              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 ${{ inputs.nvmrcPath }})"
           fi
 
           echo 'BUILD_ARGS<<EOF' >> $GITHUB_ENV
@@ -141,6 +150,7 @@ jobs:
         id: build_and_push
         uses: docker/build-push-action@v3
         with:
+          context: ${{ inputs.dockerContext }}
           file: ${{ inputs.dockerFilePath }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
@@ -150,7 +160,7 @@ jobs:
 
       - name: helper - get slack message attachment color
         id: helper
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
@@ -162,7 +172,7 @@ jobs:
           fi 
       
       - name: send result to slack
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}

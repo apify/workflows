@@ -29,7 +29,7 @@ jobs:
         id: get_short_commit_sha
         run: |
           if [ "${{ inputs.commitSha }}" != "" ]; then
-            COMMIT_SHA=${{ inputs.commitSha }}
+              COMMIT_SHA=${{ inputs.commitSha }}
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
               COMMIT_SHA=${{ github.event.pull_request.head.sha }}
           else

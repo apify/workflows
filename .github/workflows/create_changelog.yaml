@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       changelogScopes:
-        description: 'changelog scopes (i.e { "App": ["app", "application"] })'
+        description: 'Changelog scopes (i.e { "App": ["app", "application"] })'
         required: true
         type: string
       slackChannelId:
@@ -41,7 +41,6 @@ jobs:
         id: release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # result-encoding: string
           script: |
             // TODO: maybe parametrize
             const releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];

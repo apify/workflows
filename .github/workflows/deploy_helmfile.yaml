@@ -3,7 +3,7 @@ name: deploy helmfile
 on:
   workflow_call:
     inputs:
-      imageTag:
+      revision:
         description: Tag given to container image
         required: true
         type: string
@@ -47,12 +47,17 @@ on:
         #   BAR=foo
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       actorOverride:
         description: Override the author of event
         required: false
         type: string
+      helmfileCommand:
+        description: Command run by helmfile
+        required: false
+        type: string
+        default: sync
 
     secrets:
       awsAccessKeyId:
@@ -63,7 +68,7 @@ on:
         required: true
       slackToken:
         description: Slack API token
-        required: true
+        required: false
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.awsAccessKeyId }}
@@ -75,6 +80,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send notification to slack
+        if: inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -82,7 +88,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":large_blue_circle: *${{ github.repository }} deploy started*",
+              "text": ":large_blue_circle: *${{ github.repository }} deploy of helmfile started*",
               "attachments": [
                 {
                   "color": "#0066ff",
@@ -96,7 +102,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
@@ -163,17 +169,17 @@ jobs:
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
       
-      - name: helmfile sync
+      - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
           export $(echo ${{ inputs.envVariables }})
           HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
           [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
           [ ! -z ${{ inputs.helmfileOtherArgs }} ] && HELMFILE_PARAMS+=" ${{ inputs.helmfileOtherArgs }}"
-          helmfile $HELMFILE_PARAMS sync
+          helmfile $HELMFILE_PARAMS ${{ inputs.helmfileCommand }}
 
       - name: helper - get slack message formatting
         id: helper
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
@@ -185,7 +191,7 @@ jobs:
           fi 
       
       - name: send result to slack
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -193,7 +199,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy of helmfile result: ${{ job.status }}*",
               "attachments": [
                 {
                   "color": "${{ steps.helper.outputs.color }}",
@@ -207,7 +213,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",

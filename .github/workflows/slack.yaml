@@ -1,4 +1,4 @@
-name: sync branches
+name: slack
 
 on:
   workflow_call:
@@ -7,36 +7,61 @@ on:
         description: Slack Channel ID
         required: true
         type: string
-      revision:
-        description: Tag given to container image
+      subject:
+        description: Subject of message (i.e. deploy, tests,..)
         required: true
         type: string
-      baseBranch:
-        description: Branch that will be synchronized with current branch
+      revision:
+        description: Revision (semver, short commit sha,..)
         required: false
         type: string
-        default: develop
-    
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+      jobStatus:
+        description: > 
+          Determines the color and status of message. If omitted blue info message is send
+        required: false
+        type: string
+
     secrets:
       slackToken:
         description: Slack API token
         required: true
-    
-jobs:
-  sync_branches:
-    runs-on: ubuntu-latest
-    steps:   
-      - name: git
-        run: |
-          mkdir repo
-          cd repo
-          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
-          git switch ${{ github.base_ref }}
-          git merge ${{ inputs.baseBranch }} --no-edit
-          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${{ github.base_ref }}:${{ inputs.baseBranch }}
 
-      - name: report failure to slack
-        if: ${{ failure() }}
+jobs:
+  slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: format message
+        id: format
+        run: |
+          jobStatus=${{ inputs.jobStatus }}
+          if [ "${{ inputs.jobStatus }}" = "" ]; then
+              color=#0066ff
+              emoji=large_blue_circle
+              jobStatus="started"
+          elif [ "${{ inputs.jobStatus }}" = "success" ]; then
+              color=#00cc00
+              emoji=large_green_circle
+          else
+              color=#ff0000
+              emoji=red_circle
+          fi
+
+          if [ "${{ inputs.revision }}" = "" ]; then
+              revision=${GITHUB_SHA::10}
+          else
+              revision=${{ inputs.revision }}
+          fi
+
+          echo ::set-output name=color::${color}
+          echo ::set-output name=emoji::${emoji}
+          echo ::set-output name=revision::${revision}
+          echo ::set-output name=jobStatus::${jobStatus}
+
+      - name: send message
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -44,10 +69,10 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":red_circle: *${{ github.repository }} syncing ${{ github.base_ref }} to ${{ inputs.baseBranch }}: ${{ job.status }}*",
+              "text": ":${{ steps.format.outputs.emoji }}: *${{ github.repository }} ${{ inputs.subject }} ${{ steps.format.outputs.jobStatus }}*",
               "attachments": [
                 {
-                  "color": "#ff0000",
+                  "color": "${{ steps.format.outputs.color }}",
                   "blocks": [
                     {
                       "type": "section",

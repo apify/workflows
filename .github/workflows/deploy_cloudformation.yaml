@@ -19,7 +19,7 @@ on:
         default: 3600
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       actorOverride:
         description: Override the author of event
@@ -31,6 +31,10 @@ on:
         type: string
       templateFile:
         description: Path to cloudformation template file
+        required: true
+        type: string
+      revision:
+        description: Revision of change
         required: true
         type: string
       s3Bucket:
@@ -59,13 +63,14 @@ on:
         required: true
       slackToken:
         description: Slack API token
-        required: true
+        required: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: send notification to slack
+        if: inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -87,7 +92,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
@@ -116,13 +121,25 @@ jobs:
           role-to-assume: ${{ inputs.awsRoleArn }}
           role-duration-seconds: ${{ inputs.awsSessionDuration }}
 
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
       - name: deploy
         run: |
-          OPTIONAL_PARAMETERS=""
+          OUTPUT_TEMPLATE_FILE=${{ inputs.templateFile }}
           if [ "${{ inputs.s3Bucket }}" != "" ]; then
-              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --s3-bucket ${{ inputs.s3Bucket }}"
+              echo ">>> Checking of bucket exists. If not, will try to create it"
+              aws s3 ls | grep ${{ inputs.s3Bucket }} > /dev/null || aws s3 mb s3://${{ inputs.s3Bucket }} > /dev/null
+              OUTPUT_TEMPLATE_FILE=$(dirname ${{ inputs.templateFile }})/pkg_$(basename ${{ inputs.templateFile }})
+              aws cloudformation package \
+                  --template-file ${{ inputs.templateFile }} \
+                  --s3-bucket ${{ inputs.s3Bucket }} \
+                  --output-template-file ${OUTPUT_TEMPLATE_FILE}
           fi
+
+          OPTIONAL_PARAMETERS=""
           if [ "${{ inputs.parameters }}" != "" ]; then
               OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --parameter-overrides ${{ inputs.parameters }}"
           fi
@@ -134,12 +151,12 @@ jobs:
           fi
           aws cloudformation deploy \
               --stack-name ${{ inputs.stackName }} \
-              --template-file ${{ inputs.templateFile }} ${OPTIONAL_PARAMETERS}
-
+              --template-file ${OUTPUT_TEMPLATE_FILE} \
+              --tags revision=${{ inputs.revision }} ${OPTIONAL_PARAMETERS}
 
       - name: helper - get slack message formatting
         id: helper
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
@@ -151,7 +168,7 @@ jobs:
           fi 
       
       - name: send result to slack
-        if: ${{ always() }}
+        if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
@@ -159,7 +176,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy result: ${{ job.status }}*",
+              "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy of cloudformation stack ${{ inputs.stackName }} result: ${{ job.status }}*",
               "attachments": [
                 {
                   "color": "${{ steps.helper.outputs.color }}",
@@ -173,7 +190,7 @@ jobs:
                         },
                         {
                           "type": "mrkdwn",
-                          "text": "*Revision:* ${{ inputs.imageTag }}"
+                          "text": "*Revision:* ${{ inputs.revision }}"
                         },
                         {
                           "type": "mrkdwn",
