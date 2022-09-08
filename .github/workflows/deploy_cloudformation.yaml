@@ -124,10 +124,16 @@ jobs:
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
       - name: deploy
         run: |
-          OPTIONAL_PARAMETERS=""
+          OUTPUT_TEMPLATE_FILE=${{ inputs.templateFile }})
           if [ "${{ inputs.s3Bucket }}" != "" ]; then
-              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --s3-bucket ${{ inputs.s3Bucket }}"
+              OUTPUT_TEMPLATE_FILE=$(dirname ${{ inputs.templateFile }})/pkg_$(basename ${{ inputs.templateFile }})
+              aws cloudformation package \
+                  --template-file ${{ inputs.templateFile }}
+                  --s3-bucket ${{ inputs.s3Bucket }}
+                  --output-template-file ${OUTPUT_TEMPLATE_FILE}
           fi
+
+          OPTIONAL_PARAMETERS=""
           if [ "${{ inputs.parameters }}" != "" ]; then
               OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --parameter-overrides ${{ inputs.parameters }}"
           fi
@@ -139,7 +145,7 @@ jobs:
           fi
           aws cloudformation deploy \
               --stack-name ${{ inputs.stackName }} \
-              --template-file ${{ inputs.templateFile }} \
+              --template-file ${OUTPUT_TEMPLATE_FILE} \
               --tags revision=${{ inputs.revision }} ${OPTIONAL_PARAMETERS}
 
       - name: helper - get slack message formatting
