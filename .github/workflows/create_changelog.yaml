@@ -84,6 +84,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
+              "text": "Changelog"
               "blocks": [
                 {
                   "type": "section",
