@@ -67,7 +67,7 @@ jobs:
                     repo: context.repo.repo,
                     tag_name: releaseName,
                     name: releaseName,
-                    target_commitish: '${{ github.base_ref || github.ref }}'
+                    target_commitish: '${{ github.base_ref || github.ref_name }}'
                     body: `${{ steps.changelog.outputs.changelog }}`,
                 });
             } catch (error) {
