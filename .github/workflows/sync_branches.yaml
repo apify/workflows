@@ -72,7 +72,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pullRequestNumber,
-                body: 'Auto-approving PR',
+                body: 'Auto-approving pull request',
                 event: 'APPROVE',
             })
 
