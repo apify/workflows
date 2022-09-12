@@ -23,17 +23,39 @@ on:
         required: true
     
 jobs:
-  sync_branches:
+  pull_request:
     runs-on: ubuntu-latest
-    steps:   
-      - name: git
-        run: |
-          mkdir repo
-          cd repo
-          git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
-          git switch ${{ github.base_ref }}
-          git merge ${{ inputs.baseBranch }} --no-edit
-          git push https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${{ github.base_ref }}:${{ inputs.baseBranch }}
+    steps:
+      - name: open and merge pull request
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            let headBranch = '';
+            const eventName = process.env.GITHUB_EVENT_NAME;
+            if (eventName === 'pull_request') {
+                headBranch = process.env.GITHUB_BASE_REF;
+            } else if (eventName === 'push' || eventName === 'workflow_dispatch') {
+                headBranch = process.env.GITHUB_REF_NAME;
+            } else {
+                throw new Error(`Don't know how to handle event name: ${eventName}`);            
+            }
+
+            const createResp = await github.rest.pulls.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                head: headBranch,
+                base: '${{ inputs.baseBranch }}',
+                title: `chore: backport changes from ${headBranch} to ${{ inputs.baseBranch }} [ignore]`,
+            });
+
+            const pullRequestNumber = createResp.data.number;
+
+            await github.rest.pulls.merge({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pullRequestNumber,
+            });
 
       - name: report failure to slack
         if: ${{ failure() }}
