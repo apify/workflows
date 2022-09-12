@@ -21,16 +21,31 @@ on:
       slackToken:
         description: Slack API token
         required: true
+      githubToken:
+        description: Github token to approve PR (GITHUB_TOKEN cannot open and approve PR)
+        required: true
     
 jobs:
   pull_request:
     runs-on: ubuntu-latest
     steps:
+      # TODO: We need better way (probably using multiple steps with actions/github-script)
+      - name: install octokit
+        run: npm i @octokit/rest@v19
+
       - name: open and merge pull request
         uses: actions/github-script@v6
+        env: 
+          GIT_HUB_TOKEN: ${{ secrets.githubToken }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const { Octokit } = require('@octokit/rest');
+
+            const octokit = new Octokit({
+                auth: process.env.GIT_HUB_TOKEN,
+            });
+
             let headBranch = '';
             const eventName = process.env.GITHUB_EVENT_NAME;
             if (eventName === 'pull_request') {
@@ -41,6 +56,7 @@ jobs:
                 throw new Error(`Don't know how to handle event name: ${eventName}`);            
             }
 
+            // Create pull request
             const createResp = await github.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -51,6 +67,16 @@ jobs:
 
             const pullRequestNumber = createResp.data.number;
 
+            // Approve pull request
+            await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pullRequestNumber,
+                body: 'Auto-approving pull request',
+                event: 'APPROVE',
+            })
+
+            // Merge pull request
             await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
