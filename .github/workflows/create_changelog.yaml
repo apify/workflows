@@ -51,7 +51,7 @@ jobs:
             let releaseName;
             let alreadyExists = false;
 
-            if (${{ inputs.releaseName }}) {
+            if ('${{ inputs.releaseName }}') {
                 releaseName = '${{ inputs.releaseName }}';
             } else {
                 releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
