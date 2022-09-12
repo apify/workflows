@@ -29,6 +29,10 @@ jobs:
   pull_request:
     runs-on: ubuntu-latest
     steps:
+      # TODO: We need better way (probably using multiple steps with actions/github-script)
+      - name: install octokit
+        run: npm i @octokit/rest@v19
+
       - name: open and merge pull request
         uses: actions/github-script@v6
         env: 
