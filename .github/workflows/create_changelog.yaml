@@ -11,6 +11,10 @@ on:
         description: Slack Channel ID
         required: true
         type: string
+      releaseName:
+        description: This value overrides release name got from release branch name
+        required: false
+        type: string
     
     secrets:
       slackToken:
@@ -43,8 +47,19 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // TODO: maybe parametrize
-            const releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
+            // Expecting brach to be named release/vX.Y.Z
+            let releaseName;
             let alreadyExists = false;
+
+            if (${{ inputs.releaseName }}) {
+                releaseName = '${{ inputs.releaseName }}';
+            } else {
+                releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
+            }
+
+            if (!releaseName) {
+                throw new Error('Could not get release name from branch name or "releaseName" input!')
+            }
 
             try {
                 await github.repos.createRelease({

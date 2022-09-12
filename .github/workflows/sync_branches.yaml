@@ -35,7 +35,7 @@ jobs:
             const eventName = process.env.GITHUB_EVENT_NAME;
             if (eventName === 'pull_request') {
                 headBranch = process.env.GITHUB_BASE_REF;
-            } else if (eventName === 'push') || (eventName === 'workflow_dispatch') {
+            } else if (eventName === 'push' || eventName === 'workflow_dispatch') {
                 headBranch = process.env.GITHUB_REF_NAME;
             } else {
                 throw new Error(`Don't know how to handle event name: ${eventName}`);            
