@@ -41,7 +41,7 @@ jobs:
           compare-method: tag
 
       - name: create github release
-        uses: actions/github-script@v4
+        uses: actions/github-script@v6
         id: release
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -62,11 +62,12 @@ jobs:
             }
 
             try {
-                await github.repos.createRelease({
+                await github.rest.repos.createRelease({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     tag_name: releaseName,
                     name: releaseName,
+                    target_commitish: '${{ github.base_ref || github.ref }}'
                     body: `${{ steps.changelog.outputs.changelog }}`,
                 });
             } catch (error) {
