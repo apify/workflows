@@ -132,7 +132,6 @@ jobs:
           if [ "${{ secrets.npmToken }}" != "" ]; then
               export NODE_AUTH_TOKEN=${{ secrets.npmToken }}
           fi
-          npm install
           eval "${{ inputs.scripts }}"
 
       - name: helper - get slack message formatting
