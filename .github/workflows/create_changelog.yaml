@@ -70,10 +70,10 @@ jobs:
                 if (!SEMVER_REGEX.test(cleanVersion)) throw new Error('Version: ${version} does not uphold to semantic versioning standard!');
 
                 if (bump) {
-                    const cleanVersionSplit = cleanVersion.split('.')[1];
+                    const cleanVersionSplit = cleanVersion.split('.');
                     const minor = cleanVersionSplit[1];
-                    if (!minor) throw new Error('Version: ${version} does not have a minor to bump!');
-                    return `${VERSION_PREFIX}${cleanVersion[0]}.${minor+1}.${cleanVersion[0]}`;
+                    if (!minor) throw new Error(`Version: ${version} does not have a minor to bump!`);
+                    return `${VERSION_PREFIX}${cleanVersion[0]}.${Number(minor)+1}.${cleanVersion[0]}`;
                 }
 
                 return version;
@@ -95,17 +95,19 @@ jobs:
                     repo: context.repo.repo,
                 });
                 if (releases.data.length === 0) {
-                    releaseName = '0.0.0';
+                    releaseName = `${VERSION_PREFIX}0.0.0`;
                 } else {
                     const { name } = releases.data[0];
-                    releaseName = checkSemverAndModify(name, true)
+                    console.log(`Discovered last release name: ${name}`);
+                    releaseName = checkSemverAndModify(name, true);
                 }
             }
 
             if (!releaseName) {
-                throw new Error('Could not get release name from branch name or "releaseName" input!')
+                throw new Error('Could not get release name from branch name or "releaseName" input!');
             }
 
+            console.log(`Publishing new release: ${releaseName}`);
             try {
                 await github.rest.repos.createRelease({
                     owner: context.repo.owner,
