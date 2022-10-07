@@ -99,6 +99,7 @@ jobs:
                 } else {
                     const { name, target_commitish: commitSha } = releases.data[0];
                     console.log(`Discovered last release name: ${name}`);
+                    console.log(`${commitSha} and ${process.env.GITHUB_SHA}`)
                     if (commitSha === process.env.GITHUB_SHA) {
                         console.log(`There already is release on ${commitSha}, skipping release publishing!`)
                         return { releaseName: name, alreadyExists: true };
