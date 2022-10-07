@@ -101,7 +101,7 @@ jobs:
                     console.log(`Discovered last release name: ${name}`);
                     if (commitSha === process.env.GITHUB_SHA) {
                         console.log(`There already is release on ${commitSha}, skipping release publishing!`)
-                        return { name, true };
+                        return { releaseName: name, alreadyExists: true };
                     }
                     releaseName = checkSemverAndModify(name, true);
                 }
