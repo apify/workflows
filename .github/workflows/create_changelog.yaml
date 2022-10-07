@@ -15,6 +15,11 @@ on:
         description: This value overrides release name got from release branch name
         required: false
         type: string
+      releaseNamePrefix:
+        description: Prepend prefix to releaseName
+        required: false 
+        type: string
+        default: 'v'
     
     secrets:
       slackToken:
@@ -46,15 +51,55 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // TODO: maybe parametrize
             // Expecting brach to be named release/vX.Y.Z
+            const SEMVER_REGEX = new RegExp('^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$');
+            const VERSION_PREFIX = '${{ inputs.releaseName }}';
+
             let releaseName;
             let alreadyExists = false;
+
+            const checkSemverAndModify = (version, bump = false) => {
+                let cleanVersion;
+
+                if (version.slice(0, VERSION_PREFIX.length) === VERSION_PREFIX) {
+                    cleanVersion = version.slice(VERSION_PREFIX.length);
+                } else {
+                    cleanVersion = version;
+                }
+
+                if (!SEMVER_REGEX.test(cleanVersion)) throw new Error('Version: ${version} does not uphold to semantic versioning standard!');
+
+                if (bump) {
+                    const cleanVersionSplit = cleanVersion.split('.')[1];
+                    const minor = cleanVersionSplit[1];
+                    if (!minor) throw new Error('Version: ${version} does not have a minor to bump!');
+                    return `${VERSION_PREFIX}${cleanVersion[0]}.${minor+1}.${cleanVersion[0]}`;
+                }
+
+                return version;
+            }
 
             if ('${{ inputs.releaseName }}') {
                 releaseName = '${{ inputs.releaseName }}';
             } else {
-                releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
+                if (process.env.GITHUB_HEAD_REF) {
+                    releaseName = checkSemverAndModify(process.env.GITHUB_HEAD_REF.split('/')[1]);
+                }
+            }
+
+            // If all of the above fails try to read last release and bump it
+            if (!releaseName) {
+                console.log('Trying to determine release name from last release name..')
+                const releases = await octokit.rest.repos.listReleases({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                });
+                if (releases.data.length === 0) {
+                    releaseName = '0.0.0';
+                } else {
+                    const { name } = releases.data[0];
+                    releaseName = checkSemverAndModify(name, true)
+                }
             }
 
             if (!releaseName) {
