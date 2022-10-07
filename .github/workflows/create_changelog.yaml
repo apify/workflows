@@ -53,7 +53,7 @@ jobs:
           script: |
             // Expecting brach to be named release/vX.Y.Z
             const SEMVER_REGEX = new RegExp('^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$');
-            const VERSION_PREFIX = '${{ inputs.releaseName }}';
+            const VERSION_PREFIX = '${{ inputs.releaseNamePrefix }}';
 
             let releaseName;
             let alreadyExists = false;
@@ -131,7 +131,7 @@ jobs:
       # and replaces newline chars with literal \n
       # TODO: should probably be part of apify/release-pr-action
       - name: format changelog for slack api
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false || inputs.slackChannelId != '' }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
         id: format
         run: |
           echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
@@ -139,7 +139,7 @@ jobs:
           echo ::set-output name=changelog::$changelog
       
       - name: send changelog to slack
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false || inputs.slackChannelId != '' }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
