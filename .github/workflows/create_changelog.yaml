@@ -97,8 +97,12 @@ jobs:
                 if (releases.data.length === 0) {
                     releaseName = `${VERSION_PREFIX}0.0.0`;
                 } else {
-                    const { name } = releases.data[0];
+                    const { name, target_commitish: commitSha } = releases.data[0];
                     console.log(`Discovered last release name: ${name}`);
+                    if (commitSha === process.env.GITHUB_SHA) {
+                        console.log(`There already is release on ${commitSha}, skipping release publishing!`)
+                        return { name, true };
+                    }
                     releaseName = checkSemverAndModify(name, true);
                 }
             }
