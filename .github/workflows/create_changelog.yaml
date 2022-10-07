@@ -90,7 +90,7 @@ jobs:
             // If all of the above fails try to read last release and bump it
             if (!releaseName) {
                 console.log('Trying to determine release name from last release name..')
-                const releases = await octokit.rest.repos.listReleases({
+                const releases = await github.rest.repos.listReleases({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                 });
