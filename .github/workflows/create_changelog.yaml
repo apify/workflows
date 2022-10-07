@@ -9,7 +9,7 @@ on:
         type: string
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       releaseName:
         description: This value overrides release name got from release branch name
@@ -129,7 +129,7 @@ jobs:
       # and replaces newline chars with literal \n
       # TODO: should probably be part of apify/release-pr-action
       - name: format changelog for slack api
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false || inputs.slackChannelId != "" }}
         id: format
         run: |
           echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
@@ -137,7 +137,7 @@ jobs:
           echo ::set-output name=changelog::$changelog
       
       - name: send changelog to slack
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false || inputs.slackChannelId != "" }}
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
