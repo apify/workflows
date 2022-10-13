@@ -9,17 +9,22 @@ on:
         type: string
       slackChannelId:
         description: Slack Channel ID
-        required: true
+        required: false
         type: string
       releaseName:
         description: This value overrides release name got from release branch name
         required: false
         type: string
+      releaseNamePrefix:
+        description: Prepend prefix to releaseName
+        required: false 
+        type: string
+        default: 'v'
     
     secrets:
       slackToken:
         description: Slack API token
-        required: true
+        required: false
 
 jobs:
   release:
@@ -46,21 +51,76 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            // TODO: maybe parametrize
             // Expecting brach to be named release/vX.Y.Z
+            const SEMVER_REGEX = new RegExp('^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$');
+            const VERSION_PREFIX = '${{ inputs.releaseNamePrefix }}';
+
             let releaseName;
             let alreadyExists = false;
+
+            const checkSemverAndModify = (version, bump = false) => {
+                let cleanVersion;
+
+                if (version.slice(0, VERSION_PREFIX.length) === VERSION_PREFIX) {
+                    cleanVersion = version.slice(VERSION_PREFIX.length);
+                } else {
+                    cleanVersion = version;
+                }
+
+                if (!SEMVER_REGEX.test(cleanVersion)) throw new Error('Version: ${version} does not uphold to semantic versioning standard!');
+
+                if (bump) {
+                    const cleanVersionSplit = cleanVersion.split('.');
+                    const minor = cleanVersionSplit[1];
+                    if (!minor) throw new Error(`Version: ${version} does not have a minor to bump!`);
+                    return `${VERSION_PREFIX}${cleanVersion[0]}.${Number(minor)+1}.${cleanVersion[0]}`;
+                }
+
+                return version;
+            }
 
             if ('${{ inputs.releaseName }}') {
                 releaseName = '${{ inputs.releaseName }}';
             } else {
-                releaseName = process.env.GITHUB_HEAD_REF.split('/')[1];
+                if (process.env.GITHUB_HEAD_REF) {
+                    releaseName = checkSemverAndModify(process.env.GITHUB_HEAD_REF.split('/')[1]);
+                }
+            }
+
+            // If all of the above fails try to read last release and bump it
+            if (!releaseName) {
+                console.log('Trying to determine release name from last release name..')
+                const releases = await github.rest.repos.listReleases({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                });
+                if (releases.data.length === 0) {
+                    releaseName = `${VERSION_PREFIX}0.0.0`;
+                } else {
+                    const { name, tag_name: tagName} = releases.data[0];
+                    console.log(`Discovered last release name: ${name}`);
+                    const tag = await github.rest.git.getRef({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        ref: `tags/${tagName}`,
+                    });
+
+                    const tagCommitSha = tag.data.object.sha;
+
+                    // If tag of last release already exists on current commit SHA, then do not create new release
+                    if (tagCommitSha === context.sha) {
+                        console.log(`Release with tag ${tagName} already exists! Refusing to override!`);
+                        return { releaseName: null, alreadyExists: true };
+                    }
+                    releaseName = checkSemverAndModify(name, true);
+                }
             }
 
             if (!releaseName) {
-                throw new Error('Could not get release name from branch name or "releaseName" input!')
+                throw new Error('Could not get release name from branch name or "releaseName" input!');
             }
 
+            console.log(`Publishing new release: ${releaseName}`);
             try {
                 await github.rest.repos.createRelease({
                     owner: context.repo.owner,
@@ -84,7 +144,7 @@ jobs:
       # and replaces newline chars with literal \n
       # TODO: should probably be part of apify/release-pr-action
       - name: format changelog for slack api
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
         id: format
         run: |
           echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
@@ -92,7 +152,7 @@ jobs:
           echo ::set-output name=changelog::$changelog
       
       - name: send changelog to slack
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false }}
+        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
         uses: slackapi/slack-github-action@v1.19.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
