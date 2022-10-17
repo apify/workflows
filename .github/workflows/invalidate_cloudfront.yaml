@@ -1,0 +1,89 @@
+name: invalidate cloudfront distribution
+
+on:
+  workflow_call:
+    inputs:
+      distributionId:
+        description: AWS CloudFront distribution ID
+        required: true
+        type: string
+      path:
+        description: Path to invalidate (i.e /*)
+        required: false
+        type: string
+        default: '/*'
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
+      awsRegion:
+        description: AWS region
+        required: false
+        type: string
+        default: us-east-1
+      awsSessionDuration:
+        description: AWS session duration
+        required: false
+        type: number
+        default: 3600
+      slackChannelId:
+        description: Slack Channel ID
+        required: false
+        type: string
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+      revision:
+        description: Revision (semver, short commit sha,..)
+        required: false
+        type: string
+
+    secrets:
+      awsAccessKeyId:
+        description: AWS access key ID
+        required: true
+      awsSecretAccessKey:
+        description: AWS secret access key
+        required: true
+      slackToken:
+        description: Slack API token
+        required: false
+
+jobs:
+  invalidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: assume IAM role
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.awsAccessKeyId }}
+          aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+      
+      - name: invalidate
+        run: |
+          echo ">>> Invalidating path ${{ inputs.path }} of distribution ${{ inputs.distributionId }}"
+          aws cloudfront create-invalidation \
+              --distribution-id ${{ inputs.distributionId }} \
+              --paths ${{ inputs.path }}
+
+  slack_notification_failure:
+    if: failure() && inputs.slackChannelId != ''
+    needs: invalidate
+    uses: ./.github/workflows/slack.yaml
+    with:
+      slackChannelId: ${{ inputs.slackChannelId }}
+      subject: "cloudfront invalidation"
+      revision: ${{ inputs.revision }}
+      actorOverride: ${{ inputs.actorOverride }}
+      jobStatus: failure
+
+    secrets:
+      slackToken: ${{ secrets.slackToken }}
