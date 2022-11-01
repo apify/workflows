@@ -52,7 +52,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             // Expecting brach to be named release/vX.Y.Z
-            const SEMVER_REGEX = new RegExp('^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$');
+            const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
             const VERSION_PREFIX = '${{ inputs.releaseNamePrefix }}';
 
             let releaseName;
@@ -67,7 +67,7 @@ jobs:
                     cleanVersion = version;
                 }
 
-                if (!SEMVER_REGEX.test(cleanVersion)) throw new Error('Version: ${version} does not uphold to semantic versioning standard!');
+                if (!SEMVER_REGEX.test(cleanVersion)) throw new Error(`Version: ${version} does not uphold to semantic versioning standard!`);
 
                 if (bump) {
                     const cleanVersionSplit = cleanVersion.split('.');
