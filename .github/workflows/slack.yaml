@@ -56,10 +56,10 @@ jobs:
               revision=${{ inputs.revision }}
           fi
 
-          echo ::set-output name=color::${color}
-          echo ::set-output name=emoji::${emoji}
-          echo ::set-output name=revision::${revision}
-          echo ::set-output name=jobStatus::${jobStatus}
+          echo "color=${color}" >> $GITHUB_OUTPUT
+          echo "emoji=${emoji}" >> $GITHUB_OUTPUT
+          echo "revision=${revision}" >> $GITHUB_OUTPUT
+          echo "jobStatus=${jobStatus}" >> $GITHUB_OUTPUT
 
       - name: send message
         uses: slackapi/slack-github-action@v1.23.0

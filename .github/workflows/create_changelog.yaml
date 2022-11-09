@@ -149,7 +149,7 @@ jobs:
         run: |
           echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
           changelog=$(awk '{printf "%s\\n", $0}' changelog.txt)
-          echo ::set-output name=changelog::$changelog
+          echo "changelog=${changelog}" >> $GITHUB_OUTPUT
       
       - name: send changelog to slack
         if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}

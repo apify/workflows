@@ -141,12 +141,12 @@ jobs:
         run: |
           if [ "${{ job.status }}" = "success" ]
           then
-              echo ::set-output name=color::#00cc00
-              echo ::set-output name=emoji::large_green_circle
+              echo "color=#00cc00" >> $GITHUB_OUTPUT
+              echo "emoji=large_green_circle" >> $GITHUB_OUTPUT
           else
-              echo ::set-output name=color::#ff0000
-              echo ::set-output name=emoji::red_circle
-          fi 
+              echo "color=#ff0000" >> $GITHUB_OUTPUT
+              echo "emoji=red_circle" >> $GITHUB_OUTPUT
+          fi
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
