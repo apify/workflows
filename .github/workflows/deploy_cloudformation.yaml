@@ -134,6 +134,7 @@ jobs:
 
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
       - name: deploy
+        id: deploy
         run: |
           OUTPUT_TEMPLATE_FILE=${{ inputs.templateFile }}
           if [ "${{ inputs.s3Bucket }}" != "" ]; then
