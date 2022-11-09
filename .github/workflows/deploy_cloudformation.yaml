@@ -69,7 +69,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     outputs:
-      stackOutput: ${{ steps.deploy.outputs.outputs }}
+      stackOutputs: ${{ steps.deploy.outputs.stackOutputs }}
     steps:
       - name: send notification to slack
         if: inputs.slackChannelId != ''
@@ -161,7 +161,7 @@ jobs:
             --output json \
             --query 'Stacks[]' | jq '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )')
           
-          echo "stackOutput=${STACK_OUTPUTS}" >> $GITHUB_OUTPUT
+          echo "stackOutputs=${STACK_OUTPUTS}" >> $GITHUB_OUTPUT
 
       - name: helper - get slack message formatting
         id: helper
