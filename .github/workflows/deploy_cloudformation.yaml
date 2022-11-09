@@ -165,11 +165,8 @@ jobs:
           STACK_OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name ${{ inputs.stackName }} \
             --output json \
-            --query 'Stacks[]' | jq '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[] | tostring')
-          
-          ### DEBUG
-          echo "outputs: ${STACK_OUTPUTS}"
-          ### DEBUG
+            --query 'Stacks[]' | jq '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[]')
+
           echo "stackOutputs=$STACK_OUTPUTS" >> $GITHUB_OUTPUT
 
       - name: helper - get slack message formatting
