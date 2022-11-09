@@ -165,7 +165,7 @@ jobs:
           STACK_OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name ${{ inputs.stackName }} \
             --output json \
-            --query 'Stacks[]' | jq '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[]')
+            --query 'Stacks[]' | jq -c '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[]')
 
           echo "stackOutputs=$STACK_OUTPUTS" >> $GITHUB_OUTPUT
 
