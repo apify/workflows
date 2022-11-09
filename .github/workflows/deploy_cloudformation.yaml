@@ -166,6 +166,9 @@ jobs:
             --output json \
             --query 'Stacks[]' | jq '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[] | tostring')
           
+          ### DEBUG
+          echo "outputs: ${STACK_OUTPUTS}"
+          ### DEBUG
           echo "stackOutputs=${STACK_OUTPUTS}" >> $GITHUB_OUTPUT
 
       - name: helper - get slack message formatting
