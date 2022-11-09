@@ -53,6 +53,11 @@ on:
         description: IAM role ARN assumed by Cloudformation service
         required: false
         type: string
+    
+    outputs:
+      stackOutputs:
+        description: Stringified json containing outputs of cloudformation stack
+        value: ${{ jobs.deploy.outputs.stackOutputs }}
 
     secrets:
       awsAccessKeyId:
