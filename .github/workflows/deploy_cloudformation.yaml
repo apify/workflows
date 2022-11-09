@@ -169,7 +169,7 @@ jobs:
           ### DEBUG
           echo "outputs: ${STACK_OUTPUTS}"
           ### DEBUG
-          echo "stackOutputs=${STACK_OUTPUTS}" >> $GITHUB_OUTPUT
+          echo "stackOutputs=$STACK_OUTPUTS" >> $GITHUB_OUTPUT
 
       - name: helper - get slack message formatting
         id: helper
