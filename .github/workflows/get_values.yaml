@@ -36,7 +36,7 @@ jobs:
               COMMIT_SHA=${{ github.sha }}
           fi
           echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
-          echo "::set-output name=short_commit_sha::${COMMIT_SHA::10}"
+          echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
 
       - name: get last commit author  
         uses: actions/github-script@v6
