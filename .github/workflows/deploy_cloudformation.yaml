@@ -53,6 +53,11 @@ on:
         description: IAM role ARN assumed by Cloudformation service
         required: false
         type: string
+    
+    outputs:
+      stackOutputs:
+        description: Stringified json containing outputs of cloudformation stack
+        value: ${{ jobs.deploy.outputs.stackOutputs }}
 
     secrets:
       awsAccessKeyId:
@@ -68,6 +73,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    outputs:
+      stackOutputs: ${{ steps.deploy.outputs.stackOutputs }}
     steps:
       - name: send notification to slack
         if: inputs.slackChannelId != ''
@@ -127,6 +134,7 @@ jobs:
 
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
       - name: deploy
+        id: deploy
         run: |
           OUTPUT_TEMPLATE_FILE=${{ inputs.templateFile }}
           if [ "${{ inputs.s3Bucket }}" != "" ]; then
@@ -154,6 +162,13 @@ jobs:
               --template-file ${OUTPUT_TEMPLATE_FILE} \
               --tags revision=${{ inputs.revision }} ${OPTIONAL_PARAMETERS}
 
+          STACK_OUTPUTS=$(aws cloudformation describe-stacks \
+            --stack-name ${{ inputs.stackName }} \
+            --output json \
+            --query 'Stacks[]' | jq -c '.[] | select(.Outputs != null) | .Outputs | map( { (.OutputKey|tostring): . } )[]')
+
+          echo "stackOutputs=$STACK_OUTPUTS" >> $GITHUB_OUTPUT
+
       - name: helper - get slack message formatting
         id: helper
         if: always() && inputs.slackChannelId != ''
@@ -165,7 +180,7 @@ jobs:
           else
               echo ::set-output name=color::#ff0000
               echo ::set-output name=emoji::red_circle
-          fi 
+          fi
       
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
