@@ -53,6 +53,10 @@ on:
         description: IAM role ARN assumed by Cloudformation service
         required: false
         type: string
+      additionalParameters:
+        description: Additional parameters of aws cloudformation deploy
+        required: false
+        type: string
     
     outputs:
       stackOutputs:
@@ -160,7 +164,9 @@ jobs:
           aws cloudformation deploy \
               --stack-name ${{ inputs.stackName }} \
               --template-file ${OUTPUT_TEMPLATE_FILE} \
-              --tags revision=${{ inputs.revision }} ${OPTIONAL_PARAMETERS}
+              --tags revision=${{ inputs.revision }} \
+              ${OPTIONAL_PARAMETERS} \
+              ${{ inputs.additionalParameters }}
 
           STACK_OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name ${{ inputs.stackName }} \
