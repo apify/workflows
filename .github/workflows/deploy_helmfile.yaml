@@ -131,7 +131,7 @@ jobs:
       - name: setup dependencies
         env:
           EKSCTL_VERSION: v0.98.0
-          HELMFILE_VERSION: v0.144.0
+          HELMFILE_VERSION: v0.147.0
           SOPS_VERSION: v3.7.2
           HELM_SECRETS_PLUGIN_VERSION: v3.8.3
         run: |
