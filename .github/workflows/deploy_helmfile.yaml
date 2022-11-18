@@ -131,12 +131,12 @@ jobs:
       - name: setup dependencies
         env:
           EKSCTL_VERSION: v0.98.0
-          HELMFILE_VERSION: v0.147.0
+          HELMFILE_VERSION: '0.147.0'
           SOPS_VERSION: v3.7.2
           HELM_SECRETS_PLUGIN_VERSION: v3.8.3
         run: |
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
-          curl -fsSL -o helmfile https://github.com/roboll/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_linux_amd64
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v${{ env.HELMFILE_VERSION }}/helmfile_${{ env.HELMFILE_VERSION }}_linux_amd64.tar.gz
           curl -fsSL -o sops https://github.com/mozilla/sops/releases/download/${{ env.SOPS_VERSION }}/sops-${{ env.SOPS_VERSION }}.linux
           
           helm plugin install https://github.com/jkroepke/helm-secrets --version ${{ env.HELM_SECRETS_PLUGIN_VERSION }}
@@ -144,11 +144,10 @@ jobs:
           mkdir -p $HOME/.local/bin
 
           tar -C $HOME/.local/bin/ -xf ./eksctl.tar.gz
-          mv helmfile $HOME/.local/bin/
+          tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
           mv sops $HOME/.local/bin/
 
           chmod +x $HOME/.local/bin/*
-
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: assume IAM role
