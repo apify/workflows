@@ -1,0 +1,42 @@
+# This workflow creates new github release and updates changelog
+name: release new version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/release-please-action@v3
+        id: release-pr
+        with:
+          command: release-pr
+          release-type: simple
+          package-name: workflows
+          pull-request-title-pattern: 'chore: release${component} ${version}'
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false}]'
+
+      - uses: actions/github-script@v6
+        id: merge
+        with:
+          retries: 3
+          script: |
+            const pullNumber = ${{ fromJson(steps.release-pr.outputs.pr).number }};
+            if (!pullNumber) throw new Error(`"${pullNumber}" is not valid pull request number!`);
+
+            github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pullNumber,
+              merge_method: 'squash',
+            })
+
+      - uses: google-github-actions/release-please-action@v3
+        id: github-release
+        with:
+          command: github-release
+          release-type: simple
+          package-name: workflows
+          pull-request-title-pattern: 'chore: release${component} ${version}'
+          changelog-types: '[{"type":"feat","section":"Features","hidden":false},{"type":"fix","section":"Bug Fixes","hidden":false},{"type":"chore","section":"Miscellaneous","hidden":false}]'
