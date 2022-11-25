@@ -16,14 +16,6 @@ on:
         description: New Relic application ID
         required: false
         type: string
-      sentrySourceMapArtifact:
-        description: Sentry sourcemap artifact name
-        required: false
-        type: string
-      sentrySourceMapPath:
-        description: Path to sentry source map
-        required: false
-        type: string
       sentryOrg:
         description: Sentry Organization
         required: false
@@ -77,13 +69,6 @@ jobs:
     if: inputs.sentryOrg != ''
     runs-on: ubuntu-latest
     steps:
-      # Downloads source map artifact. This artifact needs to be uploaded prior calling this job
-      - name: download source map artifact
-        if: inputs.sentrySourceMapArtifact != ''
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ inputs.sentrySourceMapArtifact }}
-
       - name: mark deploy - frontend
         if: inputs.sentryEnvironmentFrontend != ''
         uses: getsentry/action-release@v1
@@ -93,7 +78,6 @@ jobs:
           SENTRY_PROJECT: ${{ inputs.sentryProject }}
         with:
           environment: ${{ inputs.sentryEnvironmentFrontend }}
-          sourcemaps: ${{ inputs.sentrySourceMapPath }}
 
       - name: mark deploy - backend
         if: inputs.sentryEnvironmentBackend != ''
