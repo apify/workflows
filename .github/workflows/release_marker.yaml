@@ -69,6 +69,9 @@ jobs:
     if: inputs.sentryOrg != ''
     runs-on: ubuntu-latest
     steps:
+      - name: checkout repository
+        uses: actions/checkout@v3
+
       - name: mark deploy - frontend
         if: inputs.sentryEnvironmentFrontend != ''
         uses: getsentry/action-release@v1
