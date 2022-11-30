@@ -1,0 +1,108 @@
+# Marks release in New Relic and/or Sentry
+name: release marker
+
+on:
+  workflow_call:
+    inputs:
+      revision:
+        description: Revision that will be marked
+        required: true
+        type: string
+      newRelicAccountId:
+        description: New Relic account ID
+        required: false
+        type: number
+      newRelicApplicationId:
+        description: New Relic application ID
+        required: false
+        type: string
+      sentryOrg:
+        description: Sentry Organization
+        required: false
+        type: string
+      sentryProject:
+        description: Sentry project
+        required: false
+        type: string
+      sentryEnvironmentFrontend:
+        description: Sentry environment
+        required: false
+        type: string
+      sentryEnvironmentBackend:
+        description: Sentry environment
+        required: false
+        type: string
+      slackChannelId:
+        description: Slack Channel ID
+        required: false
+        type: string
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+
+    secrets:
+      newRelicApiKey:
+        description: New Relic API key
+        required: false
+      sentryAuthToken:
+        description: Sentry authentication token
+        required: false
+      slackToken:
+        description: Slack API token
+        required: false
+
+jobs:
+  new_relic:
+    if: inputs.newRelicAccountId != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: mark
+        uses: newrelic/deployment-marker-action@v1
+        with:
+          apiKey: ${{ secrets.newRelicApiKey }}
+          accountId: ${{ inputs.newRelicAccountId }}
+          applicationId: ${{ inputs.newRelicApplicationId }}
+          revision: ${{ inputs.revision }}
+      
+  sentry:
+    if: inputs.sentryOrg != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v3
+
+      - name: mark deploy - frontend
+        if: inputs.sentryEnvironmentFrontend != ''
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
+          SENTRY_ORG: ${{ inputs.sentryOrg }}
+          SENTRY_PROJECT: ${{ inputs.sentryProject }}
+        with:
+          environment: ${{ inputs.sentryEnvironmentFrontend }}
+
+      - name: mark deploy - backend
+        if: inputs.sentryEnvironmentBackend != ''
+        uses: getsentry/action-release@v1
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
+          SENTRY_ORG: ${{ inputs.sentryOrg }}
+          SENTRY_PROJECT: ${{ inputs.sentryProject }}
+        with:
+          environment: ${{ inputs.sentryEnvironmentBackend }}
+
+  slack_notification_failure:
+    if: failure() && inputs.slackChannelId != ''
+    needs: 
+      - new_relic
+      - sentry
+    uses: ./.github/workflows/slack.yaml
+    with:
+      slackChannelId: ${{ inputs.slackChannelId }}
+      subject: "marking release in new relic/sentry failed"
+      revision: ${{ inputs.revision }}
+      actorOverride: ${{ inputs.actorOverride }}
+      jobStatus: failure
+    secrets:
+      slackToken: ${{ secrets.slackToken }}

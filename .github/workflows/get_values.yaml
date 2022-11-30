@@ -13,6 +13,9 @@ on:
       short_commit_sha:
         description: Short commit sha
         value: ${{ jobs.get_values.outputs.short_commit_sha }}
+      clean_branch_name:
+        description: Branch name stripped of non-alphanumeric characters and capped at length of 35
+        value: ${{ jobs.get_values.outputs.clean_branch_name }}
       commit_author:
         description: Author of last commit
         value: ${{ jobs.get_values.outputs.commit_author }}
@@ -21,22 +24,31 @@ jobs:
   get_values:
     runs-on: ubuntu-latest
     outputs:
-      short_commit_sha: ${{ steps.get_short_commit_sha.outputs.short_commit_sha }}
+      short_commit_sha: ${{ steps.get_context.outputs.short_commit_sha }}
+      clean_branch_name: ${{ steps.get_context.outputs.clean_branch_name }}
       commit_author: ${{ steps.get_commit_author.outputs.result }}
     steps:
         # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
-      - name: get short commit sha
-        id: get_short_commit_sha
+      - name: get context
+        id: get_context
         run: |
           if [ "${{ inputs.commitSha }}" != "" ]; then
               COMMIT_SHA=${{ inputs.commitSha }}
+              BRANCH_NAME=${GITHUB_REF_NAME}
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
               COMMIT_SHA=${{ github.event.pull_request.head.sha }}
+              BRANCH_NAME=${GITHUB_HEAD_REF}
           else
               COMMIT_SHA=${{ github.sha }}
+              BRANCH_NAME=${GITHUB_REF_NAME}
           fi
+
+          _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
+          CLEAN_BRANCH_NAME=$(echo ${_BRANCH_NAME} | cut -c 1-35)
+
           echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
           echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
+          echo "clean_branch_name=${CLEAN_BRANCH_NAME}" >> $GITHUB_OUTPUT
 
       - name: get last commit author  
         uses: actions/github-script@v6
