@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/apify/workflows/compare/v0.7.0...v0.8.0) (2022-11-30)
+
+
+### Features
+
+* add release_marker workflow ([#20](https://github.com/apify/workflows/issues/20)) ([d523b83](https://github.com/apify/workflows/commit/d523b83dc9d9141c598f41e5d5d76fcbfd4a6d49))
+
 ## [0.7.0](https://github.com/apify/workflows/compare/v0.6.2...v0.7.0) (2022-11-18)
 
 
