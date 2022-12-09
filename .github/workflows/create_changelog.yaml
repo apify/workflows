@@ -38,7 +38,7 @@ jobs:
       - name: get changelog
         id: changelog
         # TODO: change reference once this PR is merged https://github.com/apify/release-pr-action/pull/4
-        uses: apify/release-pr-action@v2.1.0
+        uses: apify/release-pr-action@feat/pr
         with: 
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
