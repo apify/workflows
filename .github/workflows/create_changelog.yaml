@@ -43,7 +43,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
           create-pull-request: false
-          compare-method: tag
+          compare-method: pull_request
 
       - name: create github release
         uses: actions/github-script@v6
