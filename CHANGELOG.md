@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0](https://github.com/apify/workflows/compare/v0.8.0...v0.9.0) (2022-12-12)
+
+
+### Features
+
+* add sync_branches_push.yaml workflow ([#23](https://github.com/apify/workflows/issues/23)) ([802529c](https://github.com/apify/workflows/commit/802529c32802efd7f51d9d3f766cfaa2a53ce9bd))
+* get changelog from pr commits ([#22](https://github.com/apify/workflows/issues/22)) ([e4f78fb](https://github.com/apify/workflows/commit/e4f78fbc84317e5f99bd5285e29396648120d7d8))
+
 ## [0.8.0](https://github.com/apify/workflows/compare/v0.7.0...v0.8.0) (2022-11-30)
 
 
