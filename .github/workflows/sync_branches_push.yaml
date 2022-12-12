@@ -46,9 +46,9 @@ jobs:
           mkdir repo
           cd repo
           git clone https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git .
-          git fetch origin ${HEAD_BRANCH}
-          git merge origin/${HEAD_BRANCH} --no-edit
-          git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${HEAD_BRANCH}:${{ inputs.baseBranch }}
+          git switch ${{ inputs.baseBranch }}
+          git pull origin ${HEAD_BRANCH}
+          git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${{ inputs.baseBranch }}:${{ inputs.baseBranch }}
 
       - name: report failure to slack
         if: ${{ failure() }}
