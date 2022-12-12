@@ -1,0 +1,91 @@
+# This workflow could be part of the sync_branches.yaml, but given the GH limit of 20 workflows references
+# per 1 workflow, it has been put in separate workflow as precaution
+name: sync branches
+
+on:
+  workflow_call:
+    inputs:
+      slackChannelId:
+        description: Slack Channel ID
+        required: true
+        type: string
+      revision:
+        description: Tag given to container image
+        required: true
+        type: string
+      baseBranch:
+        description: Branch that will be synchronized with current branch
+        required: false
+        type: string
+        default: develop
+    
+    secrets:
+      slackToken:
+        description: Slack API token
+        required: true
+      # This cannot be GITHUB_TOKEN, if branch is protected. It must be real github user
+      # and must have exception from branch protection
+      githubToken:
+        description: Github token to approve PR (GITHUB_TOKEN cannot open and approve PR)
+        required: true
+      
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:   
+      - name: git
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            HEAD_BRANCH="${GITHUB_BASE_REF}"
+          elif [ "${GITHUB_EVENT_NAME}" = "push" ] || [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            HEAD_BRANCH="${GITHUB_REF_NAME}"
+          else
+            echo ">>> Don't know how to handle event name: ${GITHUB_EVENT_NAME}"
+            exit 1
+          fi
+          mkdir repo
+          cd repo
+          git clone https://github-actions:${{ secrets.REPO_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+          git fetch origin ${HEAD_BRANCH}
+          git merge origin/${HEAD_BRANCH} --no-edit
+          git push https://github-actions:${{ secrets.REPO_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${HEAD_BRANCH}:${{ inputs.baseBranch }}
+
+      - name: report failure to slack
+        if: ${{ failure() }}
+        uses: slackapi/slack-github-action@v1.23.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelId }}
+          payload: |
+            {
+              "text": ":red_circle: *${{ github.repository }} syncing ${{ github.base_ref }} to ${{ inputs.baseBranch }}: ${{ job.status }}*",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.revision }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
