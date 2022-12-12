@@ -45,10 +45,10 @@ jobs:
           fi
           mkdir repo
           cd repo
-          git clone https://github-actions:${{ secrets.REPO_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+          git clone https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git .
           git fetch origin ${HEAD_BRANCH}
           git merge origin/${HEAD_BRANCH} --no-edit
-          git push https://github-actions:${{ secrets.REPO_GITHUB_TOKEN }}@github.com/${{ github.repository }}.git ${HEAD_BRANCH}:${{ inputs.baseBranch }}
+          git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${HEAD_BRANCH}:${{ inputs.baseBranch }}
 
       - name: report failure to slack
         if: ${{ failure() }}
