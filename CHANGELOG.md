@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.3](https://github.com/apify/workflows/compare/v0.9.2...v0.9.3) (2022-12-13)
+
+
+### Bug Fixes
+
+* add git config to sync_branches_push ([#29](https://github.com/apify/workflows/issues/29)) ([8f2b171](https://github.com/apify/workflows/commit/8f2b171632de80fc40ee1e692176ba70141ea2ad))
+
 ## [0.9.2](https://github.com/apify/workflows/compare/v0.9.1...v0.9.2) (2022-12-13)
 
 
