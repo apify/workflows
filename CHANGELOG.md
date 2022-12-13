@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.2](https://github.com/apify/workflows/compare/v0.9.1...v0.9.2) (2022-12-13)
+
+
+### Bug Fixes
+
+* expanding paths invalidate_cloudfront ([#27](https://github.com/apify/workflows/issues/27)) ([c3645b8](https://github.com/apify/workflows/commit/c3645b8198f2f0c80d8ebb86c004e0de5a4fec8b))
+
 ## [0.9.1](https://github.com/apify/workflows/compare/v0.9.0...v0.9.1) (2022-12-13)
 
 
