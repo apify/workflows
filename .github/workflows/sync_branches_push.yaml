@@ -13,6 +13,14 @@ on:
         description: Tag given to container image
         required: true
         type: string
+      gitConfigUsername:
+        description: Git configuration - username
+        required: true
+        type: string
+      gitConfigEmail:
+        description: Git configuration - email
+        required: true
+        type: string
       baseBranch:
         description: Branch that will be synchronized with current branch
         required: false
@@ -46,8 +54,13 @@ jobs:
           mkdir repo
           cd repo
           git clone https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git .
+
+          git config --global user.email "${{ inputs.gitConfigEmail }}"
+          git config --global user.name "${{ inputs.gitConfigUsername }}"
+          git config pull.rebase false
+
           git switch ${{ inputs.baseBranch }}
-          git pull origin ${HEAD_BRANCH}
+          git pull origin ${HEAD_BRANCH} --no-edit
           git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${{ inputs.baseBranch }}:${{ inputs.baseBranch }}
 
       - name: report failure to slack
