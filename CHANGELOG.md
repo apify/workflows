@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/apify/workflows/compare/v0.9.0...v0.9.1) (2022-12-13)
+
+
+### Bug Fixes
+
+* get commit author ([#25](https://github.com/apify/workflows/issues/25)) ([23a10a0](https://github.com/apify/workflows/commit/23a10a01e6c34db84024aebe33b9704ae35b8ea6))
+
 ## [0.9.0](https://github.com/apify/workflows/compare/v0.8.0...v0.9.0) (2022-12-12)
 
 
