@@ -72,7 +72,7 @@ jobs:
           echo ">>> Invalidating path ${{ inputs.path }} of distribution ${{ inputs.distributionId }}"
           aws cloudfront create-invalidation \
               --distribution-id ${{ inputs.distributionId }} \
-              --paths ${{ inputs.path }}
+              --paths '${{ inputs.path }}'
 
   slack_notification_failure:
     if: failure() && inputs.slackChannelId != ''
