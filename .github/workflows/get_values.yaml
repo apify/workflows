@@ -65,4 +65,4 @@ jobs:
                 ref: commitSha,
             });
 
-            return payload.data.author.login;
+            return payload.data.commit.author.name;
