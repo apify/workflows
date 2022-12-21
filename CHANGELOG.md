@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0](https://github.com/apify/workflows/compare/v0.9.3...v0.10.0) (2022-12-21)
+
+
+### Features
+
+* read changelog from file ([#31](https://github.com/apify/workflows/issues/31)) ([d25d64a](https://github.com/apify/workflows/commit/d25d64ad6a5690d2e14374deea1d204c65cfe7b2))
+
 ## [0.9.3](https://github.com/apify/workflows/compare/v0.9.2...v0.9.3) (2022-12-13)
 
 
