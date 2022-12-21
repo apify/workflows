@@ -37,8 +37,7 @@ jobs:
 
       - name: get changelog
         id: changelog
-        # TODO: change reference once this PR is merged https://github.com/apify/release-pr-action/pull/4
-        uses: apify/release-pr-action@v2.2.0
+        uses: apify/release-pr-action@v2.3.0
         with: 
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
@@ -51,6 +50,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const fs = require('fs/promises');
+
             // Expecting brach to be named release/vX.Y.Z
             const SEMVER_REGEX = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
             const VERSION_PREFIX = '${{ inputs.releaseNamePrefix }}';
@@ -120,6 +121,15 @@ jobs:
                 throw new Error('Could not get release name from branch name or "releaseName" input!');
             }
 
+            const changelogFileDestination = '${{ steps.changelog.outputs.changelogFileDestination }}';
+            let changelog;
+            try {
+                changelog = await fs.readFile(changelogFileDestination, 'utf-8');
+            } catch (error) {
+                console.error(`Could not read ${changelogFileDestination} from file-system`);
+                throw error;
+            }
+
             console.log(`Publishing new release: ${releaseName}`);
             try {
                 await github.rest.repos.createRelease({
@@ -128,7 +138,7 @@ jobs:
                     tag_name: releaseName,
                     name: releaseName,
                     target_commitish: '${{ github.base_ref || github.ref_name }}',
-                    body: `${{ steps.changelog.outputs.changelog }}`,
+                    body: changelog,
                 });
             } catch (error) {
                 if (error.response.data.errors[0].code === 'already_exists') {
