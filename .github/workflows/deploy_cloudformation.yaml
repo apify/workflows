@@ -168,11 +168,11 @@ jobs:
               ${OPTIONAL_PARAMETERS} \
               ${{ inputs.additionalParameters }}
 
-          # If there are no changes aws deploy creates empty changeset, which ends up in FAILED state. Eventually the number of changesets
+          # If there are no changes aws cloudformation deploy creates empty changeset, which ends up in FAILED state. Eventually the number of changesets
           # hits cloudformation maximum number of changesets limit, thus cloudformation stack becomes un-updatable. To counter this situation
           # let's try to delete this changeset after deploy. It is challenging to delete the exact changeset, so 1 changeset with the relevant
           # description is selected and deleted. Avoiding to delete all potential changesets as deleting is sequential and could potentially
-          # take a long time (=> waste GH credits, prolong deploy time,...)
+          # take a long time (=> waste of GH credits, prolong deploy time,...)
 
           # Using jq, because "--output text" appends "\nNone" to response and that would need to processed.
           CHANGE_SET_NAME=$(
@@ -185,7 +185,9 @@ jobs:
 
           if [ "${CHANGE_SET_NAME}" != "null"  ]; then
               echo ">>> Empty changeset found! Name: ${CHANGE_SET_NAME}. Deleting..."
-              aws cloudformation delete-change-set --stack-name ${{ inputs.stackName }} --change-set-name ${CHANGE_SET_NAME}
+              aws cloudformation delete-change-set \
+                  --stack-name ${{ inputs.stackName }} \
+                  --change-set-name ${CHANGE_SET_NAME}
           fi
 
           STACK_OUTPUTS=$(aws cloudformation describe-stacks \
