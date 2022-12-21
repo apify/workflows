@@ -37,8 +37,8 @@ jobs:
 
       - name: get changelog
         id: changelog
-        # TODO: change reference once this PR is merged https://github.com/apify/release-pr-action/pull/4
-        uses: apify/release-pr-action@v2.2.0
+        # TODO: change reference once this PR is merged https://github.com/apify/release-pr-action/pull/8
+        uses: apify/release-pr-action@feat/store_changelog
         with: 
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
@@ -128,6 +128,7 @@ jobs:
                 changelog = await fs.readFile(changelogFileDestination, 'utf-8');
             } catch (error) {
                 console.error(`Could not read ${changelogFileDestination} from file-system`);
+                throw error;
             }
 
             console.log(`Publishing new release: ${releaseName}`);
