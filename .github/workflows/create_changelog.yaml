@@ -131,15 +131,16 @@ jobs:
             }
 
             console.log(`Publishing new release: ${releaseName}`);
+            let releaseUrl;
             try {
-                await github.rest.repos.createRelease({
+                releaseUrl = (await github.rest.repos.createRelease({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     tag_name: releaseName,
                     name: releaseName,
                     target_commitish: '${{ github.base_ref || github.ref_name }}',
                     body: changelog,
-                });
+                })).data.html_url;
             } catch (error) {
                 if (error.response.data.errors[0].code === 'already_exists') {
                     console.log(`Release with name ${releaseName} already exists! Refusing to override!`);
@@ -148,18 +149,7 @@ jobs:
                     throw error;
                 }
             }
-            return { releaseName, alreadyExists };
-
-      # This step changes format of changelog from Github to Slack markdown-ish
-      # and replaces newline chars with literal \n
-      # TODO: should probably be part of apify/release-pr-action
-      - name: format changelog for slack api
-        if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
-        id: format
-        run: |
-          echo "${{ steps.changelog.outputs.changelog }}" | sed 's/\*\*/\*/g' | sed 's/\* /• /g' > changelog.txt
-          changelog=$(awk '{printf "%s\\n", $0}' changelog.txt)
-          echo "changelog=${changelog}" >> $GITHUB_OUTPUT
+            return { releaseName, alreadyExists, releaseUrl };
       
       - name: send changelog to slack
         if: ${{ fromJSON(steps.release.outputs.result).alreadyExists == false && inputs.slackChannelId != '' }}
@@ -176,7 +166,7 @@ jobs:
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
-                    "text": "_Repository_: *${{ github.repository }}* _Revision_: *${{ fromJSON(steps.release.outputs.result).releaseName }}*\n${{ steps.format.outputs.changelog }}"
+                    "text": "_Repository_: *${{ github.repository }}* _Revision_: <${{ fromJSON(steps.release.outputs.result).releaseUrl }}|${{ fromJSON(steps.release.outputs.result).releaseName }}>"
                   }
                 }
               ]
