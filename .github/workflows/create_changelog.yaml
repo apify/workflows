@@ -37,7 +37,7 @@ jobs:
 
       - name: get changelog
         id: changelog
-        uses: apify/release-pr-action@v2.3.0
+        uses: apify/release-pr-action@feat/get_changelog_from_pr
         with: 
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
