@@ -160,14 +160,7 @@ jobs:
           channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
-              "text": "Changelog",
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "_Repository_: *${{ github.repository }}* _Revision_: <${{ fromJSON(steps.release.outputs.result).releaseUrl }}|${{ fromJSON(steps.release.outputs.result).releaseName }}>"
-                  }
-                }
-              ]
+              "text": "_Repository_: *${{ github.repository }}* _Revision_: <${{ fromJSON(steps.release.outputs.result).releaseUrl }}|${{ fromJSON(steps.release.outputs.result).releaseName }}>",
+              "type": "mrkdwn",
+              "unfurl_links" : true
             }
