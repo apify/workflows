@@ -8,7 +8,11 @@ on:
         required: true
         type: string
       slackChannelId:
-        description: Slack Channel ID
+        description: Slack Channel ID for changelog
+        required: false
+        type: string
+      slackChannelIdForFailureMsg:
+        description: Slack Channel ID for failure messages
         required: false
         type: string
       releaseName:
@@ -30,11 +34,6 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: clone repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-
       - name: get changelog
         id: changelog
         uses: apify/release-pr-action@feat/get_changelog_from_pr
@@ -46,3 +45,43 @@ jobs:
           slack-channel: ${{ inputs.slackChannelId }}
           changelog-method: pull_request_description
           create-github-release: true
+
+      - name: report failure to slack
+        if: failure() inputs.slackChannelIdForFailureMsg != ''
+        uses: slackapi/slack-github-action@v1.23.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        with:
+          channel-id: ${{ inputs.slackChannelIdForFailureMsg }}
+          payload: |
+            {
+              "text": ":red_circle: *${{ github.repository }} automated release action: ${{ job.status }}*",
+              "attachments": [
+                {
+                  "color": "#ff0000",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Author:* ${{ inputs.actorOverride || github.actor }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Revision:* ${{ inputs.revision }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Details:* <${{ github.event.pull_request.html_url || github.event.head_commit.url }}|trigger>, <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}|workflow run>"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.event_name }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
