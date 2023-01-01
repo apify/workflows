@@ -31,7 +31,7 @@ jobs:
           fetch-depth: 0 
 
       - name: open release pull-request
-        uses: apify/release-pr-action@v2.1.0
+        uses: apify/release-pr-action@v2.3.0
         with: 
           repo-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}
