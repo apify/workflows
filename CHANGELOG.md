@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.11.0](https://github.com/apify/workflows/compare/v0.10.0...v0.11.0) (2023-01-03)
+
+
+### Features
+
+* consolidate changelog creation in release-pr-action ([#35](https://github.com/apify/workflows/issues/35)) ([eeb784e](https://github.com/apify/workflows/commit/eeb784e7ed1b2bb379f14daba7f1d11bba04fed8))
+
+
+### Bug Fixes
+
+* delete empty changesets after cloudformation deploy ([#33](https://github.com/apify/workflows/issues/33)) ([eab3f00](https://github.com/apify/workflows/commit/eab3f00dd79aee92d24a14c01f9c3bc82e0028cc))
+
 ## [0.10.0](https://github.com/apify/workflows/compare/v0.9.3...v0.10.0) (2022-12-21)
 
 
