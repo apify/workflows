@@ -25,14 +25,11 @@ jobs:
   open-pull-request:
     runs-on: ubuntu-latest
     steps:
-      - name: clone repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 
-
       - name: open release pull-request
-        uses: apify/release-pr-action@v2.1.0
+        uses: apify/release-pr-action@v3.0.0
         with: 
-          repo-token: ${{ secrets.githubToken }}
+          github-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}
           base-branch: ${{ inputs.baseBranch }}
+          create-release-pull-request: true
+          changelog-method: commits_compare
