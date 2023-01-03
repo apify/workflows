@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: open release pull-request
-        uses: apify/release-pr-action@feat/get_changelog_from_pr
+        uses: apify/release-pr-action@v3.0.0
         with: 
           github-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}

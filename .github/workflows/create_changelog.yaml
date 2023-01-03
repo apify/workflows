@@ -36,7 +36,7 @@ jobs:
     steps:
       - name: get changelog
         id: changelog
-        uses: apify/release-pr-action@feat/get_changelog_from_pr
+        uses: apify/release-pr-action@v3.0.0
         with: 
           slack-token: ${{ secrets.slackToken }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
