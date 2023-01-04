@@ -16,6 +16,9 @@ on:
       clean_branch_name:
         description: Branch name stripped of non-alphanumeric characters and capped at length of 35
         value: ${{ jobs.get_values.outputs.clean_branch_name }}
+      clean_branch_name_with_suffix:
+        description: Branch name stripped of non-alphanumeric characters and capped at length of 28 concatenated with first 6 chars of branch SHA
+        value: ${{ jobs.get_values.outputs.clean_branch_name_with_suffix }}
       commit_author:
         description: Author of last commit
         value: ${{ jobs.get_values.outputs.commit_author }}
@@ -26,6 +29,7 @@ jobs:
     outputs:
       short_commit_sha: ${{ steps.get_context.outputs.short_commit_sha }}
       clean_branch_name: ${{ steps.get_context.outputs.clean_branch_name }}
+      clean_branch_name_with_suffix: ${{ steps.get_context.outputs.clean_branch_name_with_suffix }}
       commit_author: ${{ steps.get_commit_author.outputs.result }}
     steps:
         # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
@@ -45,10 +49,12 @@ jobs:
 
           _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
           CLEAN_BRANCH_NAME=$(echo ${_BRANCH_NAME} | cut -c 1-35)
+          CLEAN_BRANCH_NAME_WITH_SUFFIX=$(echo ${_BRANCH_NAME} | cut -c 1-28)-$(echo ${_BRANCH_NAME} | | shasum -a 1 | cut -c 1-6)
 
           echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
           echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
           echo "clean_branch_name=${CLEAN_BRANCH_NAME}" >> $GITHUB_OUTPUT
+          echo "clean_branch_name_with_suffix=${CLEAN_BRANCH_NAME_WITH_SUFFIX}" >> $GITHUB_OUTPUT
 
       - name: get last commit author  
         uses: actions/github-script@v6
