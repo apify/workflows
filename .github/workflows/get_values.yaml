@@ -18,7 +18,7 @@ on:
         value: ${{ jobs.get_values.outputs.clean_branch_name }}
       clean_branch_name_with_suffix:
         description: Branch name stripped of non-alphanumeric characters and capped at length of 28 concatenated with first 6 chars of branch SHA
-        value: ${{ jobs.get_values.outputs.clean_branch_name }}
+        value: ${{ jobs.get_values.outputs.clean_branch_name_with_suffix }}
       commit_author:
         description: Author of last commit
         value: ${{ jobs.get_values.outputs.commit_author }}
