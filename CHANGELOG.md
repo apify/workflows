@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/apify/workflows/compare/v0.11.0...v0.12.0) (2023-01-04)
+
+
+### Features
+
+* add clean_branch_name_with_suffix to get_values workflows ([#37](https://github.com/apify/workflows/issues/37)) ([d7468df](https://github.com/apify/workflows/commit/d7468df9198f1461880fad5febb70f039daeb1e0))
+
 ## [0.11.0](https://github.com/apify/workflows/compare/v0.10.0...v0.11.0) (2023-01-03)
 
 
