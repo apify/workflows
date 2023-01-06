@@ -7,6 +7,11 @@ on:
         description: 'Changelog scopes (i.e { "App": ["app", "application"] })'
         required: true
         type: string
+      changelogMethod:
+        description: How to fetch changelog
+        required: false
+        type: string
+        default: pull_request_description
       slackChannelId:
         description: Slack Channel ID for changelog
         required: false
@@ -24,6 +29,10 @@ on:
         required: false 
         type: string
         default: 'v'
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
     
     secrets:
       slackToken:
@@ -43,7 +52,7 @@ jobs:
           changelog-scopes: ${{ inputs.changelogScopes }}
           release-name-prefix: ${{ inputs.releaseNamePrefix }}
           slack-channel: ${{ inputs.slackChannelId }}
-          changelog-method: pull_request_description
+          changelog-method: ${{ inputs.changelogMethod }}
           create-github-release: true
 
       - name: report failure to slack
