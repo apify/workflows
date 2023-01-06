@@ -49,7 +49,7 @@ jobs:
 
           _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
           CLEAN_BRANCH_NAME=$(echo ${_BRANCH_NAME} | cut -c 1-35)
-          CLEAN_BRANCH_NAME_WITH_SUFFIX=$(echo ${_BRANCH_NAME} | cut -c 1-28)-$(echo ${_BRANCH_NAME} | | shasum -a 1 | cut -c 1-6)
+          CLEAN_BRANCH_NAME_WITH_SUFFIX=$(echo ${_BRANCH_NAME} | cut -c 1-28)-$(echo ${_BRANCH_NAME} | shasum -a 1 | cut -c 1-6)
 
           echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
           echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
