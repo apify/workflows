@@ -12,6 +12,11 @@ on:
         required: false
         type: string
         default: pull_request_description
+      releaseNameMethod:
+        description: How to fetch next release name
+        required: false
+        type: string
+        default: branch
       slackChannelId:
         description: Slack Channel ID for changelog
         required: false
@@ -53,6 +58,7 @@ jobs:
           release-name-prefix: ${{ inputs.releaseNamePrefix }}
           slack-channel: ${{ inputs.slackChannelId }}
           changelog-method: ${{ inputs.changelogMethod }}
+          release-name-method: ${{ inputs.releaseNameMethod }}
           create-github-release: true
 
       - name: report failure to slack
