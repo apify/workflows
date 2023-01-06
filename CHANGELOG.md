@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.0](https://github.com/apify/workflows/compare/v0.12.0...v0.13.0) (2023-01-06)
+
+
+### Features
+
+* parametrize create_changelog workflow ([#39](https://github.com/apify/workflows/issues/39)) ([b1634b1](https://github.com/apify/workflows/commit/b1634b1e491e0fc38d1f8b5ae219f141e3a0408d))
+
 ## [0.12.0](https://github.com/apify/workflows/compare/v0.11.0...v0.12.0) (2023-01-04)
 
 
