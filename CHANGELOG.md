@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/apify/workflows/compare/v0.13.0...v0.13.1) (2023-01-09)
+
+
+### Bug Fixes
+
+* add missing baseBrach parameter ([#41](https://github.com/apify/workflows/issues/41)) ([38356b1](https://github.com/apify/workflows/commit/38356b1e730f79bf6f94994660297718f6621fb3))
+
 ## [0.13.0](https://github.com/apify/workflows/compare/v0.12.0...v0.13.0) (2023-01-06)
 
 
