@@ -12,7 +12,7 @@ on:
         required: false
         type: string
         default: master
-    
+
     secrets:
       # If you want to trigger GH workflow run with this you need to provide real user token not secrets.GITHUB_TOKEN
       githubToken:
@@ -26,8 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: open release pull-request
-        uses: apify/release-pr-action@v3.0.0
-        with: 
+        uses: apify/release-pr-action@v3.0.1
+        with:
           github-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}
           base-branch: ${{ inputs.baseBranch }}
