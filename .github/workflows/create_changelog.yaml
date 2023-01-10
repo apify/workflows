@@ -31,7 +31,7 @@ on:
         type: string
       releaseNamePrefix:
         description: Prepend prefix to releaseName
-        required: false 
+        required: false
         type: string
         default: 'v'
       baseBranch:
@@ -43,7 +43,7 @@ on:
         description: Override the author of event
         required: false
         type: string
-    
+
     secrets:
       slackToken:
         description: Slack API token
@@ -55,8 +55,8 @@ jobs:
     steps:
       - name: get changelog
         id: changelog
-        uses: apify/release-pr-action@v3.0.0
-        with: 
+        uses: apify/release-pr-action@v3.0.1
+        with:
           slack-token: ${{ secrets.slackToken }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
           changelog-scopes: ${{ inputs.changelogScopes }}
