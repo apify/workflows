@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.0](https://github.com/apify/workflows/compare/v0.13.1...v0.14.0) (2023-01-10)
+
+
+### Features
+
+* bump version release-pr-action ([#43](https://github.com/apify/workflows/issues/43)) ([66e13c7](https://github.com/apify/workflows/commit/66e13c7a7d6c651b4072152171a46bcf7d2a603a))
+
 ## [0.13.1](https://github.com/apify/workflows/compare/v0.13.0...v0.13.1) (2023-01-09)
 
 
