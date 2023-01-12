@@ -18,6 +18,9 @@ on:
       githubToken:
        description: Github token with read/write permission
        required: true
+      openAiToken:
+       description: Open AI token
+       required: false
 
 
 jobs:
@@ -33,3 +36,4 @@ jobs:
           base-branch: ${{ inputs.baseBranch }}
           create-release-pull-request: true
           changelog-method: commits_compare
+          open-ai-token: ${{ secrets.openAiToken }}

@@ -48,6 +48,9 @@ on:
       slackToken:
         description: Slack API token
         required: false
+      openAiToken:
+        description: Open AI token
+        required: false
 
 jobs:
   release:
@@ -66,6 +69,7 @@ jobs:
           release-name-method: ${{ inputs.releaseNameMethod }}
           base-branch: ${{ inputs.baseBranch }}
           create-github-release: true
+          open-ai-token: ${{ secrets.openAiToken }}
 
       - name: report failure to slack
         if: failure() && inputs.slackChannelIdForFailureMsg != ''
