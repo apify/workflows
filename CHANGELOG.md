@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/apify/workflows/compare/v0.14.0...v0.14.1) (2023-01-12)
+
+
+### Miscellaneous
+
+* add missing open AI token ([#45](https://github.com/apify/workflows/issues/45)) ([d6b32bb](https://github.com/apify/workflows/commit/d6b32bbfb6dae23d1d73b6a75f17f954bc480b4b))
+
 ## [0.14.0](https://github.com/apify/workflows/compare/v0.13.1...v0.14.0) (2023-01-10)
 
 
