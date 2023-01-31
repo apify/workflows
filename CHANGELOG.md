@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/apify/workflows/compare/v0.14.1...v0.15.0) (2023-01-31)
+
+
+### Features
+
+* Updating pull request toolkit config [INTERNAL] ([05b0092](https://github.com/apify/workflows/commit/05b0092021da75216f92ddc4a4772111a94d216c))
+
+
+### Miscellaneous
+
+* Adding .editorconfig file [INTERNAL] ([2d166e6](https://github.com/apify/workflows/commit/2d166e655a9df904c7c48641d044be73f9abf2f4))
+* Adding some standard stuff to .gitignore [INTERNAL] ([f8f7576](https://github.com/apify/workflows/commit/f8f7576dc1a711ca1a628368a25731bd0f46bedc))
+* update release_pr_action version ([#48](https://github.com/apify/workflows/issues/48)) ([dad63ac](https://github.com/apify/workflows/commit/dad63ac30fcc74f3d545fd5dda14b528be8bb2ce))
+
 ## [0.14.1](https://github.com/apify/workflows/compare/v0.14.0...v0.14.1) (2023-01-12)
 
 
