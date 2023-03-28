@@ -33,6 +33,7 @@ jobs:
 
       - name: install helmfile
         run: |
+           mkdir -p $HOME/.local/bin
            curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v${{ env.HELMFILE_VERSION }}/helmfile_${{ env.HELMFILE_VERSION }}_linux_amd64.tar.gz
            tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
            chmod +x $HOME/.local/bin/helmfile
