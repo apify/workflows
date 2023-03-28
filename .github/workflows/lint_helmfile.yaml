@@ -2,6 +2,7 @@ name: lint helmfile
 
 on:
   workflow_call:
+    inputs:
       helmfilePath:
         description: Path to helmfile.yaml
         required: true
