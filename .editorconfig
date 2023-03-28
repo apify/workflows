@@ -10,5 +10,5 @@ end_of_line = lf
 # editorconfig-tools is unable to ignore longs strings or urls
 max_line_length = null
 
-[{*.yaml, *.yml}]
+[{*.yaml, *.yml, *.json}]
 indent_size = 2
