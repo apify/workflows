@@ -12,6 +12,7 @@ on:
         description: Codes to ignore (equivalent to --ignore-checks option)
         required: false
         type: string
+        # By default ignore warning about package, as it is part of the deploy_cloudformation workflow anyway
         default: W3002
 
 jobs:
