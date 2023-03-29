@@ -18,9 +18,9 @@ jobs:
       - name: lint
         run: |
           # Disabling shellcheck as we are not using it
-          docker run
-            -v $(pwd):/repo
-            --workdir /repo
-            --rm
-            rhysd/actionlint:1.6.23
+          docker run \
+            -v $(pwd):/repo \
+            --workdir /repo \
+            --rm \
+            rhysd/actionlint:1.6.23 \
             -shellcheck="" ${{ inputs.extraArgs }}
