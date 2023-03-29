@@ -3,6 +3,10 @@ name: create release
 on:
   workflow_call:
     inputs:
+      revision:
+        description: Tag given to container image
+        required: false
+        type: string
       changelogScopes:
         description: 'Changelog scopes (i.e { "App": ["app", "application"] })'
         required: true

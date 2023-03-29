@@ -16,7 +16,11 @@ on:
         required: false
         type: string
         default: develop
-    
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+
     secrets:
       slackToken:
         description: Slack API token
@@ -24,7 +28,7 @@ on:
       githubToken:
         description: Github token to approve PR (GITHUB_TOKEN cannot open and approve PR)
         required: true
-    
+
 jobs:
   pull_request:
     runs-on: ubuntu-latest
@@ -35,7 +39,7 @@ jobs:
 
       - name: open and merge pull request
         uses: actions/github-script@v6
-        env: 
+        env:
           GIT_HUB_TOKEN: ${{ secrets.githubToken }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -53,7 +57,7 @@ jobs:
             } else if (eventName === 'push' || eventName === 'workflow_dispatch') {
                 headBranch = process.env.GITHUB_REF_NAME;
             } else {
-                throw new Error(`Don't know how to handle event name: ${eventName}`);            
+                throw new Error(`Don't know how to handle event name: ${eventName}`);
             }
 
             // Create pull request

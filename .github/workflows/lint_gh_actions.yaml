@@ -1,0 +1,26 @@
+name: lint github workflows
+
+on:
+  workflow_call:
+    inputs:
+      extraArgs:
+        description: Additional extra arguments for actionlint
+        required: false
+        type: string
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      - name: install actionlint
+        run: bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) ${ACTIONLINT_VERSION}
+        env:
+          # renovate: datasource=github-releases depName=rhysd/actionlint
+          ACTIONLINT_VERSION: v1.6.23
+
+      - name: lint
+        run: |
+          ./actionlint ${{ inputs.extraArgs }}
