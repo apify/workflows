@@ -1,0 +1,26 @@
+name: lint github workflows
+
+on:
+  workflow_call:
+    inputs:
+      extraArgs:
+        description: Additional extra arguments for actionlint
+        required: false
+        type: string
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      - name: lint
+        run: |
+          # Disabling shellcheck as we are not using it
+          docker run \
+            -v $(pwd):/repo \
+            --workdir /repo \
+            --rm \
+            rhysd/actionlint:1.6.23 \
+            -shellcheck="" ${{ inputs.extraArgs }}

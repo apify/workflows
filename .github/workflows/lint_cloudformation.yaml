@@ -1,0 +1,34 @@
+name: cloudformation lint
+
+on:
+  workflow_call:
+    inputs:
+      path:
+        description: Path to lint
+        required: false
+        type: string
+        default: ./deploy/cloudformation/**/*.yaml
+      ignoreChecks:
+        description: Codes to ignore (equivalent to --ignore-checks option)
+        required: false
+        type: string
+        # By default ignore warning about package, as it is part of the deploy_cloudformation workflow anyway
+        default: W3002
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      - name: install cfn-lint
+        run: pip install cfn-lint==${CFN_LINT_VERSION}
+        env:
+          # renovate: datasource=github-releases depName=aws-cloudformation/cfn-lint
+          CFN_LINT_VERSION: v0.76.1
+
+      - name: lint
+        run: |
+          cfn-lint ${{ inputs.path }} \
+            --ignore-checks ${{ inputs.ignoreChecks }}

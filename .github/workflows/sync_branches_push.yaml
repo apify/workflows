@@ -26,7 +26,11 @@ on:
         required: false
         type: string
         default: develop
-    
+      actorOverride:
+        description: Override the author of event
+        required: false
+        type: string
+
     secrets:
       slackToken:
         description: Slack API token
@@ -36,11 +40,11 @@ on:
       githubToken:
         description: Github token to approve PR (GITHUB_TOKEN cannot open and approve PR)
         required: true
-      
+
 jobs:
   push:
     runs-on: ubuntu-latest
-    steps:   
+    steps:
       - name: git
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then

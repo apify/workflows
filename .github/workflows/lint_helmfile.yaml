@@ -1,0 +1,52 @@
+name: lint helmfile
+
+on:
+  workflow_call:
+    inputs:
+      helmfilePath:
+        description: Path to helmfile.yaml
+        required: true
+        type: string
+      helmfileEnvironment:
+        description: Helmfile environment
+        required: false
+        type: string
+      helmfileOtherArgs:
+        description: Other helmfile parameters
+        required: false
+        type: string
+      envVariables:
+        description: Space separated list of environment variables to be set during helmfile sync
+        required: false
+        type: string
+        # example:
+        # envVariables: >
+        #   FOO=bar
+        #   BAR=foo
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: clone repository
+        uses: actions/checkout@v3
+
+      - name: install helmfile
+        run: |
+           mkdir -p $HOME/.local/bin
+           curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v${{ env.HELMFILE_VERSION }}/helmfile_${{ env.HELMFILE_VERSION }}_linux_amd64.tar.gz
+           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
+           chmod +x $HOME/.local/bin/helmfile
+           echo "$HOME/.local/bin" >> $GITHUB_PATH
+        env:
+          # renovate: datasource=github-releases depName=helmfile/helmfile
+          HELMFILE_VERSION: '0.147.0'
+
+      - name: lint
+        run: |
+          export $(echo ${{ inputs.envVariables }})
+          HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
+          [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
+          [ ! -z ${{ inputs.helmfileOtherArgs }} ] && HELMFILE_PARAMS+=" ${{ inputs.helmfileOtherArgs }}"
+          helmfile $HELMFILE_PARAMS lint
+
