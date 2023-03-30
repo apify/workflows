@@ -19,7 +19,7 @@
   "regexManagers": [
     {
       "fileMatch": [
-        "*.yaml$"
+        ".*.yaml$"
       ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?( registryUrl=(?<registryUrl>.*?))?\\s.*?_VERSION=(?<currentValue>.*)\\s"
