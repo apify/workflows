@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.16.0](https://github.com/apify/workflows/compare/v0.15.1...v0.16.0) (2023-03-30)
+
+
+### Features
+
+* add hemlfile and cloudformation linters ([#53](https://github.com/apify/workflows/issues/53)) ([a1eb3e4](https://github.com/apify/workflows/commit/a1eb3e410b5d8f5628a3faaa041c10d7ce6a19ab))
+
+
+### Miscellaneous
+
+* renovate regex ([3502402](https://github.com/apify/workflows/commit/35024021d7a3ba1ebfcb42254629163b3118d074))
+
 ## [0.15.1](https://github.com/apify/workflows/compare/v0.15.0...v0.15.1) (2023-02-01)
 
 
