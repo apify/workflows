@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.16.1](https://github.com/apify/workflows/compare/v0.16.0...v0.16.1) (2023-05-18)
+
+
+### Bug Fixes
+
+* add test user on tests action as secrets input ([#60](https://github.com/apify/workflows/issues/60)) ([bbec8a9](https://github.com/apify/workflows/commit/bbec8a980b5e8699985962e7144ac549d7ecf2a3))
+
+
+### Miscellaneous
+
+* replace sync with apply ([273008e](https://github.com/apify/workflows/commit/273008e308e40332c97ff2c0750ac6785587729c))
+* Unify YAML file extensions to .yaml ([#56](https://github.com/apify/workflows/issues/56)) ([824e251](https://github.com/apify/workflows/commit/824e251865f3fc3b1af025a655f66174841c8f8e))
+* update `configure-aws-credentials` action to Node 16 ([#59](https://github.com/apify/workflows/issues/59)) ([c7e7420](https://github.com/apify/workflows/commit/c7e7420be848ca37a33645d26cd4fee2f6a03e06))
+
 ## [0.16.0](https://github.com/apify/workflows/compare/v0.15.1...v0.16.0) (2023-03-30)
 
 
