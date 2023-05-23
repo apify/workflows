@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.2](https://github.com/apify/workflows/compare/v0.16.1...v0.16.2) (2023-05-23)
+
+
+### Miscellaneous
+
+* bump helmfile version ([bd72cfb](https://github.com/apify/workflows/commit/bd72cfba92c8ad75f4bcbdbc907eb9501f36160c))
+
 ## [0.16.1](https://github.com/apify/workflows/compare/v0.16.0...v0.16.1) (2023-05-18)
 
 
