@@ -32,7 +32,7 @@ on:
       setNodeVersion:
         description: Put NODE_VERSION from path/to/.nvmrc to docker build args
         required: false
-        type: string
+        type: boolean
         default: true
       nvmrcPath:
         description: Path to nvmrc file
@@ -67,6 +67,11 @@ on:
         required: false
       npmToken:
         description: Put NPM_TOKEN to docker build args
+        required: false
+      buildSecretEnvVars:
+        description: |
+          Secrets passed to build as secret file.
+          See https://docs.docker.com/engine/reference/commandline/buildx_build/#secret
         required: false
 
 env:
@@ -120,7 +125,7 @@ jobs:
 
       - name: clone repository
         uses: actions/checkout@v3
-      
+
       - name: set docker build args and secrets
         run: |
           BUILD_ARGS=${{ inputs.dockerBuildArgs }}
@@ -132,13 +137,18 @@ jobs:
           echo -e ${BUILD_ARGS} >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
 
+          # Create secret file for build
+          if [ ! -z "${{ secrets.buildSecretEnvVars }}" ]; then
+              echo "${{ secrets.buildSecretEnvVars }}" | tr ',' '\n' > build-secret-env-vars.txt
+          fi
+
       # NOTE: can be useful
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@v2
-      
+
       - name: setup Docker Buildx
         uses: docker/setup-buildx-action@v2
-      
+
       - name: login to AWS ECR
         uses: docker/login-action@v2
         with:
@@ -154,6 +164,7 @@ jobs:
           file: ${{ inputs.dockerFilePath }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
+          secret-files: SECRET_ENV_VARS=build-secret-env-vars.txt
           build-args: |
             ${{ env.BUILD_ARGS }}
             NPM_TOKEN=${{ secrets.npmToken }}
@@ -170,7 +181,7 @@ jobs:
               echo "color=#ff0000" >> $GITHUB_OUTPUT
               echo "emoji=red_circle" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.24.0
