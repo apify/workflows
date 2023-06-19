@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.17.0](https://github.com/apify/workflows/compare/v0.16.2...v0.17.0) (2023-06-19)
+
+
+### Features
+
+* add required workflow for detecting leaked secrets ([#63](https://github.com/apify/workflows/issues/63)) ([88ad601](https://github.com/apify/workflows/commit/88ad601a5ae4216997c8aed4d71d6d09e3cf24b9))
+* add secrets env vars to build workflow ([#68](https://github.com/apify/workflows/issues/68)) ([408f4fa](https://github.com/apify/workflows/commit/408f4faa743f4d3365e293c0df30a13ad206286d))
+
+
+### Miscellaneous
+
+* **deps:** update slackapi/slack-github-action action to v1.24.0 ([1060dd3](https://github.com/apify/workflows/commit/1060dd3036e88a243af7ac7a98c959a26bbc8381))
+
 ## [0.16.2](https://github.com/apify/workflows/compare/v0.16.1...v0.16.2) (2023-05-23)
 
 
