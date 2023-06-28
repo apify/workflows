@@ -1,0 +1,27 @@
+name: '[Scancode]: Scan and report'
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 1 * *"
+jobs:
+  scan_and_report:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        repositories: 
+        - apify/apify-core
+    name: Scan and report
+    steps:
+      - uses: actions/checkout@v2
+        with: 
+          repository: ${{ matrix.repositories }}
+          token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - run: | 
+          pip install scancode-toolkit
+      - run: |
+          scancode -clpeui -n 2 --json-pp scancode_report.json .
+      - run: |
+          curl -F file=@scancode_report.json -F "initial_comment=:bell: Hello, Scancode report for ${{ matrix.repositories }} repository. Use https://github.com/nexB/scancode-workbench for analysis." -F channels=C05E6DLQLG2  -H "Authorization: Bearer ${{ secrets.SLACK_APP_APIFY_REPORTER_TOKEN }}" https://slack.com/api/files.upload
