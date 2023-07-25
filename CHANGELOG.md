@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.0](https://github.com/apify/workflows/compare/v0.17.0...v0.18.0) (2023-07-25)
+
+
+### Features
+
+* update release_pr_action version ([#70](https://github.com/apify/workflows/issues/70)) ([553ec41](https://github.com/apify/workflows/commit/553ec411dae7321d8af022101df1ed8fccfdf68c))
+
+
+### Miscellaneous
+
+* add workflow for detecting leaked secrets via gitleaks ([945bfc2](https://github.com/apify/workflows/commit/945bfc2b0ef8971146eb30d9c6425acd6ce7307d))
+* add workflow for detecting licenses via scancode ([db6245e](https://github.com/apify/workflows/commit/db6245e8ec5dba41f6082bc4ed075fee0a0d5a13))
+
 ## [0.17.0](https://github.com/apify/workflows/compare/v0.16.2...v0.17.0) (2023-06-19)
 
 
