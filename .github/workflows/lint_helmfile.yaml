@@ -40,7 +40,7 @@ jobs:
            echo "$HOME/.local/bin" >> $GITHUB_PATH
         env:
           # renovate: datasource=github-releases depName=helmfile/helmfile
-          HELMFILE_VERSION: '0.147.0'
+          HELMFILE_VERSION: '0.155.1'
 
       - name: lint
         run: |
