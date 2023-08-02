@@ -12,7 +12,7 @@ jobs:
         - apify/apify-core
     name: Scan and report
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with: 
           repository: ${{ matrix.repositories }}
           token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.18.1](https://github.com/apify/workflows/compare/v0.18.0...v0.18.1) (2023-08-01)
+
+
+### Bug Fixes
+
+* renovate config ([#71](https://github.com/apify/workflows/issues/71)) ([8c82e1a](https://github.com/apify/workflows/commit/8c82e1acdbcc1c35f441d31378f13d326bcc3713))
+
+
+### Miscellaneous
+
+* **deps:** update actions/checkout action to v3 ([d2261c0](https://github.com/apify/workflows/commit/d2261c0d2caa4d21900e281574b79c88591feb7c))
+* update helmfile ([#75](https://github.com/apify/workflows/issues/75)) ([d11beaf](https://github.com/apify/workflows/commit/d11beaf5887ba2a694391fcf668f432f0fd39303))
+
 ## [0.18.0](https://github.com/apify/workflows/compare/v0.17.0...v0.18.0) (2023-07-25)
 
 
