@@ -24,6 +24,10 @@ on:
         #   FOO=bar
         #   BAR=foo
 
+env:
+  # renovate: datasource=github-releases depName=helmfile/helmfile
+  HELMFILE_VERSION: v0.155.1
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -33,14 +37,12 @@ jobs:
 
       - name: install helmfile
         run: |
-           mkdir -p $HOME/.local/bin
-           curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v${{ env.HELMFILE_VERSION }}/helmfile_${{ env.HELMFILE_VERSION }}_linux_amd64.tar.gz
-           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
-           chmod +x $HOME/.local/bin/helmfile
-           echo "$HOME/.local/bin" >> $GITHUB_PATH
-        env:
-          # renovate: datasource=github-releases depName=helmfile/helmfile
-          HELMFILE_VERSION: '0.155.1'
+          HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
+          mkdir -p $HOME/.local/bin
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_amd64.tar.gz
+          tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
+          chmod +x $HOME/.local/bin/helmfile
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: lint
         run: |
