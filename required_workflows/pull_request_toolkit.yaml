@@ -3,6 +3,7 @@ name: Apify pull request toolkit
 
 on:
   pull_request:
+    branches: [ $default-branch ] # Run only on PRs to default branch (i.e., develop), not on releases and PR chains
     types: ['opened', 'reopened', 'synchronize', 'labeled', 'unlabeled', 'edited', 'ready_for_review'] # The first 3 are default.
 
 concurrency: # This is to make sure that it's executed only for the most recent changes of PR.
@@ -11,8 +12,7 @@ concurrency: # This is to make sure that it's executed only for the most recent 
 
 jobs:
   apify-pr-toolkit:
-    # Run this workflow only on non-draft PRs and on PRs to default branch (i.e., develop), not on releases and PR chains
-    if: github.event.pull_request.draft == false && github.ref == github.event.repository.default_branch
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
       - name: run pull-request-toolkit action
