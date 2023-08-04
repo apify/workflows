@@ -13,7 +13,8 @@ concurrency: # This is to make sure that it's executed only for the most recent 
 
 jobs:
   apify-pr-toolkit:
-    if: github.event.pull_request.draft == false
+    # Run this workflow only on non-draft PRs and on PRs to default branch (i.e., develop), not on releases and PR chains
+    if: github.event.pull_request.draft == false && github.ref == github.event.repository.default_branch
     runs-on: ubuntu-latest
     steps:
       - name: run pull-request-toolkit action
