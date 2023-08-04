@@ -3,7 +3,6 @@ name: Apify pull request toolkit
 
 on:
   pull_request:
-    branches: [ $default-branch ] # Run only on PRs to default branch (i.e., develop), not on releases and PR chains
     types: ['opened', 'reopened', 'synchronize', 'labeled', 'unlabeled', 'edited', 'ready_for_review'] # The first 3 are default.
 
 concurrency: # This is to make sure that it's executed only for the most recent changes of PR.
