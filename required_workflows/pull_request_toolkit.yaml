@@ -4,7 +4,7 @@ name: Apify pull request toolkit
 on:
   pull_request:
     branches:
-      - develop
+      - ${{ github.event.repository.default_branch }}
     types: ['opened', 'reopened', 'synchronize', 'labeled', 'unlabeled', 'edited', 'ready_for_review'] # The first 3 are default.
 
 concurrency: # This is to make sure that it's executed only for the most recent changes of PR.
