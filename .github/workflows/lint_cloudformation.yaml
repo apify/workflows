@@ -15,6 +15,10 @@ on:
         # By default ignore warning about package, as it is part of the deploy_cloudformation workflow anyway
         default: W3002
 
+env:
+  # renovate: datasource=pypi depName=cfn-lint
+  CFN_LINT_VERSION: v0.76.1
+
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -24,9 +28,6 @@ jobs:
 
       - name: install cfn-lint
         run: pip install cfn-lint==${CFN_LINT_VERSION}
-        env:
-          # renovate: datasource=github-releases depName=aws-cloudformation/cfn-lint
-          CFN_LINT_VERSION: v0.76.1
 
       - name: lint
         run: |

@@ -130,14 +130,20 @@ jobs:
       # NOTE: This will go away with terraform
       - name: setup dependencies
         env:
+          # TODD: remove eksctl as it is not used anymore
           EKSCTL_VERSION: v0.98.0
+          # renovate: datasource=github-releases depName=helmfile/helmfile
           HELMFILE_VERSION: '0.155.1'
+          # TODO: remove sops as it is not used anymore
           SOPS_VERSION: v3.7.2
+          # TODO: remove secrets plugin as it is not used anymore
           HELM_SECRETS_PLUGIN_VERSION: v3.8.3
+          # renovate: datasource=github-releases depName=databus23/helm-diff
           HELM_DIFF_PLUGIN_VERSION: v3.7.0
         run: |
+          HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
-          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/v${{ env.HELMFILE_VERSION }}/helmfile_${{ env.HELMFILE_VERSION }}_linux_amd64.tar.gz
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_amd64.tar.gz
           curl -fsSL -o sops https://github.com/mozilla/sops/releases/download/${{ env.SOPS_VERSION }}/sops-${{ env.SOPS_VERSION }}.linux
 
           helm plugin install https://github.com/jkroepke/helm-secrets --version ${{ env.HELM_SECRETS_PLUGIN_VERSION }}
