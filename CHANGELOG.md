@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.19.1](https://github.com/apify/workflows/compare/v0.19.0...v0.19.1) (2023-09-21)
+
+
+### Bug Fixes
+
+* add version prefix to helmfile version variable ([#88](https://github.com/apify/workflows/issues/88)) ([09daf7a](https://github.com/apify/workflows/commit/09daf7ac8a423938eaae50fded8af6e22bf00258))
+
 ## [0.19.0](https://github.com/apify/workflows/compare/v0.18.1...v0.19.0) (2023-09-19)
 
 
