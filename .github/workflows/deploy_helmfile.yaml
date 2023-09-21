@@ -133,7 +133,7 @@ jobs:
           # TODD: remove eksctl as it is not used anymore
           EKSCTL_VERSION: v0.98.0
           # renovate: datasource=github-releases depName=helmfile/helmfile
-          HELMFILE_VERSION: '0.155.1'
+          HELMFILE_VERSION: 'v0.155.1'
           # TODO: remove sops as it is not used anymore
           SOPS_VERSION: v3.7.2
           # TODO: remove secrets plugin as it is not used anymore
