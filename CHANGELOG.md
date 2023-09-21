@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.19.0](https://github.com/apify/workflows/compare/v0.18.1...v0.19.0) (2023-09-19)
+
+
+### Features
+
+* Adding PR toolkit action to centralize it's config at one place ([4befe14](https://github.com/apify/workflows/commit/4befe146e20785094b464173c968d2f4204cc8be))
+* Running PR toolkit only on PRs to default branch ([fcae0fa](https://github.com/apify/workflows/commit/fcae0fa31cbc575a79f36d3d411951feec0d1129))
+
+
+### Bug Fixes
+
+* Attempt to fix PR toolkit ([#83](https://github.com/apify/workflows/issues/83)) ([5ed385c](https://github.com/apify/workflows/commit/5ed385c260b370f06e9cc879526e548e45e8e3fa))
+* Attempts to fix PR toolkit action ([#82](https://github.com/apify/workflows/issues/82)) ([7bbab1b](https://github.com/apify/workflows/commit/7bbab1b01a56e48b4d941cc56eec2566399adbdf))
+* Removing branch filtering from PR toolkit ([#81](https://github.com/apify/workflows/issues/81)) ([888600d](https://github.com/apify/workflows/commit/888600dbe3adda5983ead42050dfccc7b9a670ed))
+
+
+### Miscellaneous
+
+* add renovate configuration to all relevant variables ([#76](https://github.com/apify/workflows/issues/76)) ([319b31b](https://github.com/apify/workflows/commit/319b31b69abc540016c3a485cc5116ea1b137f5e))
+* Experimenting with a different setup for PR toolkit ([#79](https://github.com/apify/workflows/issues/79)) ([b8d9202](https://github.com/apify/workflows/commit/b8d92020448f8995920450dfe6eec9fd4b3176b9))
+* Trying to fix PR toolkit ([#80](https://github.com/apify/workflows/issues/80)) ([0a8e9f9](https://github.com/apify/workflows/commit/0a8e9f9b4165785edd11dc97da6c9225c5ba2e75))
+* Update `cfn-lint` in CloudFormation lint workflow ([#87](https://github.com/apify/workflows/issues/87)) ([90acb40](https://github.com/apify/workflows/commit/90acb40f416262b008edfc88a4382782a0e61e39))
+
 ## [0.18.1](https://github.com/apify/workflows/compare/v0.18.0...v0.18.1) (2023-08-01)
 
 
