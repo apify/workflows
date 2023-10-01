@@ -124,7 +124,7 @@ jobs:
             }
 
       - name: clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: set docker build args and secrets
         run: |

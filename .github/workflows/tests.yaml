@@ -115,7 +115,7 @@ jobs:
             }
 
       - name: clone local repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # TODO: turn on caching
       - name: setup Node.js
