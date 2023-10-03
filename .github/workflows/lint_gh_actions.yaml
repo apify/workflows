@@ -10,7 +10,7 @@ on:
 
 env:
   # renovate: datasource=docker depName=rhysd/actionlint
-  ACTIONLINT_VERSION: 1.6.23
+  ACTIONLINT_VERSION: 1.6.26
 
 jobs:
   lint:
