@@ -139,7 +139,7 @@ jobs:
           # TODO: remove secrets plugin as it is not used anymore
           HELM_SECRETS_PLUGIN_VERSION: v3.8.3
           # renovate: datasource=github-releases depName=databus23/helm-diff
-          HELM_DIFF_PLUGIN_VERSION: v3.7.0
+          HELM_DIFF_PLUGIN_VERSION: v3.8.1
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
