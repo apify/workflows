@@ -160,7 +160,7 @@ jobs:
 
       - name: assume IAM role
         if: inputs.awsRoleArn != ''
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.awsAccessKeyId }}
           aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
