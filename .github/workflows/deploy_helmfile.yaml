@@ -120,7 +120,7 @@ jobs:
             }
 
       - name: clone repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # There is no public action that would give us the abilities we need. Meaning:
       #   - helmfile
