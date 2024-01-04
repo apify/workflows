@@ -57,7 +57,7 @@ jobs:
           echo "clean_branch_name_with_suffix=${CLEAN_BRANCH_NAME_WITH_SUFFIX}" >> $GITHUB_OUTPUT
 
       - name: get last commit author  
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         id: get_commit_author
         with:
           result-encoding: string
