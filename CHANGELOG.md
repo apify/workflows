@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.19.2](https://github.com/apify/workflows/compare/v0.19.1...v0.19.2) (2024-01-04)
+
+
+### Miscellaneous
+
+* **deps:** update actions/checkout action to v4 ([#90](https://github.com/apify/workflows/issues/90)) ([22e6625](https://github.com/apify/workflows/commit/22e6625deeac9b6fe3159ce5ddbc4c5d39950bb0))
+* **deps:** update actions/github-script action to v7 ([#96](https://github.com/apify/workflows/issues/96)) ([ab1e0d8](https://github.com/apify/workflows/commit/ab1e0d832472e8782cb5fce662732c0fdff05321))
+* **deps:** update actions/setup-node action to v4 ([#94](https://github.com/apify/workflows/issues/94)) ([dcf55bf](https://github.com/apify/workflows/commit/dcf55bf3fa2bbe58fb24bf4c39b2f539cedf1980))
+* **deps:** update actions/setup-python action to v5 ([#98](https://github.com/apify/workflows/issues/98)) ([072358d](https://github.com/apify/workflows/commit/072358d355315bc4df1530ed8e7ca35a97206b1a))
+* **deps:** update all non-major dependencies ([#84](https://github.com/apify/workflows/issues/84)) ([38e3b89](https://github.com/apify/workflows/commit/38e3b89016091401d0c5c3a3ad2eeabbdb04c3f1))
+* **deps:** update all non-major dependencies ([#93](https://github.com/apify/workflows/issues/93)) ([14c0d58](https://github.com/apify/workflows/commit/14c0d5883cff26c4f31275bc6f3f78b936e78c6c))
+* **deps:** update aws-actions/configure-aws-credentials action to v4 ([#91](https://github.com/apify/workflows/issues/91)) ([8fbcdf7](https://github.com/apify/workflows/commit/8fbcdf77d63fdb7cfe454f6aaadfacf40f32b308))
+* **deps:** update docker/build-push-action action to v5 ([#97](https://github.com/apify/workflows/issues/97)) ([766e713](https://github.com/apify/workflows/commit/766e7132dbf9876a9121fe7d45f80c6d51375c5e))
+* **deps:** update docker/login-action action to v3 ([#99](https://github.com/apify/workflows/issues/99)) ([4369b4c](https://github.com/apify/workflows/commit/4369b4c6f08df1c1ccd046dff437fe3b648e3134))
+
 ## [0.19.1](https://github.com/apify/workflows/compare/v0.19.0...v0.19.1) (2023-09-21)
 
 
