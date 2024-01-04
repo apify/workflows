@@ -17,7 +17,7 @@ on:
 
 env:
   # renovate: datasource=pypi depName=cfn-lint
-  CFN_LINT_VERSION: 0.80.4
+  CFN_LINT_VERSION: 0.83.7
 
 jobs:
   lint:
