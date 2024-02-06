@@ -5,9 +5,9 @@ on:
   pull_request:
     types: ['opened', 'reopened', 'synchronize', 'labeled', 'unlabeled', 'edited', 'ready_for_review'] # The first 3 are default.
 
-concurrency: # This is to make sure that it's executed only for the most recent changes of PR.
-  group: ${{ github.ref }}
-  cancel-in-progress: true
+# concurrency: # This is to make sure that it's executed only for the most recent changes of PR.
+#   group: ${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   apify-pr-toolkit:
