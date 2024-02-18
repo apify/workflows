@@ -81,7 +81,7 @@ jobs:
     steps:
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v1.25.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
@@ -139,7 +139,7 @@ jobs:
           # TODO: remove secrets plugin as it is not used anymore
           HELM_SECRETS_PLUGIN_VERSION: v3.8.3
           # renovate: datasource=github-releases depName=databus23/helm-diff
-          HELM_DIFF_PLUGIN_VERSION: v3.8.1
+          HELM_DIFF_PLUGIN_VERSION: v3.9.4
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
@@ -199,7 +199,7 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v1.25.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:

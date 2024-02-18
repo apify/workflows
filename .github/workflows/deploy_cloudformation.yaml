@@ -82,7 +82,7 @@ jobs:
     steps:
       - name: send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v1.25.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
@@ -212,7 +212,7 @@ jobs:
       
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.24.0
+        uses: slackapi/slack-github-action@v1.25.0
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
