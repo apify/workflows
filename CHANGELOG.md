@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.20.0](https://github.com/apify/workflows/compare/v0.19.2...v0.20.0) (2024-02-19)
+
+
+### Features
+
+* Reverting Update pull_request_toolkit.yaml back ([b41aa73](https://github.com/apify/workflows/commit/b41aa7327dfd04c0d78ce6a6d9e1c86bf8157d8d))
+
+
+### Bug Fixes
+
+* Attempting to fix a PR toolkit getting stuck ([2a0b92d](https://github.com/apify/workflows/commit/2a0b92d51f2140ba5001ce0824d05777f4436178))
+
+
+### Miscellaneous
+
+* **deps:** update all non-major dependencies ([#100](https://github.com/apify/workflows/issues/100)) ([1aafbc7](https://github.com/apify/workflows/commit/1aafbc7a30cf5bb9de4c39db6e23a277fc4e0b9b))
+* **deps:** update docker/setup-buildx-action action to v3 ([#101](https://github.com/apify/workflows/issues/101)) ([ca4c9fd](https://github.com/apify/workflows/commit/ca4c9fd0c81329fbb491eb750687cbdfb0eea17a))
+
 ## [0.19.2](https://github.com/apify/workflows/compare/v0.19.1...v0.19.2) (2024-01-04)
 
 
