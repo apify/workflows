@@ -128,9 +128,9 @@ jobs:
 
       - name: set docker build args and secrets
         run: |
-          BUILD_ARGS=${{ inputs.dockerBuildArgs }}
+          BUILD_ARGS=( ${{ inputs.dockerBuildArgs }} )
           if [ "${{ inputs.setNodeVersion }}" = true ]; then
-              BUILD_ARGS="${BUILD_ARGS}\nNODE_VERSION=$(head -1 ${{ inputs.nvmrcPath }})"
+              BUILD_ARGS="${BUILD_ARGS[@]}\nNODE_VERSION=$(head -1 ${{ inputs.nvmrcPath }})"
           fi
 
           echo 'BUILD_ARGS<<EOF' >> $GITHUB_ENV
