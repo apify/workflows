@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/apify/workflows/compare/v0.20.0...v0.20.1) (2024-02-22)
+
+
+### Bug Fixes
+
+* build-args for docker build ([#103](https://github.com/apify/workflows/issues/103)) ([5107fce](https://github.com/apify/workflows/commit/5107fcee11b923967efdc62c11c0d138f11bd0e4))
+
 ## [0.20.0](https://github.com/apify/workflows/compare/v0.19.2...v0.20.0) (2024-02-19)
 
 
