@@ -64,7 +64,19 @@ jobs:
           accountId: ${{ inputs.newRelicAccountId }}
           applicationId: ${{ inputs.newRelicApplicationId }}
           revision: ${{ inputs.revision }}
-      
+
+  grafana:
+    if: secrets.GRAFANA_API_TOKEN
+    runs-on: ubuntu-latest
+    steps:
+      - name: mark release
+        uses: frankie567/grafana-annotation-action@v1.0.2
+        with:
+          apiHost: https://grafana.apify.dev
+          apiToken: ${{ secrets.GRAFANA_API_TOKEN }}
+          text: Deployment of ${{ github.sha }}
+          tags: deployment,github
+
   sentry:
     if: inputs.sentryOrg != ''
     runs-on: ubuntu-latest
@@ -94,7 +106,7 @@ jobs:
 
   slack_notification_failure:
     if: failure() && inputs.slackChannelId != ''
-    needs: 
+    needs:
       - new_relic
       - sentry
     uses: ./.github/workflows/slack.yaml
