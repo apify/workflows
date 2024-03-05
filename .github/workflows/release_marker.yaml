@@ -80,7 +80,7 @@ jobs:
         uses: frankie567/grafana-annotation-action@v1.0.2
         with:
           apiHost: https://grafana.apify.dev
-          apiToken: ${{ secrets.GRAFANA_API_TOKEN }}
+          apiToken: ${{ secrets.grafanaApiToken}}
           text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
           tags: deployment,github
 
