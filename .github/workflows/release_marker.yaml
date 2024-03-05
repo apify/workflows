@@ -40,6 +40,10 @@ on:
         description: Override the author of event
         required: false
         type: string
+      environment:
+        description: Environment
+        required: false
+        type: string
 
     secrets:
       newRelicApiKey:
@@ -49,6 +53,9 @@ on:
         description: Sentry authentication token
         required: false
       slackToken:
+        description: Slack API token
+        required: false
+      grafanaApiToken:
         description: Slack API token
         required: false
 
@@ -64,7 +71,19 @@ jobs:
           accountId: ${{ inputs.newRelicAccountId }}
           applicationId: ${{ inputs.newRelicApplicationId }}
           revision: ${{ inputs.revision }}
-      
+
+  grafana:
+    if: inputs.revision != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: mark release
+        uses: frankie567/grafana-annotation-action@v1.0.2
+        with:
+          apiHost: https://grafana.apify.dev
+          apiToken: ${{ secrets.grafanaApiToken}}
+          text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
+          tags: deployment,github
+
   sentry:
     if: inputs.sentryOrg != ''
     runs-on: ubuntu-latest
@@ -94,7 +113,7 @@ jobs:
 
   slack_notification_failure:
     if: failure() && inputs.slackChannelId != ''
-    needs: 
+    needs:
       - new_relic
       - sentry
     uses: ./.github/workflows/slack.yaml
