@@ -40,6 +40,10 @@ on:
         description: Override the author of event
         required: false
         type: string
+      environment:
+        description: Environment
+        required: false
+        type: string
 
     secrets:
       newRelicApiKey:
@@ -77,7 +81,7 @@ jobs:
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.GRAFANA_API_TOKEN }}
-          text: Deployment of ${{ inputs.revision }}
+          text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
           tags: deployment,github
 
   sentry:
