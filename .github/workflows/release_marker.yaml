@@ -51,6 +51,9 @@ on:
       slackToken:
         description: Slack API token
         required: false
+      grafanaApiToken:
+        description: Slack API token
+        required: false
 
 jobs:
   new_relic:
@@ -66,7 +69,7 @@ jobs:
           revision: ${{ inputs.revision }}
 
   grafana:
-    if: secrets.GRAFANA_API_TOKEN
+    if: inputs.revision != ''
     runs-on: ubuntu-latest
     steps:
       - name: mark release
@@ -74,7 +77,7 @@ jobs:
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.GRAFANA_API_TOKEN }}
-          text: Deployment of ${{ github.sha }}
+          text: Deployment of ${{ inputs.revision }}
           tags: deployment,github
 
   sentry:
