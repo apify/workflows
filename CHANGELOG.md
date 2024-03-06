@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.0](https://github.com/apify/workflows/compare/v0.20.1...v0.21.0) (2024-03-05)
+
+
+### Features
+
+* add grafana annotation action ([#107](https://github.com/apify/workflows/issues/107)) ([e8aa2fd](https://github.com/apify/workflows/commit/e8aa2fdbc3c22c707ad6cb863c79a0aacb0f7263))
+
 ## [0.20.1](https://github.com/apify/workflows/compare/v0.20.0...v0.20.1) (2024-02-22)
 
 
