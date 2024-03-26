@@ -77,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: mark release
-        uses: frankie567/grafana-annotation-action@v1.0.2
+        uses: frankie567/grafana-annotation-action@v1.0.3
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
