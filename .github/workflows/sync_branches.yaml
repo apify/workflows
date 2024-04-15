@@ -80,6 +80,37 @@ jobs:
                 event: 'APPROVE',
             })
 
+            // Wait for PR toolkit to finish (up to 3 minutes) on the pull request
+            let i = 0;
+            let prToolkitSuccessful = false;
+            while (i++ < 60) {
+                const resp = await github.rest.checks.listForRef({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    ref: `pull/${pullRequestNumber}/head`,
+                    check_name: 'apify-pr-toolkit',
+                });
+
+                if (resp.data.check_runs.length > 1) {
+                    throw new Error('There are more than one PR toolkit runs, this should be impossible');
+                }
+
+                if (resp.data.check_runs.length === 1 && resp.data.check_runs[0].status === 'completed') {
+                    if (resp.data.check_runs[0].conclusion === 'success') {
+                        console.log('PR toolkit succeeded');
+                        prToolkitSuccessful = true;
+                        break;
+                    } else {
+                        throw new Error('PR toolkit failed');
+                    }
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+            }
+            if (!prToolkitSuccessful) {
+                throw new Error('PR toolkit check did not finish in time');
+            }
+
             // Merge pull request
             await github.rest.pulls.merge({
                 owner: context.repo.owner,
