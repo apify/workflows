@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.3](https://github.com/apify/workflows/compare/v0.21.2...v0.21.3) (2024-04-15)
+
+
+### Bug Fixes
+
+* Merge branch syncing PRs with Apify Service Account [internal] ([65d56cd](https://github.com/apify/workflows/commit/65d56cdb1dddd04f231dcc24b8e842a6799ed793))
+
 ## [0.21.2](https://github.com/apify/workflows/compare/v0.21.1...v0.21.2) (2024-04-15)
 
 
