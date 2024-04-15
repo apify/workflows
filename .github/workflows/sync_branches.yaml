@@ -60,8 +60,10 @@ jobs:
                 throw new Error(`Don't know how to handle event name: ${eventName}`);
             }
 
-            // Create pull request
-            const createResp = await github.rest.pulls.create({
+            // Create pull request as Apify Service Account
+            // Apify Service Account does not trigger PR toolkit,
+            // does not need approval for PRs and does not need to wait for status checks
+            const createResp = await octokit.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 head: headBranch,
@@ -70,46 +72,6 @@ jobs:
             });
 
             const pullRequestNumber = createResp.data.number;
-
-            // Approve pull request
-            await octokit.request('POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews', {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pullRequestNumber,
-                body: 'Auto-approving pull request',
-                event: 'APPROVE',
-            })
-
-            // Wait for PR toolkit to finish (up to 3 minutes) on the pull request
-            let i = 0;
-            let prToolkitSuccessful = false;
-            while (i++ < 60) {
-                const resp = await github.rest.checks.listForRef({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    ref: `pull/${pullRequestNumber}/head`,
-                    check_name: 'apify-pr-toolkit',
-                });
-
-                if (resp.data.check_runs.length > 1) {
-                    throw new Error('There are more than one PR toolkit runs, this should be impossible');
-                }
-
-                if (resp.data.check_runs.length === 1 && resp.data.check_runs[0].status === 'completed') {
-                    if (resp.data.check_runs[0].conclusion === 'success') {
-                        console.log('PR toolkit succeeded');
-                        prToolkitSuccessful = true;
-                        break;
-                    } else {
-                        throw new Error('PR toolkit failed');
-                    }
-                }
-
-                await new Promise((resolve) => setTimeout(resolve, 3000));
-            }
-            if (!prToolkitSuccessful) {
-                throw new Error('PR toolkit check did not finish in time');
-            }
 
             // Merge pull request
             await github.rest.pulls.merge({
