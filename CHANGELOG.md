@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.1](https://github.com/apify/workflows/compare/v0.21.0...v0.21.1) (2024-04-15)
+
+
+### Bug Fixes
+
+* Wait for PR toolkit to finish before attempting merge of PR to develop ([#109](https://github.com/apify/workflows/issues/109)) ([f4b6bbb](https://github.com/apify/workflows/commit/f4b6bbb0667ba3731257af4f718e5e665451a8dd))
+
 ## [0.21.0](https://github.com/apify/workflows/compare/v0.20.1...v0.21.0) (2024-03-05)
 
 
