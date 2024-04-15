@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.2](https://github.com/apify/workflows/compare/v0.21.1...v0.21.2) (2024-04-15)
+
+
+### Bug Fixes
+
+* Sync master to develop through Apify Service Account [internal] ([75b4b65](https://github.com/apify/workflows/commit/75b4b65bcb804ec3683e084f300fa79bbf3bdd77))
+
 ## [0.21.1](https://github.com/apify/workflows/compare/v0.21.0...v0.21.1) (2024-04-15)
 
 
