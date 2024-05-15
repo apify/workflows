@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.21.4](https://github.com/apify/workflows/compare/v0.21.3...v0.21.4) (2024-05-15)
+
+
+### Miscellaneous
+
+* remove security related workflows ([#113](https://github.com/apify/workflows/issues/113)) ([0accabd](https://github.com/apify/workflows/commit/0accabd0f520d7eb3d4248a9c2af763807155972))
+
 ## [0.21.3](https://github.com/apify/workflows/compare/v0.21.2...v0.21.3) (2024-04-15)
 
 
