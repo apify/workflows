@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.0](https://github.com/apify/workflows/compare/v0.21.3...v0.22.0) (2024-05-23)
+
+
+### Features
+
+* Update release-please action ([e87c85a](https://github.com/apify/workflows/commit/e87c85af0a16c80daaaf916222a8594267b72154))
+
 ## [0.21.3](https://github.com/apify/workflows/compare/v0.21.2...v0.21.3) (2024-04-15)
 
 
