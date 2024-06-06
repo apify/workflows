@@ -82,7 +82,7 @@ jobs:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
           text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
-          tags: deployment,github
+          tags: deployment,github,${{ inputs.environment }}
 
   sentry:
     if: inputs.sentryOrg != ''
