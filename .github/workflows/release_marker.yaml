@@ -44,7 +44,12 @@ on:
         description: Environment
         required: false
         type: string
-
+      grafanaAnnotationPrefixText:
+        description: Custom annotation prefix
+        required: false
+        type: string
+        default: 'default'
+        
     secrets:
       newRelicApiKey:
         description: New Relic API key
@@ -81,8 +86,8 @@ jobs:
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
-          text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
-          tags: deployment,github,${{ inputs.environment }}
+          text: ${{ inputs.environment }} - ${{ inputs.grafanaAnnotationPrefixText }} - Deployment of ${{ inputs.revision }}
+          tags: deployment,github,${{ inputs.environment }},${{ inputs.grafanaAnnotationPrefixText }}
 
   sentry:
     if: inputs.sentryOrg != ''
