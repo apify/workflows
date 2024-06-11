@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.1](https://github.com/apify/workflows/compare/v0.22.0...v0.22.1) (2024-06-11)
+
+
+### Bug Fixes
+
+* use environment as a annotation tag ([#119](https://github.com/apify/workflows/issues/119)) ([ae44e53](https://github.com/apify/workflows/commit/ae44e53a49e1befed336fbd2caf623b18e07c02a))
+
 ## [0.22.0](https://github.com/apify/workflows/compare/v0.21.3...v0.22.0) (2024-05-23)
 
 
