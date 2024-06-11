@@ -44,8 +44,8 @@ on:
         description: Environment
         required: false
         type: string
-      grafanaAnnotationPrefixText:
-        description: Custom annotation prefix
+      grafanaAnnotationTag:
+        description: Custom annotation tag
         required: false
         type: string
         default: 'default'
@@ -86,8 +86,8 @@ jobs:
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
-          text: ${{ inputs.environment }} - ${{ inputs.grafanaAnnotationPrefixText }} - Deployment of ${{ inputs.revision }}
-          tags: deployment,github,${{ inputs.environment }},${{ inputs.grafanaAnnotationPrefixText }}
+          text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
+          tags: deployment,github,${{ inputs.environment }},${{ inputs.grafanaAnnotationTag }}
 
   sentry:
     if: inputs.sentryOrg != ''
