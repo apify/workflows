@@ -62,6 +62,7 @@ on:
         description: Enable VPN connection
         required: false
         default: true
+        type: string
 
     secrets:
       awsAccessKeyId:
@@ -73,6 +74,13 @@ on:
       slackToken:
         description: Slack API token
         required: false
+      ts_oauth_client_id:
+        description: Tailscale OAuth Client ID
+        required: false
+      ts_oauth_secret:
+        description: Tailscale OAuth Client Secret
+        required: false
+
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.awsAccessKeyId }}
@@ -182,7 +190,7 @@ jobs:
 
       - name: Tailscale VPN
         uses: tailscale/github-action@v2
-        if: inputs.enableVpn
+        if: inputs.enableVpn == 'true'
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
