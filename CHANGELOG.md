@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.2](https://github.com/apify/workflows/compare/v0.22.1...v0.22.2) (2024-08-21)
+
+
+### Bug Fixes
+
+* type missing in input for tailscale task ([#124](https://github.com/apify/workflows/issues/124)) ([aea9759](https://github.com/apify/workflows/commit/aea9759a9d7f7916de4467f3cbb18605baa8c43a))
+
 ## [0.22.1](https://github.com/apify/workflows/compare/v0.22.0...v0.22.1) (2024-06-11)
 
 
