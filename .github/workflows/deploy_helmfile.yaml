@@ -74,6 +74,13 @@ on:
       slackToken:
         description: Slack API token
         required: false
+      ts_oauth_client_id:
+        description: Tailscale OAuth Client ID
+        required: false
+      ts_oauth_secret:
+        description: Tailscale OAuth Client Secret
+        required: false
+
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.awsAccessKeyId }}
