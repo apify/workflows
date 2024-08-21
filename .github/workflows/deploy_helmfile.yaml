@@ -58,6 +58,10 @@ on:
         required: false
         type: string
         default: apply --suppress-secrets
+      enableVpn:
+        description: Enable VPN connection
+        required: false
+        default: true
 
     secrets:
       awsAccessKeyId:
@@ -175,6 +179,14 @@ jobs:
 
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
+
+      - name: Tailscale VPN
+        uses: tailscale/github-action@v2
+        if: inputs.enableVpn
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
