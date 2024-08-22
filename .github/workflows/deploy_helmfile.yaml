@@ -184,7 +184,6 @@ jobs:
           # which does not work for cross-account assume
           role-skip-session-tagging: true
 
-
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
 
