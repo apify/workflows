@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.22.3](https://github.com/apify/workflows/compare/v0.22.2...v0.22.3) (2024-08-22)
+
+
+### Bug Fixes
+
+* lint and cleanup ([#127](https://github.com/apify/workflows/issues/127)) ([b2c2a35](https://github.com/apify/workflows/commit/b2c2a35ce7b4f91291e730f1d119a2e7c38681eb))
+
 ## [0.22.2](https://github.com/apify/workflows/compare/v0.22.1...v0.22.2) (2024-08-21)
 
 
