@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
           make install-dev

@@ -4,24 +4,25 @@ on:
   workflow_call:
     secrets:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
-        description: API token of the Python SDK & client testing user on Apify
+        description: API token of the Python testing user on Apify
         required: true
 
-# This is to make sure that only one run of this workflow is running at the same time,
-# to not overshoot the test user limits.
+# Concurrency control to ensure only one instance of this workflow runs at a time.
+# This avoids exceeding API usage limits on the test user account.
 concurrency:
   group: integration_tests
 
 jobs:
-  integration_tests:
-    name: Integration tests
+  # Job to run integration tests from the main repository.
+  integration_tests_on_main:
+    name: Integration tests (main repository)
     runs-on: ubuntu-latest
+    # If PR is from the main repository or it is a push to master.
+    if: github.event.pull_request.head.repo.owner.login == "apify" || github.ref == "refs/heads/master"
     strategy:
       matrix:
-        # Run integration tests only on the oldest and newest supported Python versions,
-        # as these tests are time-consuming and these versions are the most likely to encounter issues.
-        python-version: ["3.9", "3.12"]
-      max-parallel: 1 # no concurrency on this level, to not overshoot the test user limits
+        python-version: ["3.9", "3.12"]  # Oldest and newest supported Python versions.
+      max-parallel: 1  # No parallel tests to avoid exceeding API limits.
 
     steps:
       - name: Checkout repository
@@ -32,7 +33,51 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
+      - name: Install Python dependencies
+        run: |
+          pipx install --python ${{ matrix.python-version }} poetry
+          make install-dev
+
+      - name: Run integration tests
+        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
+        env:
+          APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
+
+  # Job to request approval before running integration tests for PRs from forks.
+  approve_integration_tests_on_fork:
+    name: Approve integration tests for fork PR
+    runs-on: ubuntu-latest
+    # If the PR is from a fork.
+    if: github.event.pull_request.head.repo.owner.login != "apify"
+    environment:
+      name: fork-pr-integration-tests
+      url: ${{ github.event.pull_request.html_url }}
+    steps:
+      - name: Await approval
+        run: echo "Waiting for approval to run integration tests for fork PR."
+
+  # Job to run integration tests for PRs from forks, only after manual approval.
+  integration_tests_on_fork:
+    name: Integration tests (fork after approval)
+    needs: approve_integration_tests_on_fork
+    # If the PR is from a fork.
+    if: github.event.pull_request.head.repo.owner.login != "apify"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.12"]  # Oldest and newest supported Python versions.
+      max-parallel: 1  # No parallel tests to avoid overshooting limits.
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python dependencies
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
           make install-dev
