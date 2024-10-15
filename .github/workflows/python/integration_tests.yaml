@@ -18,7 +18,7 @@ jobs:
     name: Integration tests (main repository)
     runs-on: ubuntu-latest
     # If PR is from the main repository or it is a push to master.
-    if: github.event.pull_request.head.repo.owner.login == "apify" || github.ref == "refs/heads/master"
+    if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
         python-version: ["3.9", "3.12"]  # Oldest and newest supported Python versions.
@@ -48,7 +48,7 @@ jobs:
     name: Approve integration tests for fork PR
     runs-on: ubuntu-latest
     # If the PR is from a fork.
-    if: github.event.pull_request.head.repo.owner.login != "apify"
+    if: github.event.pull_request.head.repo.owner.login != 'apify'
     environment:
       name: fork-pr-integration-tests
       url: ${{ github.event.pull_request.html_url }}
@@ -61,7 +61,7 @@ jobs:
     name: Integration tests (fork after approval)
     needs: integration_tests_on_fork_approval
     # If the PR is from a fork.
-    if: github.event.pull_request.head.repo.owner.login != "apify"
+    if: github.event.pull_request.head.repo.owner.login != 'apify'
     runs-on: ubuntu-latest
     strategy:
       matrix:
