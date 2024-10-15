@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 jobs:
-  docs:
+  docs_check:
     name: Docs check
     runs-on: ubuntu-latest
     env:
@@ -38,7 +38,5 @@ jobs:
       - name: Build API reference
         run: make build-api-reference
 
-      - name: Install website dependencies and build it
+      - name: Build docs website
         run: make build-docs
-        env:
-          APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}

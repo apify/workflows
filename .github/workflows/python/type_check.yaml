@@ -1,11 +1,11 @@
-name: Type checking
+name: Type check
 
 on:
   workflow_call:
 
 jobs:
-  type_checking:
-    name: Type checking
+  type_check:
+    name: Type check
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,5 +25,5 @@ jobs:
           pipx install --python ${{ matrix.python-version }} poetry
           make install-dev
 
-      - name: Run type checking
+      - name: Run type check
         run: make type-check

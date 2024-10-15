@@ -44,7 +44,7 @@ jobs:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
 
   # Job to request approval before running integration tests for PRs from forks.
-  approve_integration_tests_on_fork:
+  integration_tests_on_fork_approval:
     name: Approve integration tests for fork PR
     runs-on: ubuntu-latest
     # If the PR is from a fork.
@@ -59,7 +59,7 @@ jobs:
   # Job to run integration tests for PRs from forks, only after manual approval.
   integration_tests_on_fork:
     name: Integration tests (fork after approval)
-    needs: approve_integration_tests_on_fork
+    needs: integration_tests_on_fork_approval
     # If the PR is from a fork.
     if: github.event.pull_request.head.repo.owner.login != "apify"
     runs-on: ubuntu-latest

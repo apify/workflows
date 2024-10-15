@@ -1,11 +1,11 @@
-name: Linting
+name: Lint check
 
 on:
   workflow_call:
 
 jobs:
-  linting:
-    name: Linting
+  lint_check:
+    name: Lint check
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,5 +25,5 @@ jobs:
           pipx install --python ${{ matrix.python-version }} poetry
           make install-dev
 
-      - name: Run linting
+      - name: Run lint check
         run: make lint
