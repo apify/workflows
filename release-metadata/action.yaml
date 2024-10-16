@@ -63,6 +63,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         if [[ '${{ inputs.release_type }}' = custom ]]; then
           version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
@@ -82,6 +83,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
         git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
@@ -94,6 +96,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
+        GH_TOKEN: ${{ github.token }}
       run: |
         if [[ ${{ inputs.release_type }} = prerelease ]]; then
           echo 'changelog<<EOF' >> $GITHUB_OUTPUT
