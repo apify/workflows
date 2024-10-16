@@ -17,7 +17,7 @@ jobs:
   integration_tests_on_main:
     name: Integration tests (main repository)
     runs-on: ubuntu-latest
-    # If it is a PR from the main repository or a push to the main branch.
+    # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
@@ -47,7 +47,7 @@ jobs:
   integration_tests_on_fork_approval:
     name: Approve integration tests for fork PR
     runs-on: ubuntu-latest
-    # If it is a PR from a fork.
+    # Run this only for PRs from forks. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
     environment:
       name: fork-pr-integration-tests
@@ -60,7 +60,7 @@ jobs:
   integration_tests_on_fork:
     name: Integration tests (fork after approval)
     needs: integration_tests_on_fork_approval
-    # If it is a PR from a fork.
+    # Run this only for PRs from forks. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     strategy:
