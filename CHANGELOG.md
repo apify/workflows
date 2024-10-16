@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.23.0](https://github.com/apify/workflows/compare/v0.22.3...v0.23.0) (2024-10-16)
+
+
+### Features
+
+* add Python workflows ([#129](https://github.com/apify/workflows/issues/129)) ([b648b85](https://github.com/apify/workflows/commit/b648b85c94c33304168cb73fe81fed27c9058844))
+
+
+### Bug Fixes
+
+* move Python workflows to top level ([#131](https://github.com/apify/workflows/issues/131)) ([260a213](https://github.com/apify/workflows/commit/260a21371a66c540670882be915e6d7deeb64af5))
+
 ## [0.22.3](https://github.com/apify/workflows/compare/v0.22.2...v0.22.3) (2024-08-22)
 
 
