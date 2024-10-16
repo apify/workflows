@@ -46,13 +46,13 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        path: ${{ github.action_path }}/repo
+        path: ${{ github.workspace }}/__release_metadata_repo
     - name: Install git-cliff
       shell: bash
       run: pip install git-cliff
     - name: Locally remove beta tags
       shell: bash
-      working-directory: ${{ github.action_path }}/repo
+      working-directory: ${{ github.workspace }}/__release_metadata_repo
       run: |
         git tag | grep 'b[0-9]' || true | xargs -r git tag --delete
     - name: Determine version number
@@ -60,7 +60,7 @@ runs:
       shell: bash
       env:
         GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
-        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
       run: |
@@ -79,7 +79,7 @@ runs:
       shell: bash
       env:
         GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
-        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
       run: |
@@ -91,7 +91,7 @@ runs:
       shell: bash
       env:
         GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
-        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
       run: |
@@ -107,6 +107,6 @@ runs:
     - name: Clean up
       shell: bash
       env:
-        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
       run: |
         rm -rf $GIT_CLIFF_REPOSITORY
