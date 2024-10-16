@@ -1,0 +1,112 @@
+name: Prepare release metadata
+description: Prepare release metadata based on conventional commits
+inputs:
+  release_type:
+    description: Release type
+    required: true
+    type: choice
+    default: auto
+    options:
+      - auto
+      - prerelease
+      - patch
+      - minor
+      - major
+      - custom
+  custom_version:
+    description: The custom version to bump to (only for "custom" type), with or without a leading "v"
+    required: false
+    type: string
+    default: ""
+  cliff_config_path:
+    description: Path to a custom git-cliff configuration file
+    required: false
+    type: string
+    default: cliff.toml
+outputs:
+  is_prerelease:
+    description: For convenience - was the action triggered with release_type = "prerelease"?
+    value: ${{ steps.version_number.outputs.is_prerelease }}
+  version_number:
+    description: Version number of the new release (no leading "v")
+    value: ${{ steps.version_number.outputs.version_number }}
+  tag_name:
+    description: Tag name for the new release (with a leading "v")
+    value: ${{ steps.version_number.outputs.tag_name }}
+  release_notes:
+    description: Release notes for the new release
+    value: ${{ steps.release_notes.outputs.release_notes }}
+  changelog:
+    description: The complete changelog
+    value: ${{ steps.changelog.outputs.changelog }}
+runs:
+  using: composite
+  steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        path: ${{ github.action_path }}/repo
+    - name: Install git-cliff
+      shell: bash
+      run: pip install git-cliff
+    - name: Locally remove beta tags
+      shell: bash
+      working-directory: ${{ github.action_path }}/repo
+      run: |
+        git tag | grep 'b[0-9]' || true | xargs -r git tag --delete
+    - name: Determine version number
+      id: version_number
+      shell: bash
+      env:
+        GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
+        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_WORKDIR: ${{ github.action_path }}
+        GITHUB_REPO: ${{ github.repository }}
+      run: |
+        if [[ '${{ inputs.release_type }}' = custom ]]; then
+          version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
+        elif [[ '${{ inputs.release_type }}' = auto || '${{ inputs.release_type }}' = prerelease ]]; then
+          version_number=$(git-cliff --bumped-version | sed s/^v//)
+        else
+          version_number=$(git-cliff --bump '${{ inputs.release_type }}' --context | jq -r '.[0].version' | sed s/^v//)
+        fi
+        echo version_number=$version_number | tee -a $GITHUB_OUTPUT
+        echo tag_name=v$version_number | tee -a $GITHUB_OUTPUT
+        echo is_prerelease=${{ inputs.release_type == 'prerelease' }} | tee -a $GITHUB_OUTPUT
+    - name: Generate release notes
+      id: release_notes
+      shell: bash
+      env:
+        GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
+        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_WORKDIR: ${{ github.action_path }}
+        GITHUB_REPO: ${{ github.repository }}
+      run: |
+        echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
+        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
+    - name: Generate changelog
+      id: changelog
+      shell: bash
+      env:
+        GIT_CLIFF_CONFIG: ${{ inputs.cliff_config_path }}
+        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+        GIT_CLIFF_WORKDIR: ${{ github.action_path }}
+        GITHUB_REPO: ${{ github.repository }}
+      run: |
+        if [[ ${{ inputs.release_type }} = prerelease ]]; then
+          echo 'changelog<<EOF' >> $GITHUB_OUTPUT
+          git-cliff --with-tag-message "${{ steps.version_number.outputs.tag_name }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+        else
+          echo 'changelog<<EOF' >> $GITHUB_OUTPUT
+          git-cliff --tag "v${{ steps.version_number.outputs.tag_name }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+        fi
+    - name: Clean up
+      shell: bash
+      env:
+        GIT_CLIFF_REPOSITORY: ${{ github.action_path }}/repo
+      run: |
+        rm -rf $GIT_CLIFF_REPOSITORY
