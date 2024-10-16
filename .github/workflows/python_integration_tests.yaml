@@ -15,14 +15,14 @@ concurrency:
 jobs:
   # Job to run integration tests from the main repository.
   integration_tests_on_main:
-    name: Integration tests (main repository)
+    name: Integration tests
     runs-on: ubuntu-latest
-    # If PR is from the main repository or it is a push to master.
+    # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]  # Oldest and newest supported Python versions.
-      max-parallel: 1  # No parallel tests to avoid exceeding API limits.
+        python-version: ["3.9", "3.12"] # Oldest and newest supported Python versions.
+      max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     steps:
       - name: Checkout repository
@@ -45,10 +45,10 @@ jobs:
 
   # Job to request approval before running integration tests for PRs from forks.
   integration_tests_on_fork_approval:
-    name: Approve integration tests for fork PR
+    name: Approve integration tests for PRs from forks
     runs-on: ubuntu-latest
-    # If the PR is from a fork.
-    if: github.event.pull_request.head.repo.owner.login != 'apify'
+    # Run this only for PRs from forks. Skip otherwise.
+    if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
     environment:
       name: fork-pr-integration-tests
       url: ${{ github.event.pull_request.html_url }}
@@ -58,15 +58,15 @@ jobs:
 
   # Job to run integration tests for PRs from forks, only after manual approval.
   integration_tests_on_fork:
-    name: Integration tests (fork after approval)
+    name: Integration tests for PRs from forks
     needs: integration_tests_on_fork_approval
-    # If the PR is from a fork.
-    if: github.event.pull_request.head.repo.owner.login != 'apify'
+    # Run this only for PRs from forks. Skip otherwise.
+    if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]  # Oldest and newest supported Python versions.
-      max-parallel: 1  # No parallel tests to avoid overshooting limits.
+        python-version: ["3.9", "3.12"] # Oldest and newest supported Python versions.
+      max-parallel: 1 # No parallel tests to avoid overshooting limits.
 
     steps:
       - name: Checkout repository
