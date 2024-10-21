@@ -19,7 +19,9 @@ on:
       APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN:
         required: true
     outputs:
-      changelog_commitish: ${{ jobs.bump_and_update_changelog.outputs.changelog_commitish }}
+      changelog_commitish:
+        description: Git HEAD after the commit and push
+        value: ${{ jobs.bump_and_update_changelog.outputs.changelog_commitish }}
 
 jobs:
   bump_and_update_changelog:
