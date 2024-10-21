@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Prepare release metadata
         id: metadata
-        uses: apify/workflows/release-metadata
+        uses: apify/workflows/release-metadata@main
         with:
           release_type: prerelease
       - name: Update CHANGELOG.md
@@ -82,7 +82,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Prepare release metadata
         id: metadata
-        uses: apify/workflows/release-metadata
+        uses: apify/workflows/release-metadata@main
         with:
           release_type: ${{ inputs.release_type }}
       - name: Update CHANGELOG.md
