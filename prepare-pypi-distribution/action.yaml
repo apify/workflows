@@ -30,12 +30,14 @@ runs:
         python-version: ${{ inputs.python_version }}
 
     - name: Install dependencies
+      shell: bash
       run: |
         pipx install --python ${{ inputs.python_version }} poetry
         make install-dev
 
     # Updates the version number in the project's configuration.
     - name: Set version in pyproject.toml
+      shell: bash
       run: |
         if [ -n "${{ inputs.is_prerelease }}" ]; then
           next_beta=$(
@@ -58,4 +60,5 @@ runs:
 
     # Builds the package.
     - name: Build package
+      shell: bash
       run: make build
