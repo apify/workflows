@@ -27,7 +27,7 @@ body = """
         - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
             {% if commit.breaking %}[**breaking**] {% endif %}\
             {{ commit.message | upper_first }} ([{{ commit.id | truncate(length = 7, end = "") }}](<REPO>/commit/{{ commit.id }}))\
-            {% if commit.github.username %} by [@{{ commit.github.username }}](https://github.com/{{ commit.github.username }}){%- endif %}\
+            {% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){%- endif %}\
     {% endfor %}
 {% endfor %}\n
 """
@@ -39,7 +39,7 @@ footer = """
 trim = true
 # postprocessors
 postprocessors = [
-  { pattern = '<REPO>', replace_command = 'sed "s^<REPO>^$GITHUB_REPO^"' }, # replace repository URL
+  { pattern = '<REPO>', replace_command = 'sed "s^<REPO>^https://github.com/$GITHUB_REPO^g"' }, # replace repository URL
 ]
 
 [bump]
