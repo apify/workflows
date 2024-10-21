@@ -1,0 +1,42 @@
+name: Docs check
+
+on:
+  workflow_call:
+
+jobs:
+  docs_check:
+    name: Docs check
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: 20
+      PYTHON_VERSION: 3.12
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Enable corepack
+        run: |
+          corepack enable
+          corepack prepare yarn@stable --activate
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Python dependencies
+        run: |
+          pipx install --python ${{ env.PYTHON_VERSION }} poetry
+          make install-dev
+
+      - name: Build API reference
+        run: make build-api-reference
+
+      - name: Build docs website
+        run: make build-docs
