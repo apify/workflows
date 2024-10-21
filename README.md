@@ -24,11 +24,11 @@ on:
 
 jobs:
   get_values:
-    uses: apify/workflows/.github/workflows/get_values.yaml
+    uses: apify/workflows/.github/workflows/get_values.yaml@main
   
   build:
     needs: get_values
-    uses: apify/workflows/.github/workflows/build_docker_image_and_push_to_ecr.yaml
+    uses: apify/workflows/.github/workflows/build_docker_image_and_push_to_ecr.yaml@main
     secrets:
       awsAccessKeyId: ${{ secrets.AWS_ACCESS_KEY_ID }}
       awsSecretAccessKey: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
