@@ -1,0 +1,64 @@
+inputs:
+  package_name:
+    required: true
+    type: string
+  version_number:
+    required: true
+    type: string
+  is_prerelease:
+    required: true
+    type: string
+  ref:
+    required: true
+    type: string
+  python_version:
+    required: false
+    type: string
+    default: 3.12
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pipx install --python ${{ inputs.python_version }} poetry
+        make install-dev
+
+    # Updates the version number in the project's configuration.
+    - name: Set version in pyproject.toml
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.is_prerelease }}" ]; then
+          next_beta=$(
+            curl "https://pypi.org/pypi/${{ inputs.package_name }}/json" | jq --raw-output '
+              [
+                .releases |
+                  keys |
+                  .[] |
+                  select(startswith("${{ inputs.version_number }}b")) |
+                  split("b") |
+                  .[1] |
+                  tonumber
+              ] |
+              sort_by(- .) |
+              .[0] + 1
+            '
+          )
+          poetry version "${{ inputs.version_number }}b$next_beta"
+        fi
+
+    # Builds the package.
+    - name: Build package
+      shell: bash
+      run: make build
