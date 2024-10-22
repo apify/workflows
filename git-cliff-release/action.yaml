@@ -89,7 +89,7 @@ runs:
       working-directory: ${{ github.action_path }}
       run: |
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
-        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased | 
+        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
           python enhance_context.py --repo $GITHUB_REPO --release-notes | 
           git-cliff --from-context - --strip all |
           tee -a $GITHUB_OUTPUT
