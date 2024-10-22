@@ -23,6 +23,11 @@ inputs:
     required: false
     type: string
     default: cliff.toml
+  release_template:
+    description: Path to release notes template file (relative to action directory)
+    required: false
+    type: string
+    default: templates/release-notes.template
 outputs:
   is_prerelease:
     description: For convenience - was the action triggered with release_type = "prerelease"?
@@ -50,6 +55,18 @@ runs:
     - name: Install git-cliff
       shell: bash
       run: pip install git-cliff
+    - name: Set template content
+      id: template
+      shell: bash
+      run: |
+        template_path="${{ github.action_path }}/${{ inputs.release_template }}"
+        if [ -f "$template_path" ]; then
+          echo "TEMPLATE_CONTENT<<EOF" >> $GITHUB_ENV
+          cat "$template_path" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        else
+          echo "Warning: Template file not found at $template_path, using default template from cliff.toml"
+        fi
     - name: Locally remove beta tags
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
@@ -86,9 +103,14 @@ runs:
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
         GH_TOKEN: ${{ github.token }}
+        GIT_CLIFF_TEMPLATE: ${{ env.TEMPLATE_CONTENT }}
       run: |
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
-        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
+        if [[ -n "$GIT_CLIFF_TEMPLATE" ]]; then
+          git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
+        else
+          git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
+        fi
         echo 'EOF' >> $GITHUB_OUTPUT
     - name: Generate changelog
       id: changelog

@@ -1,0 +1,13 @@
+{% if version %}
+## [{{ version | trim_start_matches(pat="v") }}] ({{ timestamp | date(format="%Y-%m-%d") }})
+{% elif message %}
+## {{ message | trim_start_matches(pat="v") }} - **not yet released**
+{% else %}
+## unreleased
+{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}
+- {% if commit.scope %}*({{ commit.scope }})* {% endif %}{% if commit.breaking %}[**breaking**] {% endif %}{{ commit.message | upper_first }} ([{{ commit.id | truncate(length = 7, end = "") }}]){% if commit.github.username %} by @{{ commit.github.username }}{% endif %}
+{% endfor %}
+{% endfor %}
