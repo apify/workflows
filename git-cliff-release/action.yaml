@@ -1,5 +1,5 @@
-name: Prepare release metadata
-description: Prepare release metadata based on conventional commits
+name: Prepare release metadata using git-cliff
+description: Prepare release metadata based on conventional commits using git-cliff
 inputs:
   release_type:
     description: Release type
