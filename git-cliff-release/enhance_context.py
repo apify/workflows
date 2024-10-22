@@ -9,15 +9,19 @@ from typing import Any
 
 
 def load_pr_issues(owner: str, repo: str) -> dict[int, list[int]]:
-    pr_issues = json.loads(
-        subprocess.check_output(
-            [
-                str(Path(__file__).parent / "fetch_pr_issues.sh"),
-                owner,
-                repo,
-            ]
-        )
+    output = subprocess.check_output(
+        [
+            str(Path(__file__).parent / "fetch_pr_issues.sh"),
+            owner,
+            repo,
+        ]
     )
+
+    try:
+        pr_issues = json.loads(output)
+    except ValueError:
+        print(f"fetch_pr_issues.sh output: {output}")
+        raise
 
     return {int(key): value for key, value in pr_issues.items()}
 
