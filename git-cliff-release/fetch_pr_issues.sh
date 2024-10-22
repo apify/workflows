@@ -1,7 +1,12 @@
 #!/bin/sh
 
-owner=$(echo $GITHUB_REPO | cut -d / -f 1)
-repo=$(echo $GITHUB_REPO | cut -d / -f 2)
+owner=$1
+repo=$2
+
+if [ -z "$owner" -o -z "$repo" ]; then
+    echo "Missing arguments - owner and repo" >&2
+    exit 1
+fi
 
 gh api graphql --paginate --slurp \
     -F owner="$owner" \
@@ -32,4 +37,4 @@ jq '
                 (.number | tostring):
                 [.closingIssuesReferences.nodes | .[] | .number]
             }
-    ] | add' > pullRequestIssues.json
+    ] | add'

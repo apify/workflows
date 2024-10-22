@@ -86,9 +86,13 @@ runs:
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
         GH_TOKEN: ${{ github.token }}
+      working-directory: ${{ github.action_path }}
       run: |
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
-        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --strip all | tee -a $GITHUB_OUTPUT
+        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased | 
+          python enhance_context.py --repo $GITHUB_REPO --release-notes | 
+          git-cliff --from-context - --strip all |
+          tee -a $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
     - name: Generate changelog
       id: changelog
@@ -99,14 +103,19 @@ runs:
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
         GH_TOKEN: ${{ github.token }}
+      working-directory: ${{ github.action_path }}
       run: |
         if [[ ${{ inputs.release_type }} = prerelease ]]; then
           echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-          git-cliff --with-tag-message "${{ steps.version_number.outputs.tag_name }}" >> $GITHUB_OUTPUT
+          git-cliff --context | 
+            python enhance_context.py --repo $GITHUB_REPO --unreleased-version "${{ steps.version_number.outputs.tag_name }}" | 
+            git-cliff --from-context - >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
         else
           echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-          git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" >> $GITHUB_OUTPUT
+          git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --context | 
+            python enhance_context.py --repo $GITHUB_REPO | 
+            git-cliff --from-context - >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
         fi
     - name: Clean up
