@@ -21,7 +21,7 @@ body = """
 {% elif version %}
     ## {{ version | trim_start_matches(pat="v") }}
 {% else %}\
-    ## unreleased
+    ## Unreleased
 {% endif %}\
 {% for group, commits in commits | group_by(attribute="group") %}
     ### {{ group | striptags | trim | upper_first }}
@@ -38,6 +38,9 @@ body = """
             {{" "}}by @{{ commit.remote.username }}\
             {% elif commit.remote.username %}\
             {{" "}}by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }})\
+            {% if commit.extra.closed_issue_links %}\
+            , closes {{ commit.extra.closed_issue_links | join(sep = ", ") }}
+            {% endif %}\
             {%- endif %}\
     {% endfor %}
 {% endfor %}\n
