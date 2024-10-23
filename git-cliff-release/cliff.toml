@@ -39,7 +39,7 @@ body = """
             {% elif commit.remote.username %}\
             {{" "}}by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }})\
             {% if commit.extra.closed_issue_links %}\
-            , closes {{ commit.extra.closed_issue_links | join(sep = ", ") }}
+            , closes {{ commit.extra.closed_issue_links | join(sep = ", ") }}\
             {% endif %}\
             {%- endif %}\
     {% endfor %}
