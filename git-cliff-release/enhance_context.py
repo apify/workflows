@@ -49,20 +49,14 @@ def enhance_commit(commit: dict[str, Any], pr_issues: dict[int, list[int]]) -> N
     if pr_number:
         commit["extra"]["closed_issues"] = pr_issues.get(pr_number, [])
 
+        pr_link = f"{repo_url}/pulls/{pr_number}"
+        commit["extra"]["pr_link"] = f"([#{pr_number}]({pr_link}))"
         commit["extra"]["raw_pr_link"] = f"(#{pr_number})"
 
-        pr_link = f"{repo_url}/pulls/{pr_number}"
-        issue_links = [
+        commit["extra"]["closed_issue_links"] = [
             f"[#{issue}]({repo_url}/issues/{issue})"
             for issue in commit["extra"]["closed_issues"]
         ]
-
-        if issue_links:
-            commit["extra"]["pr_link"] = (
-                f"([#{pr_number}]({pr_link}), closes {', '.join(issue_links)})"
-            )
-        else:
-            commit["extra"]["pr_link"] = f"([#{pr_number}]({pr_link}))"
 
 
 parser = ArgumentParser()
