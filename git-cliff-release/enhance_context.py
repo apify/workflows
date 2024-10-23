@@ -59,7 +59,7 @@ def enhance_commit(commit: dict[str, Any], pr_issues: dict[int, list[int]]) -> N
 
         if issue_links:
             commit["extra"]["pr_link"] = (
-                f"([#{pr_number}]({pr_link}, closes {', '.join(issue_links)}))"
+                f"([#{pr_number}]({pr_link}), closes {', '.join(issue_links)})"
             )
         else:
             commit["extra"]["pr_link"] = f"([#{pr_number}]({pr_link}))"
