@@ -23,6 +23,9 @@ def load_pr_issues(owner: str, repo: str) -> dict[int, list[int]]:
         print(f"fetch_pr_issues.sh output: {output}")
         raise
 
+    if pr_issues is None:
+        return {}
+
     return {int(key): value for key, value in pr_issues.items()}
 
 
