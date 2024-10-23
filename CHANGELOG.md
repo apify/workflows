@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.23.0](https://github.com/apify/workflows/compare/v0.22.3...v0.23.0) (2024-10-23)
+
+
+### Features
+
+* add Python workflows ([#129](https://github.com/apify/workflows/issues/129)) ([b648b85](https://github.com/apify/workflows/commit/b648b85c94c33304168cb73fe81fed27c9058844))
+* git-cliff-release and prepare-pypi-distribution actions, python_bump_and_update_changelog workflow ([#133](https://github.com/apify/workflows/issues/133)) ([0598248](https://github.com/apify/workflows/commit/059824878284a1bfeeb5de56d3dccd531e61c970))
+
+
+### Bug Fixes
+
+* git-cliff-release release notes format ([#137](https://github.com/apify/workflows/issues/137)) ([39716bd](https://github.com/apify/workflows/commit/39716bd9e6a11223c34396f4b22dee90a100fb32))
+* move Python workflows to top level ([#131](https://github.com/apify/workflows/issues/131)) ([260a213](https://github.com/apify/workflows/commit/260a21371a66c540670882be915e6d7deeb64af5))
+
 ## [0.22.3](https://github.com/apify/workflows/compare/v0.22.2...v0.22.3) (2024-08-22)
 
 
