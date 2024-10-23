@@ -75,7 +75,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       run: |
         if [[ '${{ inputs.release_type }}' = custom ]]; then
           version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
@@ -95,7 +95,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
@@ -112,7 +112,7 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ inputs.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
         dump_context_args=()
