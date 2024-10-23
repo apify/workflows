@@ -14,10 +14,12 @@ All notable changes to this project will be documented in this file.\n
 # template for the changelog body
 # https://keats.github.io/tera/docs/#introduction
 body = """
-{% if version %}\
-    ## [{{ version | trim_start_matches(pat="v") }}](<REPO>/releases/tag/{{ version }}) ({{ timestamp | date(format="%Y-%m-%d") }})
-{% elif message %}\
-    ## {{ message | trim_start_matches(pat="v") }} - **not yet released**
+{% if version and extra.release_link %}\
+    ## [{{ version | trim_start_matches(pat="v") }}]({{ extra.release_link }}) ({{ timestamp | date(format="%Y-%m-%d") }})
+{% elif extra.unreleased_version %}\
+    ## {{ extra.unreleased_version | trim_start_matches(pat="v") }} - **not yet released**
+{% elif version %}
+    ## {{ version | trim_start_matches(pat="v") }}
 {% else %}\
     ## unreleased
 {% endif %}\
@@ -26,8 +28,17 @@ body = """
     {% for commit in commits %}
         - {% if commit.scope %}*({{ commit.scope }})* {% endif %}\
             {% if commit.breaking %}[**breaking**] {% endif %}\
-            {{ commit.message | upper_first }} ([{{ commit.id | truncate(length = 7, end = "") }}](<REPO>/commit/{{ commit.id }}))\
-            {% if commit.remote.username %} by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }}){%- endif %}\
+            {% if commit.extra.pr_link %}\
+            {{ commit.message | upper_first | replace(from=commit.extra.raw_pr_link, to=commit.extra.pr_link) }}\
+            {% else %}\
+            {{ commit.message | upper_first }}\
+            {% endif %}\
+            {{" "}}([{{ commit.id | truncate(length = 7, end = "") }}]({{ commit.extra.commit_link }}))\
+            {% if commit.remote.username and extra.is_release_notes %}\
+            {{" "}}by @{{ commit.remote.username }}\
+            {% elif commit.remote.username %}\
+            {{" "}}by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }})\
+            {%- endif %}\
     {% endfor %}
 {% endfor %}\n
 """
@@ -38,9 +49,7 @@ footer = """
 # remove the leading and trailing s
 trim = true
 # postprocessors
-postprocessors = [
-  { pattern = '<REPO>', replace_command = 'sed "s^<REPO>^https://github.com/$GITHUB_REPO^g"' }, # replace repository URL
-]
+postprocessors = []
 
 [bump]
 # With 0.x.y version, breaking commits should only increase the minor version and feature commits should only increase the patch version
@@ -55,13 +64,7 @@ filter_unconventional = true
 # process each line of a commit as an individual commit
 split_commits = false
 # regex for preprocessing the commit messages
-commit_preprocessors = [
-  # Replace PR and issue numbers in commit messages
-  { pattern = '.*', replace_command = 'python $GIT_CLIFF_WORKDIR/preprocess_commit_message.py'},
-  # Check spelling of the commit with https://github.com/crate-ci/typos
-  # If the spelling is incorrect, it will be automatically fixed.
-  #{ pattern = '.*', replace_command = 'typos --write-changes -' },
-]
+commit_preprocessors = []
 # regex for parsing and grouping commits
 commit_parsers = [
   { message = "^feat", group = "<!-- 0 -->🚀 Features" },
