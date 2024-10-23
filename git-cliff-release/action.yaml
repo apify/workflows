@@ -54,8 +54,8 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
       run: |
-        if git tag | grep 'b[0-9]' > /dev/null 2> /dev/null; then
-          git tag | grep 'b[0-9]' | xargs -r git tag --delete
+        if git tag | grep -e 'b[0-9]' -e '-beta\.' > /dev/null 2> /dev/null; then
+          git tag | grep -e 'b[0-9]' -e '-beta\.' | xargs -r git tag --delete
         fi
     - name: Determine version number
       id: version_number
