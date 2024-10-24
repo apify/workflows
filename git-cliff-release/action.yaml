@@ -122,6 +122,7 @@ runs:
         if [[ -n "${{ inputs.existing_changelog_path }}" ]]; then
           out_file=$GIT_CLIFF_WORKDIR/existing_changelog.md
           cp "${{ github.workspace }}/${{ inputs.existing_changelog_path }}" $out_file
+          sed '/<!-- git-cliff-unreleased-start -->/,/<!-- git-cliff-unreleased-end -->/d' -i $out_file
 
           print_changelog_args+=(--prepend "$out_file" --unreleased)
         else
