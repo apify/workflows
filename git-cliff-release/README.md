@@ -7,6 +7,8 @@ This action uses conventional commit history to determine the recommended versio
 - **release_type**: One of `auto` (default), `patch`, `minor`, `major` and `custom`. `auto` means that the version will be determined based on the commit history, `custom` will use the value of the `custom_version` input parameter, and `patch`, `minor` and `major` allow forcing the bump type.
 - **custom_version**: Optional unless the `release_type` is set to `custom`.
 - **cliff_config_path**: Path to a configuration file for git-cliff. If none is given, a built-in configuration will be used.
+- **existing_changelog_path**: Path to an existing changelog. If given, the new changelog contents will be prepended to it intelligently.
+- **token**: Github token to be used by github CLI (should be relevant for private repositories only)
 
 ## Outputs
 

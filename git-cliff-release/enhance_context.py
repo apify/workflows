@@ -23,6 +23,9 @@ def load_pr_issues(owner: str, repo: str) -> dict[int, list[int]]:
         print(f"fetch_pr_issues.sh output: {output}")
         raise
 
+    if pr_issues is None:
+        return {}
+
     return {int(key): value for key, value in pr_issues.items()}
 
 
@@ -41,7 +44,7 @@ def enhance_release(
 
 
 def enhance_commit(commit: dict[str, Any], pr_issues: dict[int, list[int]]) -> None:
-    pr_number = commit["remote"]["pr_number"]
+    pr_number = commit.get("remote", {}).get("pr_number")
 
     commit["extra"] = commit["extra"] or {}
     commit["extra"]["commit_link"] = f"{repo_url}/commit/{commit['id']}"

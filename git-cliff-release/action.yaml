@@ -23,6 +23,16 @@ inputs:
     required: false
     type: string
     default: cliff.toml
+  existing_changelog_path:
+    description: Path to an existing changelog. If given, the new changelog contents will be prepended to it intelligently.
+    required: false
+    type: string
+    default: ""
+  token:
+    description: Github token to be used by github CLI
+    required: false
+    type: string
+    default: ${{ github.token }}
 outputs:
   is_prerelease:
     description: For convenience - was the action triggered with release_type = "prerelease"?
@@ -65,8 +75,9 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       run: |
+        set -x
         if [[ '${{ inputs.release_type }}' = custom ]]; then
           version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
         elif [[ '${{ inputs.release_type }}' = auto || '${{ inputs.release_type }}' = prerelease ]]; then
@@ -85,9 +96,10 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
+        set -x
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
         git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
           python enhance_context.py --repo $GITHUB_REPO --release-notes | 
@@ -102,22 +114,42 @@ runs:
         GIT_CLIFF_REPOSITORY: ${{ github.workspace }}/__release_metadata_repo
         GIT_CLIFF_WORKDIR: ${{ github.action_path }}
         GITHUB_REPO: ${{ github.repository }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
-        if [[ ${{ inputs.release_type }} = prerelease ]]; then
-          echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-          git-cliff --context | 
-            python enhance_context.py --repo $GITHUB_REPO --unreleased-version "${{ steps.version_number.outputs.tag_name }}" | 
-            git-cliff --from-context - >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
+        set -x
+        dump_context_args=()
+        enhance_context_args=()
+        print_changelog_args=()
+
+        out_file=$GIT_CLIFF_WORKDIR/new_changelog.md
+
+        if [[ -n "${{ inputs.existing_changelog_path }}" ]]; then
+          out_file=$GIT_CLIFF_WORKDIR/existing_changelog.md
+          cp "${{ github.workspace }}/${{ inputs.existing_changelog_path }}" $out_file
+          sed '/<!-- git-cliff-unreleased-start -->/,/<!-- git-cliff-unreleased-end -->/d' -i $out_file
+
+          dump_context_args+=(--unreleased)
+          print_changelog_args+=(--prepend "$out_file" --unreleased)
         else
-          echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-          git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --context | 
-            python enhance_context.py --repo $GITHUB_REPO | 
-            git-cliff --from-context - >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
+          print_changelog_args+=(--output "$out_file")
         fi
+
+        if [[ ${{ inputs.release_type }} = prerelease ]]; then
+          enhance_context_args+=(--unreleased-version "${{ steps.version_number.outputs.tag_name }}")
+        else
+          dump_context_args+=(--tag "${{ steps.version_number.outputs.tag_name }}")
+        fi
+
+        git-cliff --context "${dump_context_args[@]}" |
+          python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}" |
+          git-cliff --from-context - "${print_changelog_args[@]}"
+
+        sed -i '$a\' $out_file # Make sure there is a newline at the end of the output file
+
+        echo 'changelog<<EOF' >> $GITHUB_OUTPUT
+        cat $out_file >> $GITHUB_OUTPUT
+        echo 'EOF' >> $GITHUB_OUTPUT
     - name: Clean up
       shell: bash
       env:
