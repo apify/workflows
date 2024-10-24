@@ -141,9 +141,9 @@ runs:
           dump_context_args+=(--tag "${{ steps.version_number.outputs.tag_name }}")
         fi
 
-        git-cliff --context | "$dump_context_args[@]"
-          python enhance_context.py --repo $GITHUB_REPO "$enhance_context_args[@]" |
-          git-cliff --from-context - "$print_changelog_args[@]"
+        git-cliff --context | "${dump_context_args[@]}"
+          python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}" |
+          git-cliff --from-context - "${print_changelog_args[@]}"
 
         echo 'changelog<<EOF' >> $GITHUB_OUTPUT
         cat $out_file >> $GITHUB_OUTPUT
