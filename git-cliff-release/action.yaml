@@ -77,6 +77,7 @@ runs:
         GITHUB_REPO: ${{ github.repository }}
         GITHUB_TOKEN: ${{ inputs.token }}
       run: |
+        set -x
         if [[ '${{ inputs.release_type }}' = custom ]]; then
           version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
         elif [[ '${{ inputs.release_type }}' = auto || '${{ inputs.release_type }}' = prerelease ]]; then
@@ -98,6 +99,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
+        set -x
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
         git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
           python enhance_context.py --repo $GITHUB_REPO --release-notes | 
@@ -115,9 +117,11 @@ runs:
         GITHUB_TOKEN: ${{ inputs.token }}
       working-directory: ${{ github.action_path }}
       run: |
+        set -x
         dump_context_args=()
         enhance_context_args=()
         print_changelog_args=()
+
         out_file=$GIT_CLIFF_WORKDIR/new_changelog.md
 
         if [[ -n "${{ inputs.existing_changelog_path }}" ]]; then
@@ -137,11 +141,9 @@ runs:
           dump_context_args+=(--tag "${{ steps.version_number.outputs.tag_name }}")
         fi
 
-        set -x
         git-cliff --context "${dump_context_args[@]}" |
           python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}" |
           git-cliff --from-context - "${print_changelog_args[@]}"
-        set +x
 
         echo 'changelog<<EOF' >> $GITHUB_OUTPUT
         cat $out_file >> $GITHUB_OUTPUT
