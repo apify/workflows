@@ -121,7 +121,7 @@ runs:
 
         if [[ -n "${{ inputs.existing_changelog_path }}" ]]; then
           out_file=$GIT_CLIFF_WORKDIR/existing_changelog.md
-          cp "${{ inputs.existing_changelog_path }}" $out_file
+          cp "${{ github.workspace }}/${{ inputs.existing_changelog_path }}" $out_file
 
           print_changelog_args+=(--prepend "$out_file")
 
