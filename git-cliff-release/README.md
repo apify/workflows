@@ -8,6 +8,7 @@ This action uses conventional commit history to determine the recommended versio
 - **custom_version**: Optional unless the `release_type` is set to `custom`.
 - **cliff_config_path**: Path to a configuration file for git-cliff. If none is given, a built-in configuration will be used.
 - **existing_changelog_path**: Path to an existing changelog. If given, the new changelog contents will be prepended to it intelligently.
+- **token**: Github token to be used by github CLI (should be relevant for private repositories only)
 
 ## Outputs
 
