@@ -146,7 +146,7 @@ runs:
           git-cliff --from-context - "${print_changelog_args[@]}"
 
         echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-        cat $out_file >> $GITHUB_OUTPUT
+        cat $out_file | tee -a $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
     - name: Clean up
       shell: bash
