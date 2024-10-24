@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file.\n
 # template for the changelog body
 # https://keats.github.io/tera/docs/#introduction
 body = """
+{% if not version %}\
+<!-- git-cliff-unreleased-start -->
+{% endif %}\
 {% if version and extra.release_link %}\
     ## [{{ version | trim_start_matches(pat="v") }}]({{ extra.release_link }}) ({{ timestamp | date(format="%Y-%m-%d") }})
 {% elif extra.unreleased_version %}\
@@ -44,6 +47,9 @@ body = """
             {%- endif %}\
     {% endfor %}
 {% endfor %}\n
+{% if not version %}\
+<!-- git-cliff-unreleased-end -->
+{% endif %}\
 """
 # template for the changelog footer
 footer = """

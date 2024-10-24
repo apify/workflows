@@ -123,13 +123,7 @@ runs:
           out_file=$GIT_CLIFF_WORKDIR/existing_changelog.md
           cp "${{ github.workspace }}/${{ inputs.existing_changelog_path }}" $out_file
 
-          print_changelog_args+=(--prepend "$out_file")
-
-          if [[ ${{ inputs.release_type }} = prerelease ]]; then
-            print_changelog_args+=(--unreleased)
-          else
-            print_changelog_args+=(--latest)
-          fi
+          print_changelog_args+=(--prepend "$out_file" --unreleased)
         else
           out_file=$GIT_CLIFF_WORKDIR/new_changelog.md
           print_changelog_args+=(--output "$out_file")
