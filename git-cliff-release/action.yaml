@@ -145,8 +145,10 @@ runs:
           python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}" |
           git-cliff --from-context - "${print_changelog_args[@]}"
 
+        sed -i '$a\' $out_file # Make sure there is a newline at the end of the output file
+
         echo 'changelog<<EOF' >> $GITHUB_OUTPUT
-        cat $out_file | tee -a $GITHUB_OUTPUT
+        cat $out_file >> $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
     - name: Clean up
       shell: bash
