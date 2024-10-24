@@ -118,15 +118,16 @@ runs:
         dump_context_args=()
         enhance_context_args=()
         print_changelog_args=()
+        out_file=$GIT_CLIFF_WORKDIR/new_changelog.md
 
         if [[ -n "${{ inputs.existing_changelog_path }}" ]]; then
           out_file=$GIT_CLIFF_WORKDIR/existing_changelog.md
           cp "${{ github.workspace }}/${{ inputs.existing_changelog_path }}" $out_file
           sed '/<!-- git-cliff-unreleased-start -->/,/<!-- git-cliff-unreleased-end -->/d' -i $out_file
 
+          dump_context_args+=(--unreleased)
           print_changelog_args+=(--prepend "$out_file" --unreleased)
         else
-          out_file=$GIT_CLIFF_WORKDIR/new_changelog.md
           print_changelog_args+=(--output "$out_file")
         fi
 

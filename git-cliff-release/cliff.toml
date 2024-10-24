@@ -35,7 +35,7 @@ body = """
             {% else %}\
             {{ commit.message | upper_first }}\
             {% endif %}\
-            {{" "}}([{{ commit.id | truncate(length = 7, end = "") }}]({{ commit.extra.commit_link }}))\
+            {% if commit.extra.commit_link %} ([{{ commit.id | truncate(length = 7, end = "") }}]({{ commit.extra.commit_link }})){% endif %}\
             {% if commit.remote.username and extra.is_release_notes %}\
             {{" "}}by @{{ commit.remote.username }}\
             {% elif commit.remote.username %}\
