@@ -81,12 +81,17 @@ jobs:
     if: inputs.revision != ''
     runs-on: ubuntu-latest
     steps:
+      - name: get release version from revision
+        id: releaseVer
+        run: |
+          release=$(git tag --contains ${{ inputs.revision }})
+        
       - name: mark release
         uses: frankie567/grafana-annotation-action@v1.0.3
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
-          text: ${{ inputs.environment }} - Deployment of ${{ inputs.revision }}
+          text: ${{ inputs.environment }} - Deployment of ${{ steps.releaseVer.outputs.stdout }}-${{ inputs.revision }}
           tags: deployment,github,${{ inputs.environment }},${{ inputs.grafanaAnnotationTag }}
 
   sentry:
