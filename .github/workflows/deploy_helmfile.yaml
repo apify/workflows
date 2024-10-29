@@ -196,9 +196,9 @@ jobs:
       - name: Inject release version to the helm chart
         if: inputs.revision != ''
         run: |
-          release=$(git tag --contains ${{ inputs.revision }})
+          release=$(git tag --contains "${{ inputs.revision }}")
           find . -name "Chart.yaml" | while IFS= read -r file; do
-              yq -i '.appVersion = "'"$release"'"-${{ inputs.revision }}' "$file"
+              yq -i '.appVersion = '"$release"'-${{ inputs.revision }}' "$file"
           done
             
       - name: helmfile ${{ inputs.helmfileCommand }}
