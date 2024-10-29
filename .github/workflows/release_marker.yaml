@@ -84,7 +84,7 @@ jobs:
       - name: get release version from revision
         id: releaseVer
         run: |
-          release=$(git tag --contains ${{ inputs.revision }})
+          release=$(git tag --contains "${{ inputs.revision }}")
         
       - name: mark release
         uses: frankie567/grafana-annotation-action@v1.0.3
