@@ -60,12 +60,12 @@ runs:
     - name: Install git-cliff
       shell: bash
       run: pip install git-cliff
-    - name: Locally remove beta tags
+    - name: Locally remove pre-release tags
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
       run: |
-        if git tag | grep -e 'b[0-9]' -e '-beta\.' > /dev/null 2> /dev/null; then
-          git tag | grep -e 'b[0-9]' -e '-beta\.' | xargs -r git tag --delete
+        if git tag | grep -e '[ab][0-9]' -e '-beta\.' -e '-alpha\.' > /dev/null 2> /dev/null; then
+          git tag | grep -e '[ab][0-9]' -e '-beta\.' -e '-alpha\.' | xargs -r git tag --delete
         fi
     - name: Determine version number
       id: version_number
