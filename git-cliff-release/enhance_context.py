@@ -37,7 +37,7 @@ def enhance_release(
 
     if release["version"]:
         release["extra"]["release_link"] = (
-            f"{repo_url}/releases/tags/{release['version']}"
+            f"{repo_url}/releases/tag/{release['version']}"
         )
     elif unreleased_version:
         release["extra"]["unreleased_version"] = unreleased_version
