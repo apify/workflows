@@ -197,9 +197,9 @@ jobs:
           version: 1.76.1
 
       # Bug https://github.com/tailscale/github-action/issues/107
-      - name: Tailscale sleep workaround
-        run: |
-          sleep 10
+      #- name: Tailscale sleep workaround
+      #  run: |
+      #    sleep 10
 
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
