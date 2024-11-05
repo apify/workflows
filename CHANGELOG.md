@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.23.0](https://github.com/apify/workflows/compare/v0.22.3...v0.23.0) (2024-11-05)
+
+
+### Features
+
+* add Python workflows ([#129](https://github.com/apify/workflows/issues/129)) ([b648b85](https://github.com/apify/workflows/commit/b648b85c94c33304168cb73fe81fed27c9058844))
+* add workflow permisions for relase-please; also release, please ([#151](https://github.com/apify/workflows/issues/151)) ([74c95c8](https://github.com/apify/workflows/commit/74c95c87adb14890c229550c268b1a14d5334c3a))
+* Allow prepending the generated changelog to an existing one in git-cliff-release ([#142](https://github.com/apify/workflows/issues/142)) ([f4a3cc0](https://github.com/apify/workflows/commit/f4a3cc0e2a1551106d5cf4306f9f21c6003987ff))
+* git-cliff-release and prepare-pypi-distribution actions, python_bump_and_update_changelog workflow ([#133](https://github.com/apify/workflows/issues/133)) ([0598248](https://github.com/apify/workflows/commit/059824878284a1bfeeb5de56d3dccd531e61c970))
+
+
+### Bug Fixes
+
+* add tailscale sleep workaround ([#150](https://github.com/apify/workflows/issues/150)) ([a7078e4](https://github.com/apify/workflows/commit/a7078e417573e0d8f6ce7ea9846114708c539782))
+* Fix changelog prepending in git-cliff-release action ([#147](https://github.com/apify/workflows/issues/147)) ([304e617](https://github.com/apify/workflows/commit/304e617e6dda3223b3157812c6b8bd263688081b))
+* git-cliff-release release notes format ([#137](https://github.com/apify/workflows/issues/137)) ([39716bd](https://github.com/apify/workflows/commit/39716bd9e6a11223c34396f4b22dee90a100fb32))
+* move Python workflows to top level ([#131](https://github.com/apify/workflows/issues/131)) ([260a213](https://github.com/apify/workflows/commit/260a21371a66c540670882be915e6d7deeb64af5))
+* Use correct link to releases in git-cliff-release action ([#146](https://github.com/apify/workflows/issues/146)) ([67cb412](https://github.com/apify/workflows/commit/67cb412cc2e2f3c0d994dd5472461518d315d295))
+
 ## [0.22.3](https://github.com/apify/workflows/compare/v0.22.2...v0.22.3) (2024-08-22)
 
 
