@@ -14,7 +14,7 @@ inputs:
   python_version:
     required: false
     type: string
-    default: 3.12
+    default: "3.13" # The newest Python version.
 
 runs:
   using: composite

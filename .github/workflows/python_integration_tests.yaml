@@ -21,7 +21,7 @@ jobs:
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"] # Oldest and newest supported Python versions.
+        python-version: ["3.9", "3.13"] # The oldest and newest supported Python versions.
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     steps:

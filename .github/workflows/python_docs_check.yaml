@@ -2,14 +2,20 @@ name: Docs check
 
 on:
   workflow_call:
+    inputs:
+      python_version:
+        required: false
+        type: string
+        default: "3.13" # The newest Python version.
+      node_version:
+        required: false
+        type: string
+        default: "20"
 
 jobs:
   docs_check:
     name: Docs check
     runs-on: ubuntu-latest
-    env:
-      NODE_VERSION: 20
-      PYTHON_VERSION: 3.12
 
     steps:
       - name: Checkout source code
@@ -18,7 +24,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ inputs.node_version }}
 
       - name: Enable corepack
         run: |
@@ -28,11 +34,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ inputs.python_version }}
 
       - name: Install Python dependencies
         run: |
-          pipx install --python ${{ env.PYTHON_VERSION }} poetry
+          pipx install --python ${{ inputs.python_version }} poetry
           make install-dev
 
       - name: Build API reference
