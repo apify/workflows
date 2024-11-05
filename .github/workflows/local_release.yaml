@@ -1,6 +1,10 @@
 # This workflow creates new github release and updates changelog
 name: release new version
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
 
