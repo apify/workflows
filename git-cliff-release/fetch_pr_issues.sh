@@ -28,10 +28,10 @@ gh api graphql --paginate --slurp \
                 }
             }
         }
-    ' | 
+    ' |
 jq '
     [
-        [.[] | .data.repository.pullRequests.nodes ] 
+        [.[] | .data.repository.pullRequests.nodes ]
             | flatten[]
             | {
                 (.number | tostring):
