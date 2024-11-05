@@ -194,7 +194,12 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-          version: 1.72.0
+          version: 1.76.1
+
+      # Bug https://github.com/tailscale/github-action/issues/107
+      #- name: Tailscale sleep workaround
+      #  run: |
+      #    sleep 10
 
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
