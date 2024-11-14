@@ -16,14 +16,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set httpbin URL, run it locally if possible
+      - name: Run a local httpbin and set HTTPBIN_URL (ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
-          if [[ "${{ matrix.os }}" = ubuntu-latest ]]; then
-            docker run -d -p 8080:8080 mccutchen/go-httpbin 
-            echo "HTTPBIN_URL=http://localhost:8080" | tee -a $GITHUB_ENV
-          else
-            echo "HTTPBIN_URL=https://httbingo.org" | tee -a $GITHUB_ENV
-          fi
+          docker run -d -p 8080:8080 mccutchen/go-httpbin 
+          echo "HTTPBIN_URL=http://localhost:8080" >> $GITHUB_ENV
+
+      - name: Set HTTPBIN_URL (windows)
+        if: ${{ matrix.os == 'windows' }}
+        run: |
+          chcp 65001 #set code page to utf-8
+          echo ("HTTPBIN_URL=https://httpbingo.org) >> $env:GITHUB_ENV
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
