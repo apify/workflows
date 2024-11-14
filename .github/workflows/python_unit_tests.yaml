@@ -16,16 +16,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run a httpbin in the background
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        uses: addnab/docker-run-action@v3
-        with:
-          image: mccutchen/go-httpbin
-          options: -d -p 8080:8080
-
-      - name: Set httpbin URL
+      - name: Set httpbin URL, run it locally if possible
         run: |
           if [[ "${{ matrix.os }}" = ubuntu-latest ]]; then
+            docker run -d -p 8080:8080 mccutchen/go-httpbin 
             echo "HTTPBIN_URL=http://localhost:8080" | tee -a $GITHUB_ENV
           else
             echo "HTTPBIN_URL=https://httbingo.org" | tee -a $GITHUB_ENV
