@@ -2,11 +2,9 @@ name: Unit tests
 
 on:
   workflow_call:
-    inputs:
+    secrets:
       httpbin_url:
         required: false
-        type: string
-        default: 'https://httpbin.org'
         description: Used to set the HTTPBIN_URL environment variable
 
 jobs:
@@ -19,7 +17,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"] # All supported Python versions.
     runs-on: ${{ matrix.os }}
     env:
-      HTTPBIN_URL: ${{ inputs.httpbin_url }}
+      HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
 
     steps:
       - name: Checkout repository
