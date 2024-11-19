@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.24.0](https://github.com/apify/workflows/compare/v0.23.0...v0.24.0) (2024-11-19)
+
+
+### Features
+
+* Add httpbin_url input to python unit tests workflow ([#154](https://github.com/apify/workflows/issues/154)) ([a841601](https://github.com/apify/workflows/commit/a8416015c923919e36e35822af9f742b6a4f024e))
+
+
+### Bug Fixes
+
+* Tailscale sleep workaround ([#156](https://github.com/apify/workflows/issues/156)) ([d378038](https://github.com/apify/workflows/commit/d378038202d75218812bb2c69bd0803ca730a6af))
+
 ## [0.23.0](https://github.com/apify/workflows/compare/v0.22.3...v0.23.0) (2024-11-05)
 
 
