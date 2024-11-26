@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.24.1](https://github.com/apify/workflows/compare/v0.24.0...v0.24.1) (2024-11-26)
+
+
+### Bug Fixes
+
+* tailscale dns - another workaround ([#157](https://github.com/apify/workflows/issues/157)) ([7c153bb](https://github.com/apify/workflows/commit/7c153bbeaa829fa9e2f215e2dacef0c94c4cd240))
+
 ## [0.24.0](https://github.com/apify/workflows/compare/v0.23.0...v0.24.0) (2024-11-19)
 
 
