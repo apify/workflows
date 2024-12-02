@@ -201,6 +201,14 @@ jobs:
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
 
+      - name: wait until Tailscale is ready
+        if: inputs.enableVpn == 'true'
+        run: |
+          for i in {1..20}; do
+            kubectl cluster-info --request-timeout 3 && break
+            echo "Waiting for Tailscale to be ready..."
+          done
+
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
           export $(echo ${{ inputs.envVariables }})
