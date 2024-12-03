@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.0](https://github.com/apify/workflows/compare/v0.24.1...v0.25.0) (2024-12-03)
+
+
+### Features
+
+* Wait until Tailscale is ready in the deploy workflow ([#160](https://github.com/apify/workflows/issues/160)) ([e445d74](https://github.com/apify/workflows/commit/e445d745ef75cc13435802af9bdced6bf10423f8))
+
 ## [0.24.1](https://github.com/apify/workflows/compare/v0.24.0...v0.24.1) (2024-11-26)
 
 
