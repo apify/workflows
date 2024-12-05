@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.25.1](https://github.com/apify/workflows/compare/v0.25.0...v0.25.1) (2024-12-05)
+
+
+### Bug Fixes
+
+* Tailscale steps order ([#162](https://github.com/apify/workflows/issues/162)) ([b3343e1](https://github.com/apify/workflows/commit/b3343e1d7c7598e384e1e080f318adb2da991469))
+
 ## [0.25.0](https://github.com/apify/workflows/compare/v0.24.1...v0.25.0) (2024-12-03)
 
 
