@@ -94,20 +94,6 @@ jobs:
       - name: clone repository
         uses: actions/checkout@v4
 
-      - name: Tailscale VPN
-        uses: tailscale/github-action@v2
-        if: inputs.enableVpn == 'true'
-        with:
-          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
-          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
-          version: 1.76.1
-
-      # Bug https://github.com/tailscale/github-action/issues/107
-      #- name: Tailscale sleep workaround
-      #  run: |
-      #    sleep 10
-
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.26.0
@@ -200,6 +186,20 @@ jobs:
 
       - name: setup kubeconfig
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
+
+      - name: Tailscale VPN
+        uses: tailscale/github-action@v2
+        if: inputs.enableVpn == 'true'
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          version: 1.76.1
+
+      # Bug https://github.com/tailscale/github-action/issues/107
+      #- name: Tailscale sleep workaround
+      #  run: |
+      #    sleep 10
 
       - name: wait until Tailscale is ready
         if: inputs.enableVpn == 'true'
