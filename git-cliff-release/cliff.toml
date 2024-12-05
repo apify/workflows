@@ -31,9 +31,9 @@ body = """
         - {% if commit.scope %}**{{ commit.scope }}:** {% endif %}\
             {% if commit.breaking %}[**breaking**] {% endif %}\
             {% if commit.extra.pr_link %}\
-            {{ commit.message | upper_first | replace(from=commit.extra.raw_pr_link, to=commit.extra.pr_link) }}\
+            {{ commit.message | escape | upper_first | replace(from=commit.extra.raw_pr_link, to=commit.extra.pr_link) }}\
             {% else %}\
-            {{ commit.message | upper_first }}\
+            {{ commit.message | escape | upper_first }}\
             {% endif %}\
             {% if commit.extra.commit_link %} ([{{ commit.id | truncate(length = 7, end = "") }}]({{ commit.extra.commit_link }})){% endif %}\
             {% if commit.remote.username and extra.is_release_notes %}\
