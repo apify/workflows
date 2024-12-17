@@ -105,14 +105,15 @@ runs:
       working-directory: ${{ github.action_path }}
       run: |
         set -x
+        enhance_context_args=()
+
+        if (( ${{ inputs.no-github }} )); then
+          enhance_context_args+=(--no-github)
+        fi
+
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
         git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
-          {
-            if [[ ${{ inputs.no-github }} = true ]];
-              then cat;
-              else python enhance_context.py --repo $GITHUB_REPO --release-notes;
-            fi;
-          } |
+          python enhance_context.py --repo $GITHUB_REPO --release-notes "${enhance_context_args[@]}" |
           git-cliff --from-context - --strip all |
           tee -a $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
@@ -145,6 +146,10 @@ runs:
           print_changelog_args+=(--output "$out_file")
         fi
 
+        if (( ${{ inputs.no-github }} )); then
+          enhance_context_args+=(--no-github)
+        fi
+
         if [[ ${{ inputs.release_type }} = prerelease ]]; then
           enhance_context_args+=(--unreleased-version "${{ steps.version_number.outputs.tag_name }}")
         else
@@ -152,12 +157,7 @@ runs:
         fi
 
         git-cliff --context "${dump_context_args[@]}" |
-          { 
-            if [[ ${{ inputs.no-github }} = true ]];
-              then cat; 
-              else python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}";
-            fi; 
-          } |
+          python enhance_context.py --repo $GITHUB_REPO "${enhance_context_args[@]}" |
           git-cliff --from-context - "${print_changelog_args[@]}"
 
         sed -i '$a\' $out_file # Make sure there is a newline at the end of the output file

@@ -66,6 +66,7 @@ parser = ArgumentParser()
 parser.add_argument("--repo", type=str, required=True)
 parser.add_argument("--unreleased-version", nargs="?", default=None, type=str)
 parser.add_argument("--release-notes", action=BooleanOptionalAction)
+parser.add_argument("--no-github", type=bool, required=False, default=False)
 
 
 if __name__ == "__main__":
@@ -77,6 +78,10 @@ if __name__ == "__main__":
     context = json.load(sys.stdin)
 
     for release in context:
+        if args.no_github:
+            release["extra"] = { 'no_github': True }
+            continue
+
         enhance_release(release, args.release_notes, args.unreleased_version)
 
         for commit in release["commits"]:
