@@ -107,7 +107,7 @@ runs:
         set -x
         enhance_context_args=()
 
-        if (( ${{ inputs.no-github }} )); then
+        if [[ ${{ inputs.no-github }} = true ]]; then
           enhance_context_args+=(--no-github)
         fi
 
@@ -146,7 +146,7 @@ runs:
           print_changelog_args+=(--output "$out_file")
         fi
 
-        if (( ${{ inputs.no-github }} )); then
+        if [[ ${{ inputs.no-github }} = true ]]; then
           enhance_context_args+=(--no-github)
         fi
 
