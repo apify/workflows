@@ -66,7 +66,7 @@ parser = ArgumentParser()
 parser.add_argument("--repo", type=str, required=True)
 parser.add_argument("--unreleased-version", nargs="?", default=None, type=str)
 parser.add_argument("--release-notes", action=BooleanOptionalAction)
-parser.add_argument("--no-github", type=bool, required=False, default=False)
+parser.add_argument("--no-github", default=False, action="store_true")
 
 
 if __name__ == "__main__":
