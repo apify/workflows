@@ -44,10 +44,16 @@ def enhance_release(
 
 
 def enhance_commit(commit: dict[str, Any], pr_issues: dict[int, list[int]]) -> None:
-    pr_number = commit.get("remote", {}).get("pr_number")
+    commit_remote = commit.get("remote", {})
+
+    pr_number = commit_remote.get("pr_number")
+    username = commit_remote.get("username")
 
     commit["extra"] = commit["extra"] or {}
     commit["extra"]["commit_link"] = f"{repo_url}/commit/{commit['id']}"
+
+    if username:
+        commit["extra"]["username"] = username
 
     if pr_number:
         commit["extra"]["closed_issues"] = pr_issues.get(pr_number, [])

@@ -33,11 +33,11 @@ inputs:
     required: false
     type: string
     default: ${{ github.token }}
-  no-github:
-    description: If set to true, the action will not insert links to GitHub issues and PRs in the release notes and changelog.
+  add-github-links:
+    description: If set to false, the action will not insert links to GitHub issues and PRs in the release notes and changelog.
     required: false
     type: boolean
-    default: false
+    default: true
 outputs:
   is_prerelease:
     description: For convenience - was the action triggered with release_type = "prerelease"?
@@ -107,7 +107,7 @@ runs:
         set -x
         enhance_context_args=()
 
-        if [[ ${{ inputs.no-github }} = true ]]; then
+        if [[ ${{ inputs.add-github-links }} = false ]]; then
           enhance_context_args+=(--no-github)
         fi
 
@@ -146,7 +146,7 @@ runs:
           print_changelog_args+=(--output "$out_file")
         fi
 
-        if [[ ${{ inputs.no-github }} = true ]]; then
+        if [[ ${{ inputs.add-github-links }} = false ]]; then
           enhance_context_args+=(--no-github)
         fi
 

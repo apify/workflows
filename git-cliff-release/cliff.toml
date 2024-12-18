@@ -36,10 +36,10 @@ body = """
             {{ commit.message | escape | upper_first }}\
             {% endif %}\
             {% if commit.extra.commit_link %} ([{{ commit.id | truncate(length = 7, end = "") }}]({{ commit.extra.commit_link }})){% endif %}\
-            {% if commit.remote.username and extra.is_release_notes %}\
-            {{" "}}by @{{ commit.remote.username }}\
-            {% elif not extra.no_github and commit.remote.username %}\
-            {{" "}}by [@{{ commit.remote.username }}](https://github.com/{{ commit.remote.username }})\
+            {% if commit.extra.username and extra.is_release_notes %}\
+            {{" "}}by @{{ commit.extra.username }}\
+            {% elif commit.extra.username %}\
+            {{" "}}by [@{{ commit.extra.username }}](https://github.com/{{ commit.extra.username }})\
             {% if commit.extra.closed_issue_links %}\
             , closes {{ commit.extra.closed_issue_links | join(sep = ", ") }}\
             {% endif %}\
