@@ -33,6 +33,11 @@ inputs:
     required: false
     type: string
     default: ${{ github.token }}
+  add-github-links:
+    description: If set to false, the action will not insert links to GitHub issues and PRs in the release notes and changelog.
+    required: false
+    type: boolean
+    default: true
 outputs:
   is_prerelease:
     description: For convenience - was the action triggered with release_type = "prerelease"?
@@ -100,9 +105,15 @@ runs:
       working-directory: ${{ github.action_path }}
       run: |
         set -x
+        enhance_context_args=()
+
+        if [[ ${{ inputs.add-github-links }} = false ]]; then
+          enhance_context_args+=(--no-github)
+        fi
+
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
         git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
-          python enhance_context.py --repo $GITHUB_REPO --release-notes | 
+          python enhance_context.py --repo $GITHUB_REPO --release-notes "${enhance_context_args[@]}" |
           git-cliff --from-context - --strip all |
           tee -a $GITHUB_OUTPUT
         echo 'EOF' >> $GITHUB_OUTPUT
@@ -133,6 +144,10 @@ runs:
           print_changelog_args+=(--prepend "$out_file" --unreleased)
         else
           print_changelog_args+=(--output "$out_file")
+        fi
+
+        if [[ ${{ inputs.add-github-links }} = false ]]; then
+          enhance_context_args+=(--no-github)
         fi
 
         if [[ ${{ inputs.release_type }} = prerelease ]]; then
