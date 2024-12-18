@@ -83,14 +83,11 @@ if __name__ == "__main__":
     pr_issues = load_pr_issues(owner, repo)
     context = json.load(sys.stdin)
 
-    for release in context:
-        if args.no_github:
-            release["extra"] = { 'no_github': True }
-            continue
+    if not args.no_github:    
+        for release in context:
+            enhance_release(release, args.release_notes, args.unreleased_version)
 
-        enhance_release(release, args.release_notes, args.unreleased_version)
-
-        for commit in release["commits"]:
-            enhance_commit(commit, pr_issues)
+            for commit in release["commits"]:
+                enhance_commit(commit, pr_issues)
 
     json.dump(context, sys.stdout)
