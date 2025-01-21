@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.26.0](https://github.com/apify/workflows/compare/v0.25.1...v0.26.0) (2025-01-21)
+
+
+### Features
+
+* `no-github` input option for `git-cliff-release` ([#165](https://github.com/apify/workflows/issues/165)) ([f05ba4e](https://github.com/apify/workflows/commit/f05ba4e024b0d74fca68660c2b57e558ce2ec8bb))
+
 ## [0.25.1](https://github.com/apify/workflows/compare/v0.25.0...v0.25.1) (2024-12-05)
 
 
