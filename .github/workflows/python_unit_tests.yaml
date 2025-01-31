@@ -59,7 +59,7 @@ jobs:
 
       - name: Uninstall global poetry again
         run: |
-          pip uninstall poetry
+          pip uninstall -y poetry
 
       - name: Install Python dependencies
         run: |
