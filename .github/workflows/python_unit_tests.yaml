@@ -28,9 +28,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Poetry
+      - name: Install Poetry for version checking
         run: |
-          pipx install --python ${{ matrix.python-version }} poetry
           pip install poetry
 
       - name: Check Python version against project requirements
@@ -61,6 +60,8 @@ jobs:
 
       - name: Install Python dependencies
         run: |
+          pip uninstall poetry
+          pipx install --python ${{ matrix.python-version }} poetry
           make install-dev
 
       - name: Run unit tests
