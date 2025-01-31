@@ -31,6 +31,7 @@ jobs:
       - name: Install Poetry
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
+          pip install poetry
 
       - name: Check Python version against project requirements
         shell: python
@@ -53,9 +54,9 @@ jobs:
           with suppress(KeyError):
             constraints.append(parse_constraint(config['project']['requires-python']))
 
-          python_version = '.'.join(sys.version_info[:3])
+          python_version = parse_constraint('${{ matrix.python-version }}')
           if not all(con.allows(python_version) for con in constraints):
-            print(f'Python version {python_version} is not allowed by project settings', file=sys.stderr)
+            print(f'Python version {str(python_version)} is not allowed by project settings', file=sys.stderr)
             os.exit(1)
 
       - name: Install Python dependencies
