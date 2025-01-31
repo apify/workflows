@@ -37,9 +37,13 @@ jobs:
         run: |
           import os
           import sys
-          import tomllib
           from contextlib import suppress
           from poetry.core.constraints.version import parse_constraint
+
+          try:
+            import tomllib
+          except ImportError:
+            import tomli as tomllib
 
           config = tomllib.load(open('pyproject.toml', 'rb'))
           constraints = []
