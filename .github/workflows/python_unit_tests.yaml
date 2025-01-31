@@ -35,7 +35,6 @@ jobs:
       - name: Check Python version against project requirements
         shell: python
         run: |
-          import os
           import sys
           from contextlib import suppress
           from poetry.core.constraints.version import parse_constraint
@@ -56,7 +55,7 @@ jobs:
           python_version = parse_constraint('${{ matrix.python-version }}')
           if not all(con.allows(python_version) for con in constraints):
             print(f'Python version {str(python_version)} is not allowed by project settings', file=sys.stderr)
-            os.exit(1)
+            sys.exit(1)
 
       - name: Install Python dependencies
         run: |
