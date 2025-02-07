@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.0](https://github.com/apify/workflows/compare/v0.26.0...v0.27.0) (2025-02-07)
+
+
+### Features
+
+* readme update ([#171](https://github.com/apify/workflows/issues/171)) ([cd86335](https://github.com/apify/workflows/commit/cd86335ac3e388dc305d546b165625e58d267ff2))
+
 ## [0.26.0](https://github.com/apify/workflows/compare/v0.25.1...v0.26.0) (2025-01-21)
 
 
