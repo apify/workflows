@@ -54,6 +54,11 @@ on:
         description: Override the author of event
         required: false
         type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-22.04
 
     secrets:
       awsAccessKeyId:
@@ -81,7 +86,7 @@ env:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
