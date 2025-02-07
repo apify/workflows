@@ -6,6 +6,11 @@ This repository contains reusable github workflows used in Apify projects.
 
 Each of the workflows present in `.github/workflows` directory, unless prefixed by `local_`, is meant to be used by [caller workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows#example-caller-workflow)
 
+## How to release new version
+
+1. Create a PR and merge it into the main branch after approval. This triggers an automated workflow that generates a new PR for the release using the RELEASE-PLEASE action.
+2. Navigate to the PR and merge it into the main branch. This will publish the release with an updated changelog.
+
 ## Examples
 
 Build container image and push it to AWS ECR.
@@ -25,7 +30,7 @@ on:
 jobs:
   get_values:
     uses: apify/workflows/.github/workflows/get_values.yaml@main
-  
+
   build:
     needs: get_values
     uses: apify/workflows/.github/workflows/build_docker_image_and_push_to_ecr.yaml@main
