@@ -28,6 +28,39 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install Poetry for version checking
+        run: |
+          pip install poetry
+
+      - name: Check Python version against project requirements
+        shell: python
+        run: |
+          import sys
+          from contextlib import suppress
+          from poetry.core.constraints.version import parse_constraint
+
+          try:
+            import tomllib
+          except ImportError:
+            import tomli as tomllib
+
+          config = tomllib.load(open('pyproject.toml', 'rb'))
+          constraints = []
+
+          with suppress(KeyError):
+            constraints.append(parse_constraint(config['tool']['poetry']['dependencies']['python']))
+          with suppress(KeyError):
+            constraints.append(parse_constraint(config['project']['requires-python']))
+
+          python_version = parse_constraint('${{ matrix.python-version }}')
+          if not all(con.allows(python_version) for con in constraints):
+            print(f'Python version {str(python_version)} is not allowed by project settings', file=sys.stderr)
+            sys.exit(1)
+
+      - name: Uninstall global poetry again
+        run: |
+          pip uninstall -y poetry
+
       - name: Install Python dependencies
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
