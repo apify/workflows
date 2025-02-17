@@ -36,7 +36,6 @@ jobs:
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
           poetry config virtualenvs.use-poetry-python true
-          poetry env use ${{ matrix.python-version }}
           make install-dev
 
       - name: Run unit tests
