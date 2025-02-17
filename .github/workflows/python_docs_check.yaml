@@ -39,8 +39,6 @@ jobs:
       - name: Install Python dependencies
         run: |
           pipx install --python ${{ inputs.python_version }} poetry
-          poetry config virtualenvs.use-poetry-python true
-          poetry env use ${{ matrix.python-version }}
           make install-dev
 
       - name: Build API reference
