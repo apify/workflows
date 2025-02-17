@@ -23,6 +23,8 @@ jobs:
       - name: Install Python dependencies
         run: |
           pipx install --python ${{ matrix.python-version }} poetry
+          # This forces poetry to use specific Python version when installing a project.
+          # Raises error, if this Python version does not match project specific Python constraints. 
           poetry config virtualenvs.use-poetry-python true
           poetry env use ${{ matrix.python-version }}
           make install-dev
