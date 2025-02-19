@@ -33,10 +33,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Set up uv package manager
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
       - name: Install Python dependencies
-        run: |
-          pipx install --python ${{ matrix.python-version }} poetry
-          make install-dev
+        run: make install-dev
 
       - name: Run integration tests
         run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
@@ -77,14 +80,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install Python dependencies
-        run: |
-          pipx install --python ${{ matrix.python-version }} poetry
-          # This forces poetry to use specific Python version when installing a project.
-          # Raises error, if this Python version does not match project specific Python constraints. 
-          poetry config virtualenvs.use-poetry-python true
-          poetry env use ${{ matrix.python-version }}
-          make install-dev
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up uv package manager
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Run integration tests
         run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests

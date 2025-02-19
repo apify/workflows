@@ -29,11 +29,14 @@ runs:
       with:
         python-version: ${{ inputs.python_version }}
 
+    - name: Set up uv package manager
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
     - name: Install dependencies
       shell: bash
-      run: |
-        pipx install --python ${{ inputs.python_version }} poetry
-        make install-dev
+      run: make install-dev
 
     # Updates the version number in the project's configuration.
     - name: Set version in pyproject.toml
@@ -55,7 +58,10 @@ runs:
               .[0] + 1
             '
           )
-          poetry version "${{ inputs.version_number }}b$next_beta"
+          new_version="${{ inputs.version_number }}b${next_beta}"
+          echo "Updating version in pyproject.toml to ${new_version}"
+          # Update the "version" key in the [project] section of pyproject.toml.
+          sed -i '/^\[project\]/,/^\[/ s/^\(version\s*=\s*\)".*"/\1"'${new_version}'"/' pyproject.toml
         fi
 
     # Builds the package.
