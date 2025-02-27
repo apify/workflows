@@ -1,0 +1,47 @@
+name: grafana annotation
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Environment
+        required: false
+        type: string
+      grafanaAnnotationTags:
+        description: Custom annotation tags
+        required: false
+        type: string
+      grafanaAnnotationText:
+        description: Custom annotation text
+        required: true
+        type: string
+      grafanaAnnotationId:
+        description: Annotation Id
+        required: false
+        type: string
+
+    secrets:
+      grafanaApiToken:
+        description: Grafana API token
+        required: true
+
+    outputs:
+      annotation_id:
+        description: Annotation Id
+        value: ${{ jobs.grafana.outputs.annotation_id }}   
+
+jobs:
+  grafana:
+    runs-on: ubuntu-latest
+    outputs:
+      annotation_id: ${{ steps.grafana.outputs.annotation-id }}
+    steps:
+      - name: add Grafana annotation
+        id: grafana
+        uses: hexionas/grafana-annotation-action@v1.0.1
+        with:
+          grafanaHost: "https://grafana.apify.dev"
+          grafanaToken: ${{ secrets.grafanaApiToken }}
+          grafanaText: ${{ inputs.grafanaAnnotationText }}
+          grafanaTags: ${{ inputs.grafanaAnnotationTags }}
+          grafanaAnnotationID: ${{ inputs.grafanaAnnotationId }}
