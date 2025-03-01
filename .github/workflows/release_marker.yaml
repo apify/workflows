@@ -98,7 +98,7 @@ jobs:
 
       - name: mark deploy - frontend
         if: inputs.sentryEnvironmentFrontend != ''
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v2
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
           SENTRY_ORG: ${{ inputs.sentryOrg }}
@@ -108,7 +108,7 @@ jobs:
 
       - name: mark deploy - backend
         if: inputs.sentryEnvironmentBackend != ''
-        uses: getsentry/action-release@v1
+        uses: getsentry/action-release@v2
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
           SENTRY_ORG: ${{ inputs.sentryOrg }}
