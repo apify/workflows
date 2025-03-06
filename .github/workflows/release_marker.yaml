@@ -1,4 +1,4 @@
-# Marks release in New Relic and/or Sentry
+# Marks release in Grafana and/or Sentry
 name: release marker
 
 on:
@@ -7,14 +7,6 @@ on:
       revision:
         description: Revision that will be marked
         required: true
-        type: string
-      newRelicAccountId:
-        description: New Relic account ID
-        required: false
-        type: number
-      newRelicApplicationId:
-        description: New Relic application ID
-        required: false
         type: string
       sentryOrg:
         description: Sentry Organization
@@ -49,11 +41,8 @@ on:
         required: false
         type: string
         default: 'default'
-        
+
     secrets:
-      newRelicApiKey:
-        description: New Relic API key
-        required: false
       sentryAuthToken:
         description: Sentry authentication token
         required: false
@@ -65,18 +54,6 @@ on:
         required: false
 
 jobs:
-  new_relic:
-    if: inputs.newRelicAccountId != ''
-    runs-on: ubuntu-latest
-    steps:
-      - name: mark
-        uses: newrelic/deployment-marker-action@v1
-        with:
-          apiKey: ${{ secrets.newRelicApiKey }}
-          accountId: ${{ inputs.newRelicAccountId }}
-          applicationId: ${{ inputs.newRelicApplicationId }}
-          revision: ${{ inputs.revision }}
-
   grafana:
     if: inputs.revision != ''
     runs-on: ubuntu-latest
@@ -119,12 +96,12 @@ jobs:
   slack_notification_failure:
     if: failure() && inputs.slackChannelId != ''
     needs:
-      - new_relic
+      - grafana
       - sentry
     uses: ./.github/workflows/slack.yaml
     with:
       slackChannelId: ${{ inputs.slackChannelId }}
-      subject: "marking release in new relic/sentry failed"
+      subject: "marking release in new Grafana/sentry failed"
       revision: ${{ inputs.revision }}
       actorOverride: ${{ inputs.actorOverride }}
       jobStatus: failure
