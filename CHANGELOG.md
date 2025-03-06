@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.27.1](https://github.com/apify/workflows/compare/v0.27.0...v0.27.1) (2025-03-06)
+
+
+### Bug Fixes
+
+* Remove New Relic from Release Marker workflow ([#177](https://github.com/apify/workflows/issues/177)) ([bfdf878](https://github.com/apify/workflows/commit/bfdf878c72cd926163d7aa035e5eaa23530040fe))
+
 ## [0.27.0](https://github.com/apify/workflows/compare/v0.26.0...v0.27.0) (2025-02-07)
 
 
