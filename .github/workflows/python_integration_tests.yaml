@@ -5,7 +5,9 @@ on:
     secrets:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
         description: API token of the Python testing user on Apify
-        required: true
+        # Set to false so that fork PRs don't error on workflow dispatch;
+        # For trusted (internal) PRs the token is provided automatically.
+        required: false
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
 # This avoids exceeding API usage limits on the test user account.
@@ -17,7 +19,7 @@ jobs:
   integration_tests_on_main:
     name: Integration tests
     runs-on: ubuntu-latest
-    # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
+    # Run this only for PRs from the main repository or for pushes to master.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
@@ -41,35 +43,49 @@ jobs:
       - name: Install Python dependencies
         run: make install-dev
 
+      - name: Check for API token
+        run: |
+          if [[ -z "${APIFY_TEST_USER_API_TOKEN}" ]]; then
+            echo "Error: API token is not provided."
+            exit 1
+          fi
+        env:
+          APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
+
       - name: Run integration tests
         run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
         env:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
 
-  # Job to request approval before running integration tests for PRs from forks.
+  # Job to request manual approval before running tests for PRs from forks.
   integration_tests_on_fork_approval:
     name: Approve integration tests for PRs from forks
     runs-on: ubuntu-latest
-    # Run this only for PRs from forks. Skip otherwise.
+    # Run this only for PRs from forks.
     if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
+    # Assign an environment that requires manual approval.
     environment:
       name: fork-pr-integration-tests
       url: ${{ github.event.pull_request.html_url }}
+
     steps:
       - name: Await approval
         run: echo "Waiting for approval to run integration tests for fork PR."
 
-  # Job to run integration tests for PRs from forks, only after manual approval.
+  # Job to run integration tests for fork PRs, only after manual approval.
   integration_tests_on_fork:
     name: Integration tests for PRs from forks
     needs: integration_tests_on_fork_approval
-    # Run this only for PRs from forks. Skip otherwise.
+    # Run this only for PRs from forks.
     if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-latest
+    # Use the same environment so that, once approved, the repository secret will be exposed.
+    environment:
+      name: fork-pr-integration-tests
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"] # Oldest and newest supported Python versions.
-      max-parallel: 1 # No parallel tests to avoid overshooting limits.
+        python-version: ["3.9", "3.13"] # The oldest and newest supported Python versions.
+      max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     steps:
       - name: Checkout repository
@@ -80,15 +96,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
       - name: Set up uv package manager
         uses: astral-sh/setup-uv@v5
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Check for API token
+        run: |
+          if [ -z "${APIFY_TEST_USER_API_TOKEN}" ]; then
+            echo "Error: API token is not provided."
+            exit 1
+          fi
+        env:
+          APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
 
       - name: Run integration tests
         run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
