@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.28.0](https://github.com/apify/workflows/compare/v0.27.0...v0.28.0) (2025-03-18)
+
+
+### Features
+
+* update actionlint ([#179](https://github.com/apify/workflows/issues/179)) ([bf462e5](https://github.com/apify/workflows/commit/bf462e58f778f240e6edb35b2e5af48c9be0071c))
+
+
+### Bug Fixes
+
+* Remove New Relic from Release Marker workflow ([#177](https://github.com/apify/workflows/issues/177)) ([bfdf878](https://github.com/apify/workflows/commit/bfdf878c72cd926163d7aa035e5eaa23530040fe))
+
 ## [0.27.0](https://github.com/apify/workflows/compare/v0.26.0...v0.27.0) (2025-02-07)
 
 
