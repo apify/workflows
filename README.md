@@ -4,7 +4,7 @@ This repository contains reusable github workflows used in Apify projects.
 
 ## Docs
 
-Each of the workflows present in `.github/workflows` directory, unless prefixed by `local_`, is meant to be used by [caller workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows#example-caller-workflow).
+Each of the workflows present in `.github/workflows` directory, unless prefixed by `local_`, is meant to be used by [caller workflows](https://docs.github.com/en/actions/using-workflows/reusing-workflows#example-caller-workflow)
 
 ## How to release new version
 
