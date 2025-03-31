@@ -14,7 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"] # All supported Python versions.
+        python-version: ["3.10", "3.11", "3.12", "3.13"] # All supported Python versions.
     runs-on: ${{ matrix.os }}
     env:
       HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
