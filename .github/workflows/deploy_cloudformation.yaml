@@ -147,6 +147,7 @@ jobs:
           # which does not work for cross-account assume
           role-skip-session-tagging: true
 
+      # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
       - name: assume GithubOIDCRole
         if: inputs.useOIDC == true
         uses: aws-actions/configure-aws-credentials@v4
@@ -159,6 +160,7 @@ jobs:
           # which does not work for cross-account assume
           role-skip-session-tagging: true
 
+      # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
       - name: assume Deployer role
         if: inputs.useOIDC == true
         uses: aws-actions/configure-aws-credentials@v4
