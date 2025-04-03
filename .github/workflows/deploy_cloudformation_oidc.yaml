@@ -76,10 +76,10 @@ on:
     secrets:
       awsAccessKeyId:
         description: AWS access key ID
-        required: true
+        required: false
       awsSecretAccessKey:
         description: AWS secret access key
-        required: true
+        required: false
       slackToken:
         description: Slack API token
         required: false
