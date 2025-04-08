@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.29.0](https://github.com/apify/workflows/compare/v0.28.0...v0.29.0) (2025-04-08)
+
+
+### Features
+
+* OIDC support for Cloudformation deployment ([#184](https://github.com/apify/workflows/issues/184)) ([c8532a9](https://github.com/apify/workflows/commit/c8532a9a2951de76ca7b8140eaa790ed4b909268))
+
 ## [0.28.0](https://github.com/apify/workflows/compare/v0.27.0...v0.28.0) (2025-03-18)
 
 
