@@ -7,6 +7,16 @@ on:
         description: AWS IAM role ARN
         required: false
         type: string
+      useOIDC:
+        description: Whether to use OIDC for assume role
+        required: false
+        type: boolean
+        default: false
+      githubOIDCRoleArn:
+        description: Github OIDC role ARN
+        required: false
+        type: string
+        default: "arn:aws:iam::031263542130:role/GithubOIDCRole"
       awsRegion:
         description: AWS region
         required: false
@@ -57,7 +67,7 @@ on:
         description: Additional parameters of aws cloudformation deploy
         required: false
         type: string
-    
+
     outputs:
       stackOutputs:
         description: Stringified json containing outputs of cloudformation stack
@@ -66,10 +76,10 @@ on:
     secrets:
       awsAccessKeyId:
         description: AWS access key ID
-        required: true
+        required: false
       awsSecretAccessKey:
         description: AWS secret access key
-        required: true
+        required: false
       slackToken:
         description: Slack API token
         required: false
@@ -124,6 +134,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: assume IAM role
+        if: inputs.useOIDC == false
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.awsAccessKeyId }}
@@ -134,6 +145,30 @@ jobs:
 
           # This parameter is needed otherwise this action is trying to tag session
           # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
+      - name: assume GithubOIDCRole
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.githubOIDCRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
+      - name: assume Deployer role
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          role-chaining: true
           role-skip-session-tagging: true
 
       # Since the official cloudformation deploy action is archived for some reason, let's script this!
@@ -209,7 +244,7 @@ jobs:
               echo "color=#ff0000" >> $GITHUB_OUTPUT
               echo "emoji=red_circle" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
         uses: slackapi/slack-github-action@v1.26.0
