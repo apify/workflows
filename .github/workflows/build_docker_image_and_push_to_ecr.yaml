@@ -40,11 +40,6 @@ on:
         required: false
         type: string
         default: ./deploy/Dockerfile
-      awsRegion:
-        description: AWS region
-        required: false
-        type: string
-        default: us-east-1
       slackChannelId:
         description: Slack Channel ID
         required: false
