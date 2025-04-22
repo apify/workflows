@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       python-version:
-        description: 'List of Python versions to be used'
+        description: List of Python versions to be used
         default: '["3.9", "3.10", "3.11", "3.12", "3.13"]'
         required: false
         type: string
