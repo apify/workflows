@@ -89,7 +89,7 @@ runs:
           version_number=$(git-cliff --bumped-version | sed s/^v//)
 
           # If there are no commits that increase semver, do a patch bump
-          if [[ "$(git describe --tags --abbrev=0)" = "v${ version_number }" ]]; then
+          if [[ "$(git describe --tags --abbrev=0)" = "v${version_number}" ]]; then
             version_number=$(git-cliff --bump patch --context | jq -r '.[0].version' | sed s/^v//)
           fi
         else
