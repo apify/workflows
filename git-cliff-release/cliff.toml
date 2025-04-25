@@ -74,7 +74,7 @@ split_commits = false
 commit_preprocessors = []
 # regex for parsing and grouping commits
 commit_parsers = [
-  { message = "^feat", group = "<!-- 0 -->🚀 Features" },
+  { message = "^feat|^patch", group = "<!-- 0 -->🚀 Features" },
   { message = "^fix|^bug", group = "<!-- 1 -->🐛 Bug Fixes" },
   # { message = "^doc", group = "<!-- 3 -->📚 Documentation" },
   { message = "^doc", skip = true },

@@ -85,8 +85,17 @@ runs:
         set -x
         if [[ '${{ inputs.release_type }}' = custom ]]; then
           version_number=$(echo ${{ inputs.custom_version }} | sed s/^v//)
-        elif [[ '${{ inputs.release_type }}' = auto || '${{ inputs.release_type }}' = prerelease ]]; then
+        elif [[ '${{ inputs.release_type }}' = auto ]]; then
           version_number=$(git-cliff --bumped-version | sed s/^v//)
+
+          # If there are no commits that increase semver, break
+          if [[ "$(git describe --tags --abbrev=0)" = "v${version_number}" ]]; then
+            echo "::error title=Nothing to release::There were no commits that trigger a version bump since the last release"
+            exit 1
+          fi
+        elif [[ '${{ inputs.release_type }}' = prerelease ]]; then
+          # Prereleases only ever increase the patch version
+          version_number=$(git-cliff --bump patch --context | jq -r '.[0].version' | sed s/^v//)
         else
           version_number=$(git-cliff --bump '${{ inputs.release_type }}' --context | jq -r '.[0].version' | sed s/^v//)
         fi
