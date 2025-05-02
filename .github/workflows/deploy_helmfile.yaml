@@ -209,6 +209,13 @@ jobs:
             echo "Waiting for Tailscale to be ready..."
           done
 
+      - name: helmfile diff
+        run: |
+          export $(echo ${{ inputs.envVariables }})
+          HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
+          [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
+          helmfile diff --output dyff $HELMFILE_PARAMS 
+
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
           export $(echo ${{ inputs.envVariables }})
