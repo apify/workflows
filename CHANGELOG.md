@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.29.0](https://github.com/apify/workflows/compare/v0.28.0...v0.29.0) (2025-05-02)
+
+
+### Features
+
+* add dyff for helmfile deployment ([#191](https://github.com/apify/workflows/issues/191)) ([289b5ff](https://github.com/apify/workflows/commit/289b5ffc88a8c37959e9bad8a49d88af98b33d8a))
+* OIDC support for Cloudformation deployment ([#184](https://github.com/apify/workflows/issues/184)) ([c8532a9](https://github.com/apify/workflows/commit/c8532a9a2951de76ca7b8140eaa790ed4b909268))
+
+
+### Bug Fixes
+
+* Always do at least a patch bump in git-cliff-release ([#188](https://github.com/apify/workflows/issues/188)) ([05acf8b](https://github.com/apify/workflows/commit/05acf8b70e121bc0ecce431efa725a0a65150c8f))
+
 ## [0.28.0](https://github.com/apify/workflows/compare/v0.27.0...v0.28.0) (2025-03-18)
 
 
