@@ -57,7 +57,7 @@ on:
         description: Command run by helmfile
         required: false
         type: string
-        default: apply --suppress-secrets
+        default: apply --suppress-secrets --suppress-diff
       enableVpn:
         description: Enable VPN connection
         required: false
@@ -137,7 +137,6 @@ jobs:
       # There is no public action that would give us the abilities we need. Meaning:
       #   - helmfile
       #   - eksctl
-      #   - sops
       #   - helm secret plugin
       # NOTE: This will go away with terraform
       - name: setup dependencies
@@ -146,26 +145,19 @@ jobs:
           EKSCTL_VERSION: v0.98.0
           # renovate: datasource=github-releases depName=helmfile/helmfile
           HELMFILE_VERSION: 'v0.155.1'
-          # TODO: remove sops as it is not used anymore
-          SOPS_VERSION: v3.7.2
-          # TODO: remove secrets plugin as it is not used anymore
-          HELM_SECRETS_PLUGIN_VERSION: v3.8.3
           # renovate: datasource=github-releases depName=databus23/helm-diff
           HELM_DIFF_PLUGIN_VERSION: v3.9.6
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
           curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_amd64.tar.gz
-          curl -fsSL -o sops https://github.com/mozilla/sops/releases/download/${{ env.SOPS_VERSION }}/sops-${{ env.SOPS_VERSION }}.linux
 
-          helm plugin install https://github.com/jkroepke/helm-secrets --version ${{ env.HELM_SECRETS_PLUGIN_VERSION }}
           helm plugin install https://github.com/databus23/helm-diff --version ${{ env.HELM_DIFF_PLUGIN_VERSION }}
 
           mkdir -p $HOME/.local/bin
 
           tar -C $HOME/.local/bin/ -xf ./eksctl.tar.gz
           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
-          mv sops $HOME/.local/bin/
 
           chmod +x $HOME/.local/bin/*
           echo "$HOME/.local/bin" >> $GITHUB_PATH
@@ -208,6 +200,14 @@ jobs:
             kubectl cluster-info --request-timeout 3 && break
             echo "Waiting for Tailscale to be ready..."
           done
+
+      - name: helmfile diff
+        if: inputs.helmfileCommand != 'destroy'
+        run: |
+          export $(echo ${{ inputs.envVariables }})
+          HELMFILE_PARAMS="-f ${{ inputs.helmfilePath }}"
+          [ ! -z ${{ inputs.helmfileEnvironment }} ] && HELMFILE_PARAMS+=" -e ${{ inputs.helmfileEnvironment }}"
+          helmfile diff --output dyff $HELMFILE_PARAMS
 
       - name: helmfile ${{ inputs.helmfileCommand }}
         run: |
