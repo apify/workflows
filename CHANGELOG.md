@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.0](https://github.com/apify/workflows/compare/v0.29.0...v0.30.0) (2025-05-13)
+
+
+### Features
+
+* OIDC support for build and push docker image workflow ([#186](https://github.com/apify/workflows/issues/186)) ([3ad73aa](https://github.com/apify/workflows/commit/3ad73aa3925c13b5a68fb75fae307946f1ea4f93))
+
 ## [0.29.0](https://github.com/apify/workflows/compare/v0.28.0...v0.29.0) (2025-05-02)
 
 
