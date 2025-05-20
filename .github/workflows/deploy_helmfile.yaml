@@ -96,7 +96,7 @@ jobs:
 
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v1.27.1
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
@@ -146,7 +146,7 @@ jobs:
           # renovate: datasource=github-releases depName=helmfile/helmfile
           HELMFILE_VERSION: 'v0.155.1'
           # renovate: datasource=github-releases depName=databus23/helm-diff
-          HELM_DIFF_PLUGIN_VERSION: v3.9.6
+          HELM_DIFF_PLUGIN_VERSION: v3.12.0
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
@@ -232,7 +232,7 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v1.27.1
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
