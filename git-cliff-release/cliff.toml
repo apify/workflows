@@ -6,6 +6,8 @@
 # See documentation for more information on available options.
 
 [changelog]
+# changelog body will be rendered even if there are no releases to process - required for pre-release version bumps
+render_always = true
 # changelog header
 header = """
 # Changelog\n
