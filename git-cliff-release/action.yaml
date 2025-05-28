@@ -95,9 +95,9 @@ runs:
           fi
         elif [[ '${{ inputs.release_type }}' = prerelease ]]; then
           # Prereleases only ever increase the patch version
-          version_number=$(git-cliff --bump patch --context | jq -r '.[0].version' | sed s/^v//)
+          version_number=$(git-cliff --bump patch --unreleased --context | jq -r '.[0].version' | sed s/^v//)
         else
-          version_number=$(git-cliff --bump '${{ inputs.release_type }}' --context | jq -r '.[0].version' | sed s/^v//)
+          version_number=$(git-cliff --bump '${{ inputs.release_type }}' --unreleased --context | jq -r '.[0].version' | sed s/^v//)
         fi
         echo version_number=$version_number | tee -a $GITHUB_OUTPUT
         echo tag_name=v$version_number | tee -a $GITHUB_OUTPUT
