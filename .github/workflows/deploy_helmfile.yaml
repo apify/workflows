@@ -3,6 +3,30 @@ name: deploy helmfile
 on:
   workflow_call:
     inputs:
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
+      useOIDC:
+        description: Whether to use OIDC for assume role
+        required: false
+        type: boolean
+        default: false
+      githubOIDCRoleArn:
+        description: Github OIDC role ARN
+        required: false
+        type: string
+        default: ""
+      awsRegion:
+        description: AWS region
+        required: false
+        type: string
+        default: us-east-1
+      awsSessionDuration:
+        description: AWS session duration
+        required: false
+        type: number
+        default: 3600
       revision:
         description: Tag given to container image
         required: true
@@ -23,20 +47,6 @@ on:
         description: Other helmfile parameters
         required: false
         type: string
-      awsRoleArn:
-        description: AWS IAM role ARN
-        required: false
-        type: string
-      awsRegion:
-        description: AWS region
-        required: false
-        type: string
-        default: us-east-1
-      awsSessionDuration:
-        description: AWS session duration
-        required: false
-        type: number
-        default: 3600
       envVariables:
         description: Space separated list of environment variables to be set during helmfile apply
         required: false
@@ -67,10 +77,10 @@ on:
     secrets:
       awsAccessKeyId:
         description: AWS access key ID
-        required: true
+        required: false
       awsSecretAccessKey:
         description: AWS secret access key
-        required: true
+        required: false
       slackToken:
         description: Slack API token
         required: false
@@ -163,7 +173,7 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: assume IAM role
-        if: inputs.awsRoleArn != ''
+        if: inputs.useOIDC == false
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.awsAccessKeyId }}
@@ -174,6 +184,30 @@ jobs:
 
           # This parameter is needed otherwise this action is trying to tag session
           # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
+      - name: assume GithubOIDCRole
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.githubOIDCRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
+      - name: assume Deployer role
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          role-chaining: true
           role-skip-session-tagging: true
 
       - name: setup kubeconfig
