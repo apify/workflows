@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.31.0](https://github.com/apify/workflows/compare/v0.30.0...v0.31.0) (2025-06-06)
+
+
+### Features
+
+* OIDC support for Helmfile deployment ([#196](https://github.com/apify/workflows/issues/196)) ([ad7eb3f](https://github.com/apify/workflows/commit/ad7eb3f9f7b9fd2cee7ad9d3175c99c432cce726))
+
+
+### Bug Fixes
+
+* Fix pre-release version bump ([#194](https://github.com/apify/workflows/issues/194)) ([463d2e4](https://github.com/apify/workflows/commit/463d2e4428ae1b7c35b50d4b2017764cf362d9a2))
+
 ## [0.30.0](https://github.com/apify/workflows/compare/v0.29.0...v0.30.0) (2025-05-13)
 
 
