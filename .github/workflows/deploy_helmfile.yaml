@@ -3,6 +3,30 @@ name: deploy helmfile
 on:
   workflow_call:
     inputs:
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
+      useOIDC:
+        description: Whether to use OIDC for assume role
+        required: false
+        type: boolean
+        default: false
+      githubOIDCRoleArn:
+        description: Github OIDC role ARN
+        required: false
+        type: string
+        default: ""
+      awsRegion:
+        description: AWS region
+        required: false
+        type: string
+        default: us-east-1
+      awsSessionDuration:
+        description: AWS session duration
+        required: false
+        type: number
+        default: 3600
       revision:
         description: Tag given to container image
         required: true
@@ -23,20 +47,6 @@ on:
         description: Other helmfile parameters
         required: false
         type: string
-      awsRoleArn:
-        description: AWS IAM role ARN
-        required: false
-        type: string
-      awsRegion:
-        description: AWS region
-        required: false
-        type: string
-        default: us-east-1
-      awsSessionDuration:
-        description: AWS session duration
-        required: false
-        type: number
-        default: 3600
       envVariables:
         description: Space separated list of environment variables to be set during helmfile apply
         required: false
@@ -63,14 +73,20 @@ on:
         required: false
         default: true
         type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-22.04
+
 
     secrets:
       awsAccessKeyId:
         description: AWS access key ID
-        required: true
+        required: false
       awsSecretAccessKey:
         description: AWS secret access key
-        required: true
+        required: false
       slackToken:
         description: Slack API token
         required: false
@@ -89,7 +105,7 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     steps:
       - name: clone repository
         uses: actions/checkout@v4
@@ -141,29 +157,32 @@ jobs:
       # NOTE: This will go away with terraform
       - name: setup dependencies
         env:
-          # TODD: remove eksctl as it is not used anymore
-          EKSCTL_VERSION: v0.98.0
           # renovate: datasource=github-releases depName=helmfile/helmfile
-          HELMFILE_VERSION: 'v0.155.1'
+          HELMFILE_VERSION: 'v0.171.0'
           # renovate: datasource=github-releases depName=databus23/helm-diff
           HELM_DIFF_PLUGIN_VERSION: v3.9.6
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
-          curl -fsSL -o eksctl.tar.gz https://github.com/weaveworks/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
-          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_amd64.tar.gz
+
+          # Determine architecture based on runner
+          ARCH="amd64"
+          if [[ "${{ inputs.runner }}" == *"arm"* ]]; then
+            ARCH="arm64"
+          fi
+
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_${ARCH}.tar.gz
 
           helm plugin install https://github.com/databus23/helm-diff --version ${{ env.HELM_DIFF_PLUGIN_VERSION }}
 
           mkdir -p $HOME/.local/bin
 
-          tar -C $HOME/.local/bin/ -xf ./eksctl.tar.gz
           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
 
           chmod +x $HOME/.local/bin/*
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: assume IAM role
-        if: inputs.awsRoleArn != ''
+        if: inputs.useOIDC == false
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.awsAccessKeyId }}
@@ -174,6 +193,30 @@ jobs:
 
           # This parameter is needed otherwise this action is trying to tag session
           # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
+      - name: assume GithubOIDCRole
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.githubOIDCRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+
+          # This parameter is needed otherwise this action is trying to tag session
+          # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
+      - name: assume Deployer role
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          role-chaining: true
           role-skip-session-tagging: true
 
       - name: setup kubeconfig
