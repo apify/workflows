@@ -78,6 +78,16 @@ on:
         required: false
         type: string
         default: ubuntu-22.04
+      helmfileVersion:
+        description: Helmfile version
+        required: false
+        type: string
+        default: v0.171.0
+      helmDiffVersion:
+        description: Helm diff version
+        required: false
+        type: string
+        default: v3.9.6
 
 
     secrets:
@@ -158,9 +168,9 @@ jobs:
       - name: setup dependencies
         env:
           # renovate: datasource=github-releases depName=helmfile/helmfile
-          HELMFILE_VERSION: 'v0.171.0'
+          HELMFILE_VERSION: ${{ inputs.helmfileVersion }}
           # renovate: datasource=github-releases depName=databus23/helm-diff
-          HELM_DIFF_PLUGIN_VERSION: v3.9.6
+          HELM_DIFF_PLUGIN_VERSION: ${{ inputs.helmDiffVersion }}
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
 
