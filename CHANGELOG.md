@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.0](https://github.com/apify/workflows/compare/v0.31.0...v0.32.0) (2025-06-13)
+
+
+### Features
+
+* **helmfile:** configurable helm versions ([#197](https://github.com/apify/workflows/issues/197)) ([c35f671](https://github.com/apify/workflows/commit/c35f67181f16e7cbff8449152692bf7368afc456))
+
 ## [0.31.0](https://github.com/apify/workflows/compare/v0.30.0...v0.31.0) (2025-06-06)
 
 
