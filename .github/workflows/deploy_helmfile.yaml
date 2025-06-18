@@ -71,7 +71,7 @@ on:
       enableVpn:
         description: Enable VPN connection
         required: false
-        default: true
+        default: 'true'
         type: string
       runner:
         description: Runner to use
@@ -167,6 +167,8 @@ jobs:
       # NOTE: This will go away with terraform
       - name: setup dependencies
         env:
+          # renovate: datasource=github-releases depName=eksctl-io/eksctl
+          EKSCTL_VERSION: v0.210.0
           # renovate: datasource=github-releases depName=helmfile/helmfile
           HELMFILE_VERSION: ${{ inputs.helmfileVersion }}
           # renovate: datasource=github-releases depName=databus23/helm-diff
@@ -181,11 +183,13 @@ jobs:
           fi
 
           curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_${ARCH}.tar.gz
+          curl -fsSL -o eksctl.tar.gz https://github.com/eksctl-io/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
 
           helm plugin install https://github.com/databus23/helm-diff --version ${{ env.HELM_DIFF_PLUGIN_VERSION }}
 
           mkdir -p $HOME/.local/bin
 
+          tar -C $HOME/.local/bin/ -xf ./eksctl.tar.gz
           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
 
           chmod +x $HOME/.local/bin/*
