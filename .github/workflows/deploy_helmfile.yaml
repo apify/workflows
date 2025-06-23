@@ -183,7 +183,7 @@ jobs:
           fi
 
           curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_${ARCH}.tar.gz
-          curl -fsSL -o eksctl.tar.gz https://github.com/eksctl-io/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_amd64.tar.gz
+          curl -fsSL -o eksctl.tar.gz https://github.com/eksctl-io/eksctl/releases/download/${{ env.EKSCTL_VERSION }}/eksctl_Linux_${ARCH}.tar.gz
 
           helm plugin install https://github.com/databus23/helm-diff --version ${{ env.HELM_DIFF_PLUGIN_VERSION }}
 
