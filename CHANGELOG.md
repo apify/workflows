@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.2](https://github.com/apify/workflows/compare/v0.32.1...v0.32.2) (2025-06-23)
+
+
+### Bug Fixes
+
+* eksctl ARCH support in deploy helmfile workflow ([#201](https://github.com/apify/workflows/issues/201)) ([a4c58f1](https://github.com/apify/workflows/commit/a4c58f1f4df8bb42aa663d743bab22b8bc457093))
+
 ## [0.32.1](https://github.com/apify/workflows/compare/v0.32.0...v0.32.1) (2025-06-23)
 
 
