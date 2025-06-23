@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.32.1](https://github.com/apify/workflows/compare/v0.32.0...v0.32.1) (2025-06-23)
+
+
+### Bug Fixes
+
+* Add back `eksctl` to `deploy_helmfile` workflow [internal] ([#199](https://github.com/apify/workflows/issues/199)) ([fe04175](https://github.com/apify/workflows/commit/fe0417567655ff5dedf40bc5b97c7457c882dd65))
+
 ## [0.32.0](https://github.com/apify/workflows/compare/v0.31.0...v0.32.0) (2025-06-13)
 
 
