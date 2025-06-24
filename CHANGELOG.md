@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.0](https://github.com/apify/workflows/compare/v0.32.2...v0.33.0) (2025-06-24)
+
+
+### Features
+
+* runs deploy workflows on ARM by default ([#203](https://github.com/apify/workflows/issues/203)) ([286eb89](https://github.com/apify/workflows/commit/286eb893d45ee5a0200a44ea0a9e990c8c2404da))
+
 ## [0.32.2](https://github.com/apify/workflows/compare/v0.32.1...v0.32.2) (2025-06-23)
 
 
