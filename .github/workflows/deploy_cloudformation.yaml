@@ -67,6 +67,11 @@ on:
         description: Additional parameters of aws cloudformation deploy
         required: false
         type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-22.04-arm64
 
     outputs:
       stackOutputs:
@@ -86,7 +91,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
       stackOutputs: ${{ steps.deploy.outputs.stackOutputs }}
     steps:
