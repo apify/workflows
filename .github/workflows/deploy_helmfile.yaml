@@ -77,7 +77,7 @@ on:
         description: Runner to use
         required: false
         type: string
-        default: ubuntu-22.04
+        default: ubuntu-22.04-arm64
       helmfileVersion:
         description: Helmfile version
         required: false

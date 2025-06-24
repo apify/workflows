@@ -8,6 +8,11 @@ on:
         description: Commit SHA
         required: false
         type: string
+      runner:
+        description: Runner to use
+        required: false
+        type: string
+        default: ubuntu-22.04-arm64
 
     outputs:
       short_commit_sha:
@@ -25,7 +30,7 @@ on:
 
 jobs:
   get_values:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner }}
     outputs:
       short_commit_sha: ${{ steps.get_context.outputs.short_commit_sha }}
       clean_branch_name: ${{ steps.get_context.outputs.clean_branch_name }}
@@ -56,7 +61,7 @@ jobs:
           echo "clean_branch_name=${CLEAN_BRANCH_NAME}" >> $GITHUB_OUTPUT
           echo "clean_branch_name_with_suffix=${CLEAN_BRANCH_NAME_WITH_SUFFIX}" >> $GITHUB_OUTPUT
 
-      - name: get last commit author  
+      - name: get last commit author
         uses: actions/github-script@v7
         id: get_commit_author
         with:
