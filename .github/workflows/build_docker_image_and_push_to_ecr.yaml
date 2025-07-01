@@ -3,6 +3,10 @@ name: build docker image and push it to ECR
 on:
   workflow_call:
     inputs:
+      awsRoleArn:
+        description: AWS IAM role ARN
+        required: false
+        type: string
       useOIDC:
         description: Whether to use OIDC for assume role
         required: false
@@ -169,8 +173,8 @@ jobs:
       - name: setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Assume OIDC Role, the trust relationship between GitHub and AWS is defined in IAM in the organization account.
-      - name: assume OIDC Role
+      # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
+      - name: assume GithubOIDCRole
         if: inputs.useOIDC == true
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -180,6 +184,17 @@ jobs:
 
           # This parameter is needed otherwise this action is trying to tag session
           # which does not work for cross-account assume
+          role-skip-session-tagging: true
+
+      # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
+      - name: assume Deployer role
+        if: inputs.useOIDC == true
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: ${{ inputs.awsRegion }}
+          role-to-assume: ${{ inputs.awsRoleArn }}
+          role-duration-seconds: ${{ inputs.awsSessionDuration }}
+          role-chaining: true
           role-skip-session-tagging: true
 
       - name: login to AWS ECR using OIDC
