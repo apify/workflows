@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.33.1](https://github.com/apify/workflows/compare/v0.33.0...v0.33.1) (2025-07-01)
+
+
+### Bug Fixes
+
+* Full OIDC support for Build workflow ([#205](https://github.com/apify/workflows/issues/205)) ([5e28871](https://github.com/apify/workflows/commit/5e288710b9efcbb84c349bba24cd5715f458fbfb))
+
 ## [0.33.0](https://github.com/apify/workflows/compare/v0.32.2...v0.33.0) (2025-06-24)
 
 
