@@ -6,6 +6,12 @@ on:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
         description: API token of the Python testing user on Apify
         required: true
+    inputs:
+      python-version:
+        description: List of Python versions to be used
+        default: '["3.9", "3.10", "3.11", "3.12", "3.13"]'
+        required: false
+        type: string
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
 # This avoids exceeding API usage limits on the test user account.
@@ -21,7 +27,7 @@ jobs:
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        python-version: ["3.9", "3.13"] # The oldest and newest supported Python versions.
+        python-version: ${{ fromJSON(inputs.python-version)}}
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     steps:
