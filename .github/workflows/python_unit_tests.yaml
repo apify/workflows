@@ -7,10 +7,9 @@ on:
         required: false
         description: Used to set the HTTPBIN_URL environment variable
     inputs:
-      python-version:
+      python-versions:
         description: List of Python versions to be used
-        default: '["3.9", "3.10", "3.11", "3.12", "3.13"]'
-        required: false
+        required: true
         type: string
 
 jobs:
@@ -20,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "windows-latest"]
-        python-version: ${{ fromJSON(inputs.python-version)}}
+        python-version: ${{ fromJSON(inputs.python-versions)}}
     runs-on: ${{ matrix.os }}
     env:
       HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}

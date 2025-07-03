@@ -7,10 +7,9 @@ on:
         description: API token of the Python testing user on Apify
         required: true
     inputs:
-      python-version:
+      python-versions:
         description: List of Python versions to be used
-        default: '["3.9", "3.10", "3.11", "3.12", "3.13"]'
-        required: false
+        required: true
         type: string
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
@@ -27,7 +26,7 @@ jobs:
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
     strategy:
       matrix:
-        python-version: ${{ fromJSON(inputs.python-version)}}
+        python-version: ${{ fromJSON(inputs.python-versions)}}
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     steps:

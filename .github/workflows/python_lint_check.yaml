@@ -3,10 +3,9 @@ name: Lint check
 on:
   workflow_call:
     inputs:
-      python-version:
+      python-versions:
         description: List of Python versions to be used
-        default: '["3.9", "3.10", "3.11", "3.12", "3.13"]'
-        required: false
+        required: true
         type: string
 
 jobs:
@@ -15,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ${{ fromJSON(inputs.python-version)}}
+        python-version: ${{ fromJSON(inputs.python-versions)}}
 
     steps:
       - name: Checkout repository
