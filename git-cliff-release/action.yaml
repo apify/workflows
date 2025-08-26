@@ -69,8 +69,8 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
       run: |
-        if git tag | grep -e '[ab][0-9]' -e '-beta\.' -e '-alpha\.' > /dev/null 2> /dev/null; then
-          git tag | grep -e '[ab][0-9]' -e '-beta\.' -e '-alpha\.' | xargs -r git tag --delete
+        if git tag | grep -e '[ab][0-9]' -e 'rc[0-9]' -e '-beta\.' -e '-alpha\.' -e '-rc\.' > /dev/null 2> /dev/null; then
+          git tag | grep -e '[ab][0-9]' -e 'rc[0-9]' -e '-beta\.' -e '-alpha\.' -e '-rc\.' | xargs -r git tag --delete
         fi
     - name: Determine version number
       id: version_number
