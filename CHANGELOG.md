@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.33.2](https://github.com/apify/workflows/compare/v0.33.1...v0.33.2) (2025-09-10)
+
+
+### Bug Fixes
+
+* **git-cliff-release:** Handle rc tags ([#213](https://github.com/apify/workflows/issues/213)) ([8230ca7](https://github.com/apify/workflows/commit/8230ca74f027e3a708c6401bcc81a0cdb32e0687))
+* sync branches ([#216](https://github.com/apify/workflows/issues/216)) ([cbc1b9e](https://github.com/apify/workflows/commit/cbc1b9e21de4802c4217f597c04dd6e8425c43fa))
+
 ## [0.33.1](https://github.com/apify/workflows/compare/v0.33.0...v0.33.1) (2025-07-01)
 
 
