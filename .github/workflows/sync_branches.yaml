@@ -49,7 +49,7 @@ jobs:
             // Create a new Octokit instance under Apify Service Account
             // Apify Service Account does not trigger PR toolkit,
             // does not need approval for PRs and does not need to wait for status checks
-            const octokit = new Octokit({
+            const octokitExt = new Octokit({
                 auth: process.env.GIT_HUB_TOKEN,
             });
 
@@ -64,7 +64,7 @@ jobs:
             }
 
             // Create pull request from headBranch to baseBranch (typically `master` to `develop`)
-            const createResp = await octokit.rest.pulls.create({
+            const createResp = await octokitExt.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 head: headBranch,
@@ -75,7 +75,7 @@ jobs:
             const pullRequestNumber = createResp.data.number;
 
             // Merge pull request
-            await octokit.rest.pulls.merge({
+            await octokitExt.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pullRequestNumber,
