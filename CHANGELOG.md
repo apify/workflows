@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/apify/workflows/compare/v0.33.2...v0.34.0) (2025-09-26)
+
+
+### Features
+
+* limited support for secure parameters passed to CF stack ([#217](https://github.com/apify/workflows/issues/217)) ([c455286](https://github.com/apify/workflows/commit/c4552861499024c3d6df0ba32693d5d7acb1f5a9))
+
 ## [0.33.2](https://github.com/apify/workflows/compare/v0.33.1...v0.33.2) (2025-09-10)
 
 
