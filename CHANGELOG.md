@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.0](https://github.com/apify/workflows/compare/v0.34.0...v0.35.0) (2025-10-07)
+
+
+### Features
+
+* run workflows on ARM (phase 1: most used) ([#222](https://github.com/apify/workflows/issues/222)) ([1604185](https://github.com/apify/workflows/commit/16041859d1246f1255835048564b17ca49343965))
+
 ## [0.34.0](https://github.com/apify/workflows/compare/v0.33.2...v0.34.0) (2025-09-26)
 
 
