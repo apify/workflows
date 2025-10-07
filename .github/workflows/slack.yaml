@@ -20,7 +20,7 @@ on:
         required: false
         type: string
       jobStatus:
-        description: > 
+        description: >
           Determines the color and status of message. If omitted blue info message is send
         required: false
         type: string
@@ -32,7 +32,7 @@ on:
 
 jobs:
   slack:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: format message
         id: format

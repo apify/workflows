@@ -56,7 +56,7 @@ on:
 jobs:
   grafana:
     if: inputs.revision != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: mark release
         uses: frankie567/grafana-annotation-action@v1.0.3
@@ -68,7 +68,7 @@ jobs:
 
   sentry:
     if: inputs.sentryOrg != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: checkout repository
         uses: actions/checkout@v4

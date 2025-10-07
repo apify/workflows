@@ -26,7 +26,7 @@ on:
 jobs:
   # TODO: these steps could be separate wf
   open-pull-request:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: open release pull-request
         uses: apify/release-pr-action@v3.2.0

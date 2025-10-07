@@ -31,7 +31,7 @@ on:
 
 jobs:
   pull_request:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       # TODO: We need better way (probably using multiple steps with actions/github-script)
       - name: install octokit
