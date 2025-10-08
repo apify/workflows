@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: clone repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: install cfn-lint
         run: pip install cfn-lint==${CFN_LINT_VERSION}
