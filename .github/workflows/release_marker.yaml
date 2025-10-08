@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: mark deploy - frontend
         if: inputs.sentryEnvironmentFrontend != ''
