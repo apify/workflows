@@ -237,7 +237,7 @@ jobs:
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
 
       - name: Tailscale VPN
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v3
         if: inputs.enableVpn == 'true'
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
