@@ -1,0 +1,33 @@
+{
+	"name": "zenhub-github-sync",
+	"private": true,
+	"type": "module",
+	"packageManager": "yarn@4.10.2",
+	"volta": {
+		"extends": "../package.json"
+	},
+	"dependencies": {
+		"@actions/core": "^1.11.1",
+		"@actions/github": "^6.0.1",
+		"@inquirer/prompts": "^7.8.6",
+		"@sapphire/utilities": "^3.18.2",
+		"@skyra/env-utilities": "^2.0.1",
+		"js-yaml": "^4.1.0",
+		"mpath": "github:mongoosejs/mpath#2c9a79bd2b46412ad10549dd74e3cea6a4d9ba98",
+		"octokit": "^5.0.3",
+		"smol-toml": "^1.4.2",
+		"tslib": "^2.8.1"
+	},
+	"devDependencies": {
+		"@apify/eslint-config": "^1.1.0",
+		"@apify/tsconfig": "^0.1.1",
+		"@types/js-yaml": "^4",
+		"@types/node": "22",
+		"eslint": "^9.36.0",
+		"typescript": "^5.9.2",
+		"typescript-eslint": "^8.44.0"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	}
+}

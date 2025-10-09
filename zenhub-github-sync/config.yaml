@@ -1,0 +1,143 @@
+defaultProperties:
+  //explanation: Default properties for the sync between ZenHub and GitHub.
+  value:
+    behaviorWhenMismatch:
+      //explanation: >-
+        Behavior when there is a mismatch between the source of truth and the
+        actual value. If set to "overwrite", the value will be overwritten to
+        whatever the source of truth says. If set to "ignore", the value will be
+        skipped.
+      value: overwrite
+    sourceOfTruth:
+      //explanation: >-
+        Source of truth for the sync between ZenHub and GitHub. Will be used to
+        determine which platform should be updated when there is a mismatch.
+      value: zenhub
+zenhubPipelines:
+  //explanation: A cache of the ZenHub pipelines to sync across project boards.
+  value:
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzI
+      name: New Issues
+      description: Newly created Issues land here automatically.
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzM
+      name: Icebox
+      description: Low priority, un-prioritized Issues that are not immediate priorities.
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzMwMjEyODI
+      name: Pre-backlog
+      description: >-
+        Issues that we want to work on at some point, but not in the next few
+        weeks
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzQ
+      name: Backlog
+      description: >-
+        Upcoming Issues that are immediate priorities. Issues here should be
+        prioritized top-to-bottom in the pipeline.
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzU
+      name: In Progress
+      description: What the team is currently working on, ordered by priority.
+    - id: Z2lkOi8vcmFwdG9yL1BpcGVsaW5lLzIyMTA5MzY
+      name: Pull Request
+      description: >-
+        Issues open to the team for review and testing. Code is ready to be
+        deployed pending feedback.
+labelMappings:
+  //explanation: >-
+    A list of labels that should also be pointed to a specific GitHub project
+    board. Only the first element will receive in-depth documentation for each
+    field
+  value:
+    - labels:
+        //explanation: >-
+          The labels that an issue or pull request should have for it to be
+          added to the specific GitHub project board.
+        value:
+          - t-tooling
+      githubBoardId:
+        //explanation: >-
+          The GitHub Board ID that is to be used for all issues or pull requests
+          that have the specified labels.
+        value: PVT_kwDOAXcoOM4BFApR
+      statusFieldId:
+        //explanation: The status field ID to use when setting the status of an issue.
+        value: PVTSSF_lADOAXcoOM4BFApRzg2eJ5s
+      statusFieldOptions:
+        //explanation: >-
+          The status field options to use when setting the status of an issue.
+          Due to the nature of these fields, these options should match the
+          pipeline names on ZenHub
+        value:
+          - id: f75ad846
+            name: New Issues
+          - id: 61e4505c
+            name: Icebox
+          - id: 47fc9ee4
+            name: Pre-backlog
+          - id: df73e18b
+            name: Backlog
+          - id: '98236657'
+            name: In Progress
+          - id: 68db895a
+            name: Pull Request
+          - id: f40d2da9
+            name: Closed
+      estimateFieldId:
+        //explanation: The estimate field ID to use when setting the estimate of an issue.
+        value: PVTF_lADOAXcoOM4BFApRzg2eJ6Q
+      sourceOfTruth:
+        //explanation: >-
+          The source of truth represents the platform that should be used to
+          determine the status of an issue.
+        value: null
+      behaviorWhenMismatch:
+        //explanation: >-
+          The behavior when there is a mismatch between the source of truth and
+          the actual value. If set to "overwrite", the value will be overwritten
+          to whatever the source of truth says. If set to "ignore", the value
+          will be skipped.
+        value: null
+globalBoard:
+  //explanation: The global board that holds all the issues.
+  value:
+    githubBoardId:
+      //explanation: >-
+        The GitHub Board ID that is to be used for all issues that get created
+        across the organization.
+      value: PVT_kwDOAXcoOM4BFApJ
+    statusFieldId:
+      //explanation: The status field ID to use when setting the status of an issue.
+      value: PVTSSF_lADOAXcoOM4BFApJzg2eJzs
+    statusFieldOptions:
+      //explanation: >-
+        The status field options to use when setting the status of an issue. Due
+        to the nature of these fields, these options should match the pipeline
+        names on ZenHub
+      value:
+        - id: f75ad846
+          name: New Issues
+        - id: 61e4505c
+          name: Icebox
+        - id: 47fc9ee4
+          name: Pre-backlog
+        - id: df73e18b
+          name: Backlog
+        - id: '98236657'
+          name: In Progress
+        - id: 68db895a
+          name: Pull Request
+        - id: f40d2da9
+          name: Closed
+    estimateFieldId:
+      //explanation: The estimate field ID to use when setting the estimate of an issue.
+      value: PVTF_lADOAXcoOM4BFApJzg2eJ0Q
+    sourceOfTruth:
+      //explanation: >-
+        The source of truth represents the platform that should be used to
+        determine the status of an issue.
+      value: null
+    behaviorWhenMismatch:
+      //explanation: >-
+        The behavior when there is a mismatch between the source of truth and
+        the actual value. If set to "overwrite", the value will be overwritten
+        to whatever the source of truth says. If set to "ignore", the value will
+        be skipped.
+      value: null

@@ -1,0 +1,22 @@
+name: Issue -> Project Board
+
+on:
+  issues:
+    types:
+      - opened
+      - closed
+      - reopened
+      - labeled
+      - unlabeled
+
+jobs:
+  issue:
+    runs-on: ubuntu-latest
+
+    name: Upsert Issue ${{ github.event.issue.number }}
+
+    steps:
+      - uses: apify/workflows/zenhub-github-sync/src/actions/issue-upsert@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          zenhub_token: ${{ secrets.ZENHUB_TOKEN }}

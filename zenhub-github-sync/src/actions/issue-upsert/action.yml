@@ -1,0 +1,38 @@
+name: Apify ZenHub<->GitHub issue sync
+description: Apify GitHub Action for syncing issues between ZenHub and GitHub
+
+inputs:
+  issue_number:
+    required: true
+    description: The number of the issue to sync
+  github_token:
+    description: The GitHub token to use
+    required: true
+  zenhub_token:
+    description: The ZenHub token to use
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout workflows repository
+      uses: actions/checkout@v4
+      with:
+        repository: apify/workflows
+
+    - name: Setup bun
+      uses: oven-sh/setup-bun@v1
+      with:
+        bun-version-file: .bun-version
+
+    - name: Install dependencies
+      shell: bash
+      run: bun install
+
+    - name: Run the action
+      shell: bash
+      run: bun run zenhub-github-sync/src/actions/issue-upsert/action.ts
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        ZENHUB_TOKEN: ${{ inputs.zenhub_token }}
+        ISSUE_NUMBER: ${{ inputs.issue_number }}
