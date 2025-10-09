@@ -11,9 +11,9 @@ concurrency: # This is to make sure that it's executed only for the most recent 
 
 jobs:
   apify-pr-toolkit:
-    # Commented out as it sometimes happens that once PR was in a draft the workflows are not being run later on.  
+    # Commented out as it sometimes happens that once PR was in a draft the workflows are not being run later on.
     # if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: run pull-request-toolkit action
         uses: apify/pull-request-toolkit-action@main
