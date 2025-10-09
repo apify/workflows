@@ -13,4 +13,6 @@ jobs:
   lint:
     uses: ./.github/workflows/lint_gh_actions.yaml
     with:
-      extraArgs: -ignore 'property "aws_.+" is not defined in .+'
+      extraArgs: >
+        -ignore 'label "ubuntu-22.04-arm64" is unknown. .+'
+        -ignore 'property "aws_.+" is not defined in .+'
