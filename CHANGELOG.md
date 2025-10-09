@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.35.1](https://github.com/apify/workflows/compare/v0.35.0...v0.35.1) (2025-10-09)
+
+
+### Bug Fixes
+
+* local lint workflow and PR toolkit ([#225](https://github.com/apify/workflows/issues/225)) ([1ffab79](https://github.com/apify/workflows/commit/1ffab79d7742b23dc656c1cad42bda97b9037b8d))
+
 ## [0.35.0](https://github.com/apify/workflows/compare/v0.34.0...v0.35.0) (2025-10-07)
 
 
