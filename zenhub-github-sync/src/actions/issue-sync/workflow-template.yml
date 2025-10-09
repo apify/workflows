@@ -13,10 +13,10 @@ jobs:
   issue:
     runs-on: ubuntu-latest
 
-    name: Upsert Issue ${{ github.event.issue.number }}
+    name: Sync Issue ${{ github.event.issue.number }}
 
     steps:
-      - uses: apify/workflows/zenhub-github-sync/src/actions/issue-upsert@main
+      - uses: apify/workflows/zenhub-github-sync/src/actions/issue-sync@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           zenhub_token: ${{ secrets.ZENHUB_TOKEN }}
