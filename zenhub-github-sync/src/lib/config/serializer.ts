@@ -1,16 +1,18 @@
-import toml from 'smol-toml';
-import yaml from 'js-yaml';
-import {
-	getConfigPath,
-	parser,
-	type CommentedProperty,
-	type Config,
-	type LabelMapping,
-	type StoredConfig,
-} from './_shared.ts';
 import { writeFile } from 'node:fs/promises';
 import { inspect } from 'node:util';
+
+import yaml from 'js-yaml';
+import toml from 'smol-toml';
+
 import { debugLog } from '../utils.ts';
+import {
+	type CommentedProperty,
+	type Config,
+	getConfigPath,
+	type LabelMapping,
+	parser,
+	type StoredConfig,
+} from './_shared.ts';
 
 function serializeWithComment<T>(value: T, comment: string) {
 	return {
@@ -116,7 +118,7 @@ function serializeGlobalBoard(globalBoard: Config['globalBoard'] | null): Stored
 }
 
 export async function serializeConfig(config: Config) {
-	const path = getConfigPath(parser);
+	const path = getConfigPath();
 
 	debugLog('Serializing config:', inspect(config, { depth: null }));
 

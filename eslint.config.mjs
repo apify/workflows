@@ -6,12 +6,7 @@ import apify from '@apify/eslint-config/ts';
 
 export default [
 	{
-		ignores: [
-			'**/dist',
-			'node_modules',
-			'coverage',
-			'**/*.d.ts',
-		],
+		ignores: ['**/dist', 'node_modules', 'coverage', '**/*.d.ts', '.yarn/**/*'],
 	},
 	...apify,
 	prettier,
@@ -57,10 +52,12 @@ export default [
 		},
 	},
 	{
-		files: ['src/**/*'],
+		files: ['zenhub-github-sync/**/*'],
 		rules: {
 			'no-console': 'off',
 			'consistent-return': 'off',
+			'import/extensions': 'off',
+			'dot-notation': 'off',
 		},
 	},
 ];

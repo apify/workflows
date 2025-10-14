@@ -1,0 +1,9 @@
+{
+	"$schema": "https://raw.githubusercontent.com/apify/apify-shared-js/refs/heads/master/packages/json_schemas/schemas/actor.schema.json",
+	"actorSpecification": 1,
+	"name": "zenhub-github-sync-actor",
+	"version": "0.0",
+	"buildTag": "latest",
+	"environmentVariables": {},
+	"usesStandbyMode": true
+}

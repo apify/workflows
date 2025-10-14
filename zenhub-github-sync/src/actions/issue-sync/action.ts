@@ -1,10 +1,12 @@
 import './src/setup.ts';
 
-import * as ctx from '../../lib/ctx.ts';
+import assert from 'node:assert';
+import { exit } from 'node:process';
+
 import { error, info } from '@actions/core';
 import * as github from '@actions/github';
-import { exit } from 'node:process';
-import assert from 'node:assert';
+
+import * as ctx from '../../lib/ctx.ts';
 
 const { action, issue, repository } = github.context.payload;
 

@@ -143,7 +143,7 @@ export async function* getPipelineIssuesForRepositoriesIterator({
 	const filter = {
 		matchType: 'all',
 		'issueIssueTypeDisposition': 'BOARD',
-		repositoryIds: repositoryIds,
+		repositoryIds,
 	};
 
 	const workspaceId = ctx.zenhub.getWorkspaceId();

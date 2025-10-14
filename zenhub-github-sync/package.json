@@ -9,9 +9,16 @@
 	"dependencies": {
 		"@actions/core": "^1.11.1",
 		"@actions/github": "^6.0.1",
+		"@hono/node-server": "^1.13.7",
+		"@hono/otel": "^0.5.0",
 		"@inquirer/prompts": "^7.8.6",
+		"@octokit/webhooks-types": "^7.6.1",
+		"@opentelemetry/api": "^1.9.0",
+		"@opentelemetry/sdk-node": "^0.206.0",
+		"@opentelemetry/sdk-trace-node": "^2.1.0",
 		"@sapphire/utilities": "^3.18.2",
 		"@skyra/env-utilities": "^2.0.1",
+		"hono": "^4.6.14",
 		"js-yaml": "^4.1.0",
 		"mpath": "github:mongoosejs/mpath#2c9a79bd2b46412ad10549dd74e3cea6a4d9ba98",
 		"octokit": "^5.0.3",
@@ -28,6 +35,7 @@
 		"typescript-eslint": "^8.44.0"
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit",
+		"start": "node src/entrypoints/server/app.ts"
 	}
 }

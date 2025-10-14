@@ -31,7 +31,7 @@ type RawWorkspacePipelinesResponse = GraphQLResponse<{
 }>;
 
 export async function getWorkspacePipelines(workspaceId: string) {
-	const rawResponse = await graphqlQuery<RawWorkspacePipelinesResponse>(QUERY, { workspaceId: workspaceId });
+	const rawResponse = await graphqlQuery<RawWorkspacePipelinesResponse>(QUERY, { workspaceId });
 
 	return rawResponse.data.workspace.pipelinesConnection.nodes;
 }

@@ -1,12 +1,14 @@
 import '../lib/setup.ts';
 
-import * as ctx from '../lib/ctx.ts';
 import assert from 'node:assert';
-import { confirm } from '@inquirer/prompts';
+import { writeFile } from 'node:fs/promises';
 import { exit } from 'node:process';
+
+import { confirm } from '@inquirer/prompts';
+
 import type { PipelineIssue } from '../lib/api/zenhub/getPipelineIssuesForRepositories.ts';
 import type { Pipeline } from '../lib/config/_shared.ts';
-import { writeFile } from 'node:fs/promises';
+import * as ctx from '../lib/ctx.ts';
 
 console.log(
 	'By running this script, everything from ZenHub will be imported to GitHub, based on the configuration file, overwriting anything that was changed on the GitHub project boards!',
@@ -123,5 +125,5 @@ async function addIssueToProjectBoards(issue: PipelineIssue, pipeline: Pipeline)
 		apiCalls.push(apiCall);
 	}
 
-	await Promise.all(apiCalls.map((apiCall) => ctx.github.addIssueToProjectBoard(apiCall)));
+	await Promise.all(apiCalls.map(async (apiCall) => ctx.github.addIssueToProjectBoard(apiCall)));
 }

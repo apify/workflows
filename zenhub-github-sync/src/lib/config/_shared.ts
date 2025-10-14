@@ -49,7 +49,7 @@ export interface Config {
 	globalBoard: GlobalBoard | null;
 }
 
-export type CommentedProperty<T, SkipNested = false> = T extends Array<infer U>
+export type CommentedProperty<T, SkipNested = false> = T extends (infer U)[]
 	? {
 			'//explanation': string;
 			value: U[];
@@ -87,6 +87,6 @@ export const DefaultConfig: Config = {
 
 export const parser: ConfigParser = 'yaml';
 
-export function getConfigPath(parser: ConfigParser): URL {
+export function getConfigPath(): URL {
 	return new URL(`../../../config.${parser}`, import.meta.url);
 }

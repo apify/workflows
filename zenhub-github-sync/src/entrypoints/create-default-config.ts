@@ -1,7 +1,7 @@
 import '../lib/setup.ts';
 
-import * as ctx from '../lib/ctx.ts';
 import { DefaultConfig } from '../lib/config/_shared.ts';
+import * as ctx from '../lib/ctx.ts';
 
 const config = await ctx.config.parseConfig();
 

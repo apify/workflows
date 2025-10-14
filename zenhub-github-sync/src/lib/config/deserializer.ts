@@ -1,7 +1,9 @@
-import toml from 'smol-toml';
-import yaml from 'js-yaml';
-import { DefaultConfig, getConfigPath, parser, type Config, type LabelMapping, type StoredConfig } from './_shared.ts';
 import { readFile } from 'node:fs/promises';
+
+import yaml from 'js-yaml';
+import toml from 'smol-toml';
+
+import { type Config, DefaultConfig, getConfigPath, type LabelMapping, parser, type StoredConfig } from './_shared.ts';
 
 function maybeParsePropertyWithComment<T>(property: unknown): T {
 	if (typeof property === 'object' && property !== null && '//explanation' in property) {
@@ -44,9 +46,9 @@ function parseGlobalBoard(config: Config, rawConfig: StoredConfig) {
 			statusFieldId: maybeParsePropertyWithComment<Exclude<Config['globalBoard'], null>['statusFieldId']>(
 				rawValue.statusFieldId,
 			),
-			statusFieldOptions: maybeParsePropertyWithComment<Exclude<Config['globalBoard'], null>['statusFieldOptions']>(
-				rawValue.statusFieldOptions,
-			),
+			statusFieldOptions: maybeParsePropertyWithComment<
+				Exclude<Config['globalBoard'], null>['statusFieldOptions']
+			>(rawValue.statusFieldOptions),
 			estimateFieldId: maybeParsePropertyWithComment<Exclude<Config['globalBoard'], null>['estimateFieldId']>(
 				rawValue.estimateFieldId,
 			),
@@ -98,7 +100,7 @@ function parseZenhubPipelines(config: Config, rawConfig: StoredConfig) {
 }
 
 export async function parseConfig() {
-	const path = getConfigPath(parser);
+	const path = getConfigPath();
 
 	const fileData = await readFile(path, 'utf8').catch(() => null);
 

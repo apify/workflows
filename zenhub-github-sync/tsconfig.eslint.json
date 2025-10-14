@@ -1,20 +1,20 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "allowJs": true
-  },
-  "include": [
-    "src",
-    "scripts",
-    "bin",
-    "vitest.config.ts",
-    "test",
-    ".yarn/plugins/postinstallDev.cjs",
-    "features/**/*.ts",
-    "features/**/*.js",
-    ".github/scripts",
-    "eslint.config.mjs",
-    "tsup.config.ts",
-    "website/sidebars.js"
-  ]
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"allowJs": true
+	},
+	"include": [
+		"src",
+		"scripts",
+		"bin",
+		"vitest.config.ts",
+		"test",
+		".yarn/plugins/postinstallDev.cjs",
+		"features/**/*.ts",
+		"features/**/*.js",
+		".github/scripts",
+		"eslint.config.mjs",
+		"tsup.config.ts",
+		"website/sidebars.js"
+	]
 }

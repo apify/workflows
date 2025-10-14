@@ -1,7 +1,9 @@
-import { input, search, Separator } from '@inquirer/prompts';
-import * as ctx from '../ctx.ts';
 import assert from 'node:assert';
+
+import { input, search, Separator } from '@inquirer/prompts';
+
 import { GitHubProjectBoardFieldType } from '../api/github/getProjectBoards.ts';
+import * as ctx from '../ctx.ts';
 
 export interface SelectGitHubProjectBoardResult {
 	board: ctx.github.GitHubPartialProjectBoard;
@@ -15,7 +17,7 @@ export async function selectGitHubProjectBoard(searchMessage: string): Promise<S
 
 	const selectedBoardId = await search({
 		message: searchMessage,
-		source: (input) => {
+		source: (userInput) => {
 			const results: ({ name: string; value: string } | Separator)[] = [];
 
 			results.push({
@@ -26,7 +28,7 @@ export async function selectGitHubProjectBoard(searchMessage: string): Promise<S
 
 			results.push(
 				...allProjectBoards
-					.filter((projectBoard) => projectBoard.title.toLowerCase().includes(input?.toLowerCase() ?? ''))
+					.filter((projectBoard) => projectBoard.title.toLowerCase().includes(userInput?.toLowerCase() ?? ''))
 					.map((projectBoard) => ({
 						name: projectBoard.title,
 						value: projectBoard.id,
@@ -63,9 +65,9 @@ export async function selectGitHubProjectBoard(searchMessage: string): Promise<S
 
 	const statusFieldId = await search({
 		message: 'Select the field that represents the status of the issue',
-		source: (input) => {
+		source: (userInput) => {
 			return board.fields
-				.filter((field) => field.name.toLowerCase().includes(input?.toLowerCase() ?? ''))
+				.filter((field) => field.name.toLowerCase().includes(userInput?.toLowerCase() ?? ''))
 				.map((field) => ({
 					name: field.name,
 					value: field.id,
@@ -82,9 +84,9 @@ export async function selectGitHubProjectBoard(searchMessage: string): Promise<S
 
 	const estimateFieldId = await search({
 		message: 'Select the field that represents the estimate of the issue',
-		source: (input) => {
+		source: (userInput) => {
 			return board.fields
-				.filter((field) => field.name.toLowerCase().includes(input?.toLowerCase() ?? ''))
+				.filter((field) => field.name.toLowerCase().includes(userInput?.toLowerCase() ?? ''))
 				.map((field) => ({
 					name: field.name,
 					value: field.id,
@@ -101,8 +103,8 @@ export async function selectGitHubProjectBoard(searchMessage: string): Promise<S
 
 	return {
 		board,
-		statusFieldId: statusFieldId,
+		statusFieldId,
 		statusFieldOptions: rawStatusField.options,
-		estimateFieldId: estimateFieldId,
+		estimateFieldId,
 	};
 }

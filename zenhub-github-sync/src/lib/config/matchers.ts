@@ -1,4 +1,5 @@
 import assert from 'node:assert';
+
 import type { Config } from './_shared.ts';
 
 export function githubProjectBoardIdsByLabels(config: Config, labels: string[]) {

@@ -1,9 +1,11 @@
 import '../lib/setup.ts';
 
-import * as ctx from '../lib/ctx.ts';
-import { confirm, input } from '@inquirer/prompts';
 import { exit } from 'node:process';
+
+import { confirm, input } from '@inquirer/prompts';
+
 import type { LabelMapping } from '../lib/config/_exports.ts';
+import * as ctx from '../lib/ctx.ts';
 
 const config = await ctx.config.parseConfig();
 
@@ -40,9 +42,9 @@ const { board, statusFieldId, statusFieldOptions, estimateFieldId } = await ctx.
 const newEntry: LabelMapping = {
 	labels,
 	githubBoardId: board.id,
-	statusFieldId: statusFieldId,
-	statusFieldOptions: statusFieldOptions,
-	estimateFieldId: estimateFieldId,
+	statusFieldId,
+	statusFieldOptions,
+	estimateFieldId,
 	sourceOfTruth: null,
 	behaviorWhenMismatch: null,
 };

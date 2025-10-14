@@ -1,22 +1,24 @@
+import assert from 'node:assert';
+import { setTimeout } from 'node:timers/promises';
+
 import { envParseString } from '@skyra/env-utilities';
 import mpath from 'mpath';
-import assert from 'node:assert';
 
 const { get: mget } = mpath;
 
-export type GraphQLResponse<T> = {
+export interface GraphQLResponse<T> {
 	data: T;
-};
+}
 
 export interface PageInfo {
 	hasNextPage: boolean;
 	endCursor: string;
 }
 
-export type PaginatedResponse<T> = {
+export interface PaginatedResponse<T> {
 	nodes: T[];
 	pageInfo: PageInfo;
-};
+}
 
 const BASE_URL = 'https://api.zenhub.com/public/graphql';
 
@@ -45,7 +47,7 @@ export async function graphqlQuery<T extends GraphQLResponse<unknown>>(
 				throw new Error(`Failed to fetch ZenHub API: ${res.statusText}`, { cause: await res.text() });
 			}
 
-			await new Promise((resolve) => setTimeout(resolve, waitTime));
+			await setTimeout(waitTime);
 
 			return graphqlQuery<T>(query, variables);
 		}
@@ -79,7 +81,7 @@ export async function* graphqlPaginatedQueryIterator<T extends GraphQLResponse<u
 	assert(query.includes('$endCursor'), 'Query must include a parameter named $endCursor of type String');
 	assert(query.includes('pageInfo'), 'Query must include a fragment that returns a pageInfo object for pagination');
 
-	let originalData = await graphqlQuery<T>(query, variables);
+	const originalData = await graphqlQuery<T>(query, variables);
 
 	yield originalData;
 
@@ -95,7 +97,7 @@ export async function* graphqlPaginatedQueryIterator<T extends GraphQLResponse<u
 		return;
 	}
 
-	let pageInfo = nodesObject.pageInfo;
+	let { pageInfo } = nodesObject;
 
 	while (pageInfo.hasNextPage) {
 		variables['endCursor'] = pageInfo.endCursor;
@@ -111,8 +113,6 @@ export async function* graphqlPaginatedQueryIterator<T extends GraphQLResponse<u
 
 		yield newData;
 	}
-
-	return;
 }
 
 export async function graphqlPaginatedQuery<T extends GraphQLResponse<unknown>>(
@@ -122,7 +122,7 @@ export async function graphqlPaginatedQuery<T extends GraphQLResponse<unknown>>(
 ): Promise<T> {
 	const iterator = graphqlPaginatedQueryIterator<T>(query, variables, pathToNodesConnection);
 
-	let result = await iterator.next();
+	const result = await iterator.next();
 
 	if (result.done) {
 		return result.value;

@@ -1,6 +1,8 @@
-import { envParseString, type BooleanString } from '@skyra/env-utilities';
 import assert from 'node:assert';
+
+import { type BooleanString, envParseString, type IntegerString } from '@skyra/env-utilities';
 import { Octokit } from 'octokit';
+
 import { debugLog } from './utils.ts';
 
 export * as github from './api/github/_exports.ts';
@@ -36,7 +38,6 @@ export async function setup() {
 	octokit = new Octokit({
 		auth: envParseString('GITHUB_TOKEN'),
 		userAgent: 'ApifyWorkflows ZenHub-GitHub (https://github.com/apify/workflows)',
-
 	});
 
 	const me = await octokit.rest.users.getAuthenticated();
@@ -66,5 +67,7 @@ declare module '@skyra/env-utilities' {
 		ZENHUB_WORKSPACE_ID: string;
 
 		DEBUG: BooleanString;
+
+		ACTOR_WEB_SERVER_PORT?: IntegerString;
 	}
 }
