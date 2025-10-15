@@ -3,6 +3,8 @@ import assert from 'node:assert';
 import { type BooleanString, envParseString, type IntegerString } from '@skyra/env-utilities';
 import { Octokit } from 'octokit';
 
+import type { Config } from './config/_shared.ts';
+import { parseConfig } from './config/deserializer.ts';
 import { debugLog } from './utils.ts';
 
 export * as github from './api/github/_exports.ts';
@@ -12,6 +14,7 @@ export * as prompts from './prompts/_exports.ts';
 
 let octokit: Octokit | null = null;
 let apifyOrgId: string | null = null;
+let config: Config | null = null;
 
 export function getOctokit(): Octokit {
 	assert(octokit, 'Octokit instance is not initialized');
@@ -23,6 +26,12 @@ export function getApifyOrgId() {
 	assert(apifyOrgId, 'Apify organization ID is not initialized');
 
 	return apifyOrgId;
+}
+
+export function getConfig(): Config {
+	assert(config, 'Config is not initialized');
+
+	return config;
 }
 
 export async function setup() {
@@ -58,6 +67,8 @@ export async function setup() {
 	apifyOrgId = coreInfo.data.owner.node_id;
 
 	debugLog('Apify organization ID:', apifyOrgId);
+
+	config = await parseConfig();
 }
 
 declare module '@skyra/env-utilities' {

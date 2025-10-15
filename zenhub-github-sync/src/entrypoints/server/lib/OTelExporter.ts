@@ -9,7 +9,7 @@ export class OTelExporter extends InMemorySpanExporter {
 
 		if (process.env.NODE_ENV !== 'development') {
 			for (const span of spans) {
-				console.log(JSON.stringify(consoleExporter['_exportInfo'](span)));
+				console.log(JSON.stringify(consoleExporter['_exportInfo'](span), null, 2));
 			}
 		}
 	}

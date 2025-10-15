@@ -5,6 +5,8 @@ import { otel } from '@hono/otel';
 import { trace } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { envParseInteger } from '@skyra/env-utilities';
+import type { Log } from 'apify';
+import { Actor, log } from 'apify';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { logger } from 'hono/logger';
@@ -24,7 +26,7 @@ sdk.start();
 
 const app = new Hono<{
 	Variables: {
-		logger: (...args: any[]) => void;
+		logger: Log;
 		rawJsonBody: Record<string, unknown>;
 	};
 }>()
@@ -40,13 +42,38 @@ const app = new Hono<{
 		}),
 	)
 	.use(async (c, next) => {
+		const reqId = c.get('requestId');
+
+		c.set(
+			'logger',
+			log.child({
+				prefix: `[${reqId}]`,
+			}),
+		);
+
+		trace.getActiveSpan()?.setAttribute('apify.request_id', reqId);
+
+		return await logger((...args) => {
+			log.info(`[${reqId}] ${args.join(' ')}`);
+		})(c, next);
+	})
+	.use(async (c, next) => {
+		if (c.req.method !== 'POST') {
+			return await next();
+		}
+
 		const contentType = c.req.header('Content-Type');
 		const reqId = c.get('requestId');
 
-		if (!contentType?.startsWith('application/json')) {
+		log.debug(`[${reqId}] Received request with Content-Type: ${contentType ?? 'missing header'}`);
+
+		if (
+			!contentType?.startsWith('application/json') &&
+			!contentType?.startsWith('application/x-www-form-urlencoded')
+		) {
 			return c.json(
 				{
-					error: `Invalid or missing content type, received: ${contentType ?? 'missing header'}, expected: application/json`,
+					error: `Invalid or missing content type, received: ${contentType ?? 'missing header'}, expected one of: application/json, application/x-www-form-urlencoded`,
 					status: 415,
 				},
 				415,
@@ -55,31 +82,32 @@ const app = new Hono<{
 
 		const text = await c.req.text();
 
-		try {
-			c.set('rawJsonBody', JSON.parse(text));
-
-			return await next();
-		} catch (error) {
-			console.error(`[${reqId}] Unparseable JSON body received`, {
-				rawJsonBody: text,
-				error,
-			});
-			return c.json({ error: `Unparseable JSON body received`, status: 422 }, 422);
+		if (contentType.startsWith('application/x-www-form-urlencoded')) {
+			try {
+				const params = new URLSearchParams(text);
+				c.set('rawJsonBody', Object.fromEntries(params.entries()));
+				return await next();
+			} catch (urlSearchParamsParseError) {
+				log.error(`[${reqId}] Body cannot be parsed as URLSearchParams`, {
+					rawJsonBody: text,
+					error: urlSearchParamsParseError,
+				});
+			}
 		}
-	})
-	.use(async (c, next) => {
-		const reqId = c.get('requestId');
 
-		c.set('logger', (...args) => {
-			console.log(`[${reqId}]`, ...args);
-		});
+		if (contentType.startsWith('application/json')) {
+			try {
+				c.set('rawJsonBody', JSON.parse(text));
+				return await next();
+			} catch (jsonParseError) {
+				log.error(`[${reqId}] Body cannot be parsed as JSON`, {
+					rawJsonBody: text,
+					error: jsonParseError,
+				});
+			}
+		}
 
-		trace.getActiveSpan()?.setAttribute('apify.request_id', reqId);
-
-		// This should be the last middleware, which will deal with logging -> route calling -> end of logging and tracing
-		return await logger((...args) => {
-			console.log(`[${reqId}]`, ...args);
-		})(c, next);
+		return c.json({ error: `Unparseable body received`, status: 422 }, 422);
 	})
 	.get('/otel', (c) => {
 		const rawSpans = traceExporter.getFinishedSpans();
@@ -104,24 +132,31 @@ const server = serve(
 		port,
 	},
 	() => {
-		console.log(`Server started on port ${port}`);
+		log.info(`Server started on port ${port}`);
 	},
 );
 
 process.on('SIGINT', () => {
-	console.log('SIGINT received, shutting down server');
+	log.info('SIGINT received, shutting down server');
 	server.close();
-	process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-	console.log('SIGTERM received, shutting down server');
+	log.info('SIGTERM received, shutting down server');
 	server.close();
-	process.exit(0);
 });
 
 process.on('SIGQUIT', () => {
-	console.log('SIGQUIT received, shutting down server');
+	log.info('SIGQUIT received, shutting down server');
 	server.close();
-	process.exit(0);
+});
+
+Actor.on('migrating', () => {
+	log.info('Migrating, shutting down server');
+	server.close();
+});
+
+Actor.on('aborting', () => {
+	log.info('Aborting, shutting down server');
+	server.close();
 });

@@ -25,7 +25,7 @@ mutation SetStatusForIssue($projectBoardId: ID!, $projectItemId: ID!, $statusFie
 `;
 
 const MUTATION_STEP_UPDATE_ESTIMATE = /* gql */ `
-mutation SetEstimateForIssue($projectBoardId: ID!, $projectItemId: ID!, $estimateFieldId: ID!, $estimateValue: Float!) {
+mutation SetEstimateForIssue($projectBoardId: ID!, $projectItemId: ID!, $estimateFieldId: ID!, $estimateValue: Float) {
   setEstimate: updateProjectV2ItemFieldValue(
     input: {projectId: $projectBoardId, itemId: $projectItemId, fieldId: $estimateFieldId, value: {number: $estimateValue}}
   ) {
@@ -45,7 +45,7 @@ export interface GitHubAPICall {
 	};
 	estimateUpdate?: {
 		fieldId: string;
-		value: number;
+		value: number | null;
 	};
 }
 
