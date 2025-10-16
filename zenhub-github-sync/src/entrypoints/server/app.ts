@@ -4,10 +4,10 @@ import { serve } from '@hono/node-server';
 import { otel } from '@hono/otel';
 import { trace } from '@opentelemetry/api';
 import { NodeSDK } from '@opentelemetry/sdk-node';
-import { envParseInteger } from '@skyra/env-utilities';
+import { envParseBoolean, envParseInteger } from '@skyra/env-utilities';
 import type { Log } from 'apify';
 import { Actor, log } from 'apify';
-import { Hono } from 'hono';
+import { type Context, Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { logger } from 'hono/logger';
 import { requestId } from 'hono/request-id';
@@ -20,6 +20,7 @@ const traceExporter = new OTelExporter();
 
 const sdk = new NodeSDK({
 	traceExporter,
+	serviceName: 'zenhub-github-sync',
 });
 
 sdk.start();
@@ -48,6 +49,12 @@ const app = new Hono<{
 			'logger',
 			log.child({
 				prefix: `[${reqId}]`,
+				// eslint-disable-next-line no-nested-ternary
+				level: envParseBoolean('PERF', false)
+					? log.LEVELS.PERF
+					: envParseBoolean('DEBUG', false)
+						? log.LEVELS.DEBUG
+						: log.LEVELS.INFO,
 			}),
 		);
 
@@ -115,9 +122,12 @@ const app = new Hono<{
 		const spans = rawSpans.map((span) => consoleExporter['_exportInfo'](span));
 
 		return c.json(spans);
-	});
+	})
+	.get('/', (c) => c.text("The Maze isn't meant for you.", 404));
 
 export type App = typeof app;
+
+export type AppContext = App extends Hono<infer U> ? Context<U> : never;
 
 // Register routes
 registerGitHubRoute(app);

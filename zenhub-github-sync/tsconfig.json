@@ -9,6 +9,7 @@
 		"rootDir": "src",
 		"tsBuildInfoFile": "node_modules/.cache/.tsbuildinfo",
 		"noImplicitOverride": true,
+		"skipLibCheck": true,
 		"noEmit": true,
 		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,

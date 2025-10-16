@@ -9,6 +9,7 @@ import { confirm } from '@inquirer/prompts';
 import type { PipelineIssue } from '../lib/api/zenhub/getPipelineIssuesForRepositories.ts';
 import type { Pipeline } from '../lib/config/_shared.ts';
 import * as ctx from '../lib/ctx.ts';
+import { allowedRepositories } from './server/lib/utils.ts';
 
 console.log(
 	'By running this script, everything from ZenHub will be imported to GitHub, based on the configuration file, overwriting anything that was changed on the GitHub project boards!',
@@ -27,27 +28,7 @@ const config = await ctx.config.parseConfig();
 assert(config.globalBoard, 'Global board is not set');
 
 const allZenhubRepositories = await ctx.zenhub.getWorkspaceRepositories(ctx.zenhub.getWorkspaceId());
-const repositoryNames = [
-	//
-	'apify-actor-docker',
-	'apify-cli',
-	'apify-client-js',
-	'apify-client-python',
-	'apify-eslint-config',
-	'apify-sdk-js',
-	'apify-sdk-python',
-	'apify-shared-js',
-	'apify-shared-python',
-	'apify-tsconfig',
-	'camoufox-js',
-	'crawlee',
-	'crawlee-python',
-	'fingerprint-suite',
-	'got-scraping',
-	'impit',
-	'store-website-content-crawler',
-	'workflows',
-];
+const repositoryNames = allowedRepositories;
 const zenhubRepositories = allZenhubRepositories.filter((repo) => repositoryNames.includes(repo.name));
 
 const results = {

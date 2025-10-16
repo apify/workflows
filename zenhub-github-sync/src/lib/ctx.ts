@@ -34,6 +34,16 @@ export function getConfig(): Config {
 	return config;
 }
 
+export function getAllBoardIdsConfigured() {
+	const { globalBoard, labelMappings } = getConfig();
+
+	assert(globalBoard, 'No global board configured');
+
+	const boards = [globalBoard.githubBoardId, ...labelMappings.map((labelMapping) => labelMapping.githubBoardId)];
+
+	return boards;
+}
+
 export async function setup() {
 	if (envParseString('GITHUB_TOKEN') === 'PLEASE_SET_ME_IN_.env.local') {
 		throw new Error('Please create a .env.local file and set the GITHUB_TOKEN variable.');
@@ -78,7 +88,9 @@ declare module '@skyra/env-utilities' {
 		ZENHUB_WORKSPACE_ID: string;
 
 		DEBUG: BooleanString;
+		PERF?: BooleanString;
 
 		ACTOR_WEB_SERVER_PORT?: IntegerString;
+		GITHUB_WEBHOOK_SECRET: string;
 	}
 }
