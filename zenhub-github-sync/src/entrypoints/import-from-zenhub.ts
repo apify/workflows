@@ -1,7 +1,7 @@
 import '../lib/setup.ts';
 
 import assert from 'node:assert';
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { exit } from 'node:process';
 
 import { confirm } from '@inquirer/prompts';
@@ -31,10 +31,11 @@ const allZenhubRepositories = await ctx.zenhub.getWorkspaceRepositories(ctx.zenh
 const repositoryNames = allowedRepositories;
 const zenhubRepositories = allZenhubRepositories.filter((repo) => repositoryNames.includes(repo.name));
 
-const results = {
-	pipelines: [],
-	issues: [],
-} as {
+const results = JSON.parse(
+	await readFile(new URL('../../results.json', import.meta.url), 'utf8').catch(
+		() => '{"pipelines": [], "issues": []}',
+	),
+) as {
 	pipelines: string[];
 	issues: string[];
 };
@@ -53,6 +54,11 @@ for (const pipeline of config.zenhubPipelines) {
 
 	for await (const data of iterator) {
 		for (const issue of data) {
+			if (results.issues.includes(`${issue.repository.name}/${issue.number}`)) {
+				console.log(`  Issue ${issue.number} for repository ${issue.repository.name} already processed`);
+				continue;
+			}
+
 			console.log(`  Processing issue ${issue.number} for repository ${issue.repository.name}`);
 
 			try {

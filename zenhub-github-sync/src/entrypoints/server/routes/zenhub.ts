@@ -1,6 +1,7 @@
 import * as ctx from '../../../lib/ctx.ts';
 import type { App } from '../app.ts';
 import { handledBody } from '../lib/utils.ts';
+import { runIfNoSimilarEventHappenedRecently } from './_shared.ts';
 
 type ZenHubWebhookType = 'issue_transfer' | 'estimate_set' | 'estimate_cleared' | 'issue_reprioritized';
 
@@ -64,77 +65,115 @@ export function registerZenHubRoute(app: App) {
 		);
 
 		switch (body.type) {
-			case 'estimate_set':
-				await Promise.all(
-					projectBoardIds.map(async (projectBoardId) => {
-						await ctx.github.addIssueToProjectBoard({
-							issueId,
-							projectBoardId: projectBoardId.projectId,
-							estimateUpdate: {
-								fieldId: projectBoardId.estimateFieldId,
-								value: Number.parseFloat(body.estimate),
-							},
-						});
-					}),
-				);
+			case 'estimate_set': {
+				const estimate = Number.parseFloat(body.estimate);
 
-				logger.info(
-					`Updated estimate for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
-					{ body },
-				);
-				break;
-			case 'estimate_cleared':
-				await Promise.all(
-					projectBoardIds.map(async (projectBoardId) => {
-						await ctx.github.addIssueToProjectBoard({
-							issueId,
-							projectBoardId: projectBoardId.projectId,
-							estimateUpdate: {
-								fieldId: projectBoardId.estimateFieldId,
-								value: null,
-							},
-						});
-					}),
-				);
-
-				logger.info(
-					`Cleared estimate for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
-					{ body },
-				);
-
-				break;
-			case 'issue_transfer':
-				await Promise.all(
-					projectBoardIds.map(async (projectBoardId) => {
-						const statusFieldValue = projectBoardId.statusFieldOptions.find(
-							(option) => option.name === body.to_pipeline_name,
+				await runIfNoSimilarEventHappenedRecently(
+					issueId,
+					{
+						event: 'estimateUpdate',
+						data: {
+							newEstimate: estimate,
+						},
+						timestamp: Date.now(),
+					},
+					async () => {
+						await Promise.all(
+							projectBoardIds.map(async (projectBoardId) => {
+								await ctx.github.addIssueToProjectBoard({
+									issueId,
+									projectBoardId: projectBoardId.projectId,
+									estimateUpdate: {
+										fieldId: projectBoardId.estimateFieldId,
+										value: estimate,
+									},
+								});
+							}),
 						);
 
-						if (!statusFieldValue) {
-							logger.error(
-								`Status field value not found for pipeline ${body.to_pipeline_name} for project board ${projectBoardId.projectId}`,
-								{ body },
-							);
-							return;
-						}
-
-						await ctx.github.addIssueToProjectBoard({
-							issueId,
-							projectBoardId: projectBoardId.projectId,
-							statusUpdate: {
-								fieldId: projectBoardId.statusFieldId,
-								value: statusFieldValue.id,
-							},
-						});
-					}),
-				);
-
-				logger.info(
-					`Updated status for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
-					{ body },
+						logger.info(
+							`Updated estimate for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
+							{ body },
+						);
+					},
 				);
 
 				break;
+			}
+			case 'estimate_cleared': {
+				await runIfNoSimilarEventHappenedRecently(
+					issueId,
+					{
+						event: 'estimateUpdate',
+						data: {
+							newEstimate: null,
+						},
+						timestamp: Date.now(),
+					},
+					async () => {
+						await Promise.all(
+							projectBoardIds.map(async (projectBoardId) => {
+								await ctx.github.addIssueToProjectBoard({
+									issueId,
+									projectBoardId: projectBoardId.projectId,
+									estimateUpdate: {
+										fieldId: projectBoardId.estimateFieldId,
+										value: null,
+									},
+								});
+							}),
+						);
+
+						logger.info(
+							`Cleared estimate for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
+							{ body },
+						);
+					},
+				);
+
+				break;
+			}
+			case 'issue_transfer': {
+				await runIfNoSimilarEventHappenedRecently(issueId, {
+					event: 'statusUpdate',
+					data: {
+						newStatus: body.to_pipeline_name,
+					},
+					timestamp: Date.now(),
+				}, async () => {
+					await Promise.all(
+						projectBoardIds.map(async (projectBoardId) => {
+							const statusFieldValue = projectBoardId.statusFieldOptions.find(
+								(option) => option.name === body.to_pipeline_name,
+							);
+
+							if (!statusFieldValue) {
+								logger.error(
+									`Status field value not found for pipeline ${body.to_pipeline_name} for project board ${projectBoardId.projectId}`,
+									{ body },
+								);
+								return;
+							}
+
+							await ctx.github.addIssueToProjectBoard({
+								issueId,
+								projectBoardId: projectBoardId.projectId,
+								statusUpdate: {
+									fieldId: projectBoardId.statusFieldId,
+									value: statusFieldValue.id,
+								},
+							});
+						}),
+					);
+
+					logger.info(
+						`Updated status for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
+						{ body },
+					);
+				});
+
+				break;
+			}
 			case 'issue_reprioritized':
 				// We don't handle positions because they are positions, and are a mess on GitHub's side
 				break;

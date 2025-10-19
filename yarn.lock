@@ -4274,6 +4274,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lru-cache@npm:^11.2.2":
+  version: 11.2.2
+  resolution: "lru-cache@npm:11.2.2"
+  checksum: 10c0/72d7831bbebc85e2bdefe01047ee5584db69d641c48d7a509e86f66f6ee111b30af7ec3bd68a967d47b69a4b1fa8bbf3872630bd06a63b6735e6f0a5f1c8e83d
+  languageName: node
+  linkType: hard
+
 "map-stream@npm:~0.1.0":
   version: 0.1.0
   resolution: "map-stream@npm:0.1.0"
@@ -5738,6 +5745,7 @@ __metadata:
     eslint: "npm:^9.36.0"
     hono: "npm:^4.6.14"
     js-yaml: "npm:^4.1.0"
+    lru-cache: "npm:^11.2.2"
     mpath: "github:mongoosejs/mpath#2c9a79bd2b46412ad10549dd74e3cea6a4d9ba98"
     octokit: "npm:^5.0.3"
     smol-toml: "npm:^1.4.2"

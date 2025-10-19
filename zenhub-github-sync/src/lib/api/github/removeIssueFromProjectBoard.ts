@@ -1,4 +1,5 @@
 import { getOctokit } from '../../ctx.ts';
+import { evictIssueOrPullRequestProjectItemId } from './_shared.ts';
 
 const MUTATION_REMOVE_ISSUE_FROM_BOARD = /* gql */ `
 mutation RemoveIssueFromBoard($projectBoardId: ID!, $itemId: ID!) {
@@ -20,4 +21,6 @@ export async function removeIssueFromProjectBoard(options: RemoveIssueFromProjec
 		projectBoardId: options.projectBoardId,
 		itemId: options.itemId,
 	});
+
+	evictIssueOrPullRequestProjectItemId(options.projectBoardId, options.itemId);
 }

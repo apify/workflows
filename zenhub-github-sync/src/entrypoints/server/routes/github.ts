@@ -11,6 +11,7 @@ import * as ctx from '../../../lib/ctx.ts';
 import type { App, AppContext } from '../app.ts';
 import { StatusFieldNames, StatusFieldValues } from '../lib/consts.ts';
 import { allowedRepositories, handledBody } from '../lib/utils.ts';
+import { addEventGap, runIfNoSimilarEventHappenedRecently } from './_shared.ts';
 
 type ListenedEvent = IssuesEvent | PullRequestEvent | ProjectsV2ItemEvent;
 
@@ -83,6 +84,15 @@ async function handleIssuesEvent(c: AppContext) {
 	switch (action) {
 		case 'opened':
 		case 'reopened': {
+			// We always handle it on GitHub side, regardless of the cache. Mostly this should prevent ZenHub also triggering GitHub
+			addEventGap(issueNodeId, {
+				event: 'statusUpdate',
+				data: {
+					newStatus: StatusFieldValues.NewIssue,
+				},
+				timestamp: Date.now(),
+			});
+
 			// Add to all boards as new issue
 			await Promise.all(
 				boardsTheIssueShouldBeIn.map(async (board) => {
@@ -136,6 +146,14 @@ async function handleIssuesEvent(c: AppContext) {
 		}
 
 		case 'closed': {
+			addEventGap(issueNodeId, {
+				event: 'statusUpdate',
+				data: {
+					newStatus: StatusFieldValues.Closed,
+				},
+				timestamp: Date.now(),
+			});
+
 			await Promise.all(
 				boardsTheIssueShouldBeIn.map(async (board) => {
 					const statusFieldValue = board.statusFieldOptions.find(
@@ -409,7 +427,10 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 
 	const labels = entityFromGitHub.labels.map((label) => label.name);
 
-	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
+	const boardsTheIssueShouldBeIn = ctx.config.matchers
+		.githubProjectBoardIdsByLabels(ctx.getConfig(), labels)
+		// Strip out the board we got the event from
+		.filter((board) => board.projectId !== projectNodeId);
 
 	switch (action) {
 		case 'edited': {
@@ -427,32 +448,44 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 
 					const newEstimate = fieldChange.to ?? null;
 
-					await Promise.all(
-						boardsTheIssueShouldBeIn.map(async (board) => {
-							await ctx.github.addIssueToProjectBoard({
-								issueId: contentNodeId,
-								projectBoardId: board.projectId,
-								estimateUpdate: {
-									fieldId: board.estimateFieldId,
-									value: newEstimate,
-								},
+					await runIfNoSimilarEventHappenedRecently(
+						contentNodeId,
+						{
+							event: 'estimateUpdate',
+							data: {
+								newEstimate,
+							},
+							timestamp: Date.now(),
+						},
+						async () => {
+							await Promise.all(
+								boardsTheIssueShouldBeIn.map(async (board) => {
+									await ctx.github.addIssueToProjectBoard({
+										issueId: contentNodeId,
+										projectBoardId: board.projectId,
+										estimateUpdate: {
+											fieldId: board.estimateFieldId,
+											value: newEstimate,
+										},
+									});
+								}),
+							);
+
+							await ctx.zenhub.setIssueEstimate({
+								issueId: entityFromZenHub.id,
+								estimate: newEstimate,
 							});
-						}),
+
+							logger.info(`Updated estimate for entity in boards`, {
+								entityType: entityFromGitHub.__typename,
+								repository: entityFromGitHub.repository.name,
+								number: entityFromGitHub.number,
+								boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+								previousEstimate: fieldChange.from ?? null,
+								newEstimate,
+							});
+						},
 					);
-
-					await ctx.zenhub.setIssueEstimate({
-						issueId: entityFromZenHub.id,
-						estimate: newEstimate,
-					});
-
-					logger.info(`Updated estimate for entity in boards`, {
-						entityType: entityFromGitHub.__typename,
-						repository: entityFromGitHub.repository.name,
-						number: entityFromGitHub.number,
-						boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
-						previousEstimate: fieldChange.from ?? null,
-						newEstimate,
-					});
 
 					break;
 				}
@@ -467,62 +500,74 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 					// And GitHub does NOT return the previous status name if the field is cleared out... -.-
 					const newStatusPipeline = fieldChange.to?.name ?? StatusFieldValues.NewIssue;
 
-					await Promise.all(
-						boardsTheIssueShouldBeIn.map(async (board) => {
-							const statusFieldValue = board.statusFieldOptions.find(
-								(option) => option.name === newStatusPipeline,
+					await runIfNoSimilarEventHappenedRecently(
+						contentNodeId,
+						{
+							event: 'statusUpdate',
+							data: {
+								newStatus: newStatusPipeline,
+							},
+							timestamp: Date.now(),
+						},
+						async () => {
+							await Promise.all(
+								boardsTheIssueShouldBeIn.map(async (board) => {
+									const statusFieldValue = board.statusFieldOptions.find(
+										(option) => option.name === newStatusPipeline,
+									);
+
+									if (!statusFieldValue) {
+										logger.error(
+											`Status field value not found for new status in board ${board.projectId}`,
+											{
+												repository: entityFromGitHub.repository.name,
+												number: entityFromGitHub.number,
+												board: board.projectId,
+												status: newStatusPipeline,
+											},
+										);
+
+										return;
+									}
+
+									await ctx.github.addIssueToProjectBoard({
+										issueId: contentNodeId,
+										projectBoardId: board.projectId,
+										statusUpdate: {
+											fieldId: board.statusFieldId,
+											value: statusFieldValue.id,
+										},
+									});
+								}),
 							);
 
-							if (!statusFieldValue) {
-								logger.error(
-									`Status field value not found for new status in board ${board.projectId}`,
-									{
-										repository: entityFromGitHub.repository.name,
-										number: entityFromGitHub.number,
-										board: board.projectId,
-										status: newStatusPipeline,
-									},
-								);
+							const zenhubPipelineId = ctx
+								.getConfig()
+								.zenhubPipelines.find((pipeline) => pipeline.name === newStatusPipeline)?.id;
 
-								return;
+							if (!zenhubPipelineId) {
+								logger.error(`ZenHub pipeline not found for new status`, {
+									repository: entityFromGitHub.repository.name,
+									number: entityFromGitHub.number,
+									newStatusPipeline,
+								});
+							} else {
+								await ctx.zenhub.setIssuePipeline({
+									issueId: entityFromZenHub.id,
+									pipelineId: zenhubPipelineId,
+								});
 							}
 
-							await ctx.github.addIssueToProjectBoard({
-								issueId: contentNodeId,
-								projectBoardId: board.projectId,
-								statusUpdate: {
-									fieldId: board.statusFieldId,
-									value: statusFieldValue.id,
-								},
+							logger.info(`Updated status for entity in boards`, {
+								entityType: entityFromGitHub.__typename,
+								repository: entityFromGitHub.repository.name,
+								number: entityFromGitHub.number,
+								boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+								previousStatus: fieldChange.from?.name ?? null,
+								newStatus: newStatusPipeline,
 							});
-						}),
+						},
 					);
-
-					const zenhubPipelineId = ctx
-						.getConfig()
-						.zenhubPipelines.find((pipeline) => pipeline.name === newStatusPipeline)?.id;
-
-					if (!zenhubPipelineId) {
-						logger.error(`ZenHub pipeline not found for new status`, {
-							repository: entityFromGitHub.repository.name,
-							number: entityFromGitHub.number,
-							newStatusPipeline,
-						});
-					} else {
-						await ctx.zenhub.setIssuePipeline({
-							issueId: entityFromZenHub.id,
-							pipelineId: zenhubPipelineId,
-						});
-					}
-
-					logger.info(`Updated status for entity in boards`, {
-						entityType: entityFromGitHub.__typename,
-						repository: entityFromGitHub.repository.name,
-						number: entityFromGitHub.number,
-						boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
-						previousStatus: fieldChange.from?.name ?? null,
-						newStatus: newStatusPipeline,
-					});
 
 					break;
 				}
@@ -624,7 +669,6 @@ export function registerGitHubRoute(app: App) {
 		} else if (isProjectsV2ItemEvent(event, body)) {
 			void handleProjectsV2ItemEvent(c).catch((error) => {
 				const { creator, ...rest } = body.projects_v2_item;
-
 				logger.error('Error handling projects V2 item event', {
 					error,
 					event,

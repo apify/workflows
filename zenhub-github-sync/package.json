@@ -21,6 +21,7 @@
 		"apify": "^3.5.0",
 		"hono": "^4.6.14",
 		"js-yaml": "^4.1.0",
+		"lru-cache": "^11.2.2",
 		"mpath": "github:mongoosejs/mpath#2c9a79bd2b46412ad10549dd74e3cea6a4d9ba98",
 		"octokit": "^5.0.3",
 		"smol-toml": "^1.4.2",

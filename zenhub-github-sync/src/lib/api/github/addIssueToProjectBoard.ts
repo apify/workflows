@@ -1,16 +1,5 @@
 import { getOctokit } from '../../ctx.ts';
-
-const MUTATION_STEP_ADD_TO_BOARD = /* gql */ `
-mutation AddIssueToBoard($projectBoardId: ID!, $issueOrPRId: ID!) {
-  addToBoard: addProjectV2ItemById(
-    input: {projectId: $projectBoardId, contentId: $issueOrPRId}
-  ) {
-    item {
-      id
-    }
-  }
-}
-`;
+import { getIssueOrPullRequestProjectItemId } from './_shared.ts';
 
 const MUTATION_STEP_UPDATE_STATUS = /* gql */ `
 mutation SetStatusForIssue($projectBoardId: ID!, $projectItemId: ID!, $statusFieldId: ID!, $statusFieldOptionId: String!) {
@@ -54,20 +43,7 @@ export interface AddIssueToProjectBoardResult {
 }
 
 export async function addIssueToProjectBoard(apiCall: GitHubAPICall): Promise<AddIssueToProjectBoardResult> {
-	const {
-		addToBoard: {
-			item: { id: issueProjectItemId },
-		},
-	} = await getOctokit().graphql<{
-		addToBoard: {
-			item: {
-				id: string;
-			};
-		};
-	}>(MUTATION_STEP_ADD_TO_BOARD, {
-		projectBoardId: apiCall.projectBoardId,
-		issueOrPRId: apiCall.issueId,
-	});
+	const issueProjectItemId = await getIssueOrPullRequestProjectItemId(apiCall.projectBoardId, apiCall.issueId);
 
 	const promises: Promise<void>[] = [];
 
