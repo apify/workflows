@@ -25,6 +25,15 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
+log.setLevel(
+	// eslint-disable-next-line no-nested-ternary
+	envParseBoolean('PERF', false)
+		? log.LEVELS.PERF
+		: envParseBoolean('DEBUG', false)
+			? log.LEVELS.DEBUG
+			: log.LEVELS.INFO,
+);
+
 const app = new Hono<{
 	Variables: {
 		logger: Log;
@@ -49,12 +58,6 @@ const app = new Hono<{
 			'logger',
 			log.child({
 				prefix: `[${reqId}]`,
-				// eslint-disable-next-line no-nested-ternary
-				level: envParseBoolean('PERF', false)
-					? log.LEVELS.PERF
-					: envParseBoolean('DEBUG', false)
-						? log.LEVELS.DEBUG
-						: log.LEVELS.INFO,
 			}),
 		);
 
@@ -164,11 +167,11 @@ process.on('SIGQUIT', () => {
 Actor.on('migrating', async () => {
 	log.info('Migrating, shutting down server');
 	server.close();
-	await Actor.exit();
+	await Actor.exit({ timeoutSecs: 5, exit: true });
 });
 
 Actor.on('aborting', async () => {
 	log.info('Aborting, shutting down server');
 	server.close();
-	await Actor.exit();
+	await Actor.exit({ timeoutSecs: 5, exit: true });
 });

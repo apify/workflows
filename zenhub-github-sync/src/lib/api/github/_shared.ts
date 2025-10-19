@@ -42,7 +42,7 @@ export async function getIssueOrPullRequestProjectItemId(
 	const cached = cacheOfIssueOrPullRequestIdToProjectItemId.get(`${projectBoardId}:${issueOrPullRequestId}`);
 
 	if (cached) {
-		log.perf('Cache hit for issue or pull request project item ID', {
+		log.debug('[ITEM ID CACHE] Cache hit for issue or pull request project item ID', {
 			projectBoardId,
 			issueOrPullRequestId,
 			projectItemId: cached,

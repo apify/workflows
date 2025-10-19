@@ -317,6 +317,8 @@ async function handleIssuesEvent(c: AppContext) {
 			// @ts-expect-error - this is fine
 			logger.warning(`Unhandled issues event action: ${body.action}`);
 	}
+
+	return handledBody(c);
 }
 
 async function handlePullRequestsEvent(c: AppContext) {
@@ -370,6 +372,8 @@ async function handlePullRequestsEvent(c: AppContext) {
 			// @ts-expect-error - this is fine
 			logger.warning(`Unhandled issues event action: ${body.action}`);
 	}
+
+	return handledBody(c);
 }
 
 interface ProjectsV2NumberFieldValueEdit {
@@ -427,10 +431,7 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 
 	const labels = entityFromGitHub.labels.map((label) => label.name);
 
-	const boardsTheIssueShouldBeIn = ctx.config.matchers
-		.githubProjectBoardIdsByLabels(ctx.getConfig(), labels)
-		// Strip out the board we got the event from
-		.filter((board) => board.projectId !== projectNodeId);
+	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
 
 	switch (action) {
 		case 'edited': {
@@ -593,6 +594,8 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 			// @ts-expect-error - this is fine
 			logger.warning(`Unhandled projects V2 item event action: ${body.action}`);
 	}
+
+	return handledBody(c);
 }
 
 export function registerGitHubRoute(app: App) {
@@ -644,7 +647,7 @@ export function registerGitHubRoute(app: App) {
 
 		// Fire and forget the promises
 		if (isIssuesEvent(event, body)) {
-			void handleIssuesEvent(c).catch((error) => {
+			return handleIssuesEvent(c).catch((error) => {
 				logger.error('Error handling issues event', {
 					error,
 					event,
@@ -654,9 +657,11 @@ export function registerGitHubRoute(app: App) {
 					issueNodeId: body.issue.node_id,
 				});
 			});
-		} else if (isPullRequestEvent(event, body)) {
+		}
+
+		if (isPullRequestEvent(event, body)) {
 			// Probably won't need this, tbd
-			void handlePullRequestsEvent(c).catch((error) => {
+			return handlePullRequestsEvent(c).catch((error) => {
 				logger.error('Error handling pull requests event', {
 					error,
 					event,
@@ -666,8 +671,10 @@ export function registerGitHubRoute(app: App) {
 					pullRequestNodeId: body.pull_request.node_id,
 				});
 			});
-		} else if (isProjectsV2ItemEvent(event, body)) {
-			void handleProjectsV2ItemEvent(c).catch((error) => {
+		}
+
+		if (isProjectsV2ItemEvent(event, body)) {
+			return handleProjectsV2ItemEvent(c).catch((error) => {
 				const { creator, ...rest } = body.projects_v2_item;
 				logger.error('Error handling projects V2 item event', {
 					error,
@@ -676,10 +683,10 @@ export function registerGitHubRoute(app: App) {
 					projectV2Item: rest,
 				});
 			});
-		} else {
-			logger.warning(`Unhandled event: ${event}`);
-			logger.debug(JSON.stringify(body, null, 2));
 		}
+
+		logger.warning(`Unhandled event: ${event}`);
+		logger.debug(JSON.stringify(body, null, 2));
 
 		return handledBody(c);
 	});

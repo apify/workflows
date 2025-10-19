@@ -32,7 +32,7 @@ const eventCache = new LRUCache<string, EventGap>({
 export function addEventGap(entityId: string, event: EventGap) {
 	eventCache.set(`${entityId}:${event.event}`, event);
 
-	log.perf('[EVENT CACHE] Added event gap', {
+	log.debug('[EVENT CACHE] Added event gap', {
 		entityId,
 		event,
 	});
@@ -42,14 +42,33 @@ export function similarEventHappenedRecently(entityId: string, event: EventGap) 
 	const cached = eventCache.get(`${entityId}:${event.event}`);
 
 	// We have a similar event in the cache, and its the same change as we'd have now
-	if (cached && cached.data === event.data) {
-		log.perf('[EVENT CACHE] Similar event happened recently', {
-			entityId,
-			event,
-			happenedAt: cached.timestamp,
-		});
+	if (cached) {
+		let similar = false;
 
-		return true;
+		switch (event.event) {
+			case 'estimateUpdate': {
+				similar = cached.event === 'estimateUpdate' && cached.data.newEstimate === event.data.newEstimate;
+				break;
+			}
+			case 'statusUpdate': {
+				similar = cached.event === 'statusUpdate' && cached.data.newStatus === event.data.newStatus;
+				break;
+			}
+			default: {
+				similar = false;
+				break;
+			}
+		}
+
+		if (similar) {
+			log.debug('[EVENT CACHE] Similar event happened recently', {
+				entityId,
+				event,
+				happenedAt: cached.timestamp,
+			});
+
+			return true;
+		}
 	}
 
 	return false;
