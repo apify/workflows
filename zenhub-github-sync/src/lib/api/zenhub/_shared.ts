@@ -47,7 +47,7 @@ export async function graphqlQuery<T extends GraphQLResponse<unknown>>(
 				throw new Error(`Failed to fetch ZenHub API: ${res.statusText}`, { cause: await res.text() });
 			}
 
-			await setTimeout(waitTime);
+			await setTimeout(waitTime, null, { ref: false });
 
 			return graphqlQuery<T>(query, variables);
 		}

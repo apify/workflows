@@ -6,3 +6,4 @@ export * from './getIssueProjectBoards.ts';
 export * from './removeIssueFromProjectBoard.ts';
 export * from './getIssueByNumber.ts';
 export * from './fetchIssueStateFromGlobalBoard.ts';
+export * from './getIssueOrPullRequestLabelsByContentId.ts';

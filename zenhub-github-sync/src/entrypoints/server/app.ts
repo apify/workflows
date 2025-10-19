@@ -161,12 +161,14 @@ process.on('SIGQUIT', () => {
 	server.close();
 });
 
-Actor.on('migrating', () => {
+Actor.on('migrating', async () => {
 	log.info('Migrating, shutting down server');
 	server.close();
+	await Actor.exit();
 });
 
-Actor.on('aborting', () => {
+Actor.on('aborting', async () => {
 	log.info('Aborting, shutting down server');
 	server.close();
+	await Actor.exit();
 });

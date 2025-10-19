@@ -1,9 +1,15 @@
-import type { IssuesEvent, ProjectsV2ItemEvent, PullRequestEvent, WebhookEventName } from '@octokit/webhooks-types';
+import type {
+	IssuesEvent,
+	ProjectsV2ItemEditedEvent,
+	ProjectsV2ItemEvent,
+	PullRequestEvent,
+	WebhookEventName,
+} from '@octokit/webhooks-types';
 import { envParseString } from '@skyra/env-utilities';
 
 import * as ctx from '../../../lib/ctx.ts';
 import type { App, AppContext } from '../app.ts';
-import { StatusFieldNames } from '../lib/consts.ts';
+import { StatusFieldNames, StatusFieldValues } from '../lib/consts.ts';
 import { allowedRepositories, handledBody } from '../lib/utils.ts';
 
 type ListenedEvent = IssuesEvent | PullRequestEvent | ProjectsV2ItemEvent;
@@ -62,7 +68,7 @@ async function handleIssuesEvent(c: AppContext) {
 		issueNumber,
 	});
 
-	logger.debug('Issue data', {
+	logger.debug('[GITHUB] Issue data', {
 		repository: repository.name,
 		githubNumericId: issueNumber,
 		githubNodeId: issueNodeId,
@@ -81,7 +87,7 @@ async function handleIssuesEvent(c: AppContext) {
 			await Promise.all(
 				boardsTheIssueShouldBeIn.map(async (board) => {
 					const statusFieldValue = board.statusFieldOptions.find(
-						(option) => option.name === StatusFieldNames.NewIssue,
+						(option) => option.name === StatusFieldValues.NewIssue,
 					);
 
 					if (!statusFieldValue) {
@@ -106,7 +112,7 @@ async function handleIssuesEvent(c: AppContext) {
 
 			const zenhubPipelineId = ctx
 				.getConfig()
-				.zenhubPipelines.find((pipeline) => pipeline.name === StatusFieldNames.NewIssue)?.id;
+				.zenhubPipelines.find((pipeline) => pipeline.name === StatusFieldValues.NewIssue)?.id;
 
 			if (!zenhubPipelineId) {
 				logger.error(`ZenHub pipeline not found for new issue`, {
@@ -133,7 +139,7 @@ async function handleIssuesEvent(c: AppContext) {
 			await Promise.all(
 				boardsTheIssueShouldBeIn.map(async (board) => {
 					const statusFieldValue = board.statusFieldOptions.find(
-						(option) => option.name === StatusFieldNames.Closed,
+						(option) => option.name === StatusFieldValues.Closed,
 					);
 
 					if (!statusFieldValue) {
@@ -295,6 +301,255 @@ async function handleIssuesEvent(c: AppContext) {
 	}
 }
 
+async function handlePullRequestsEvent(c: AppContext) {
+	const logger = c.get('logger');
+
+	const body = c.get('rawJsonBody') as unknown as PullRequestEvent;
+
+	const {
+		action,
+		pull_request: { number: pullRequestNumber, node_id: pullRequestNodeId },
+		repository,
+	} = body;
+
+	logger.debug('[GITHUB] Pull request event', {
+		repository: repository.name,
+		githubNumericId: pullRequestNumber,
+		githubNodeId: pullRequestNodeId,
+		action,
+	});
+
+	switch (action) {
+		case 'opened':
+		case 'reopened':
+		case 'closed':
+			break;
+
+		case 'labeled':
+		case 'unlabeled':
+			break;
+
+		// Ignored events
+		case 'assigned':
+		case 'unassigned':
+		case 'milestoned':
+		case 'demilestoned':
+		case 'edited':
+		case 'locked':
+		case 'unlocked':
+		case 'auto_merge_enabled':
+		case 'auto_merge_disabled':
+		case 'converted_to_draft':
+		case 'ready_for_review':
+		case 'enqueued':
+		case 'dequeued':
+		case 'review_requested':
+		case 'review_request_removed':
+		case 'synchronize':
+			break;
+
+		default:
+			// @ts-expect-error - this is fine
+			logger.warning(`Unhandled issues event action: ${body.action}`);
+	}
+}
+
+interface ProjectsV2NumberFieldValueEdit {
+	field_node_id: string;
+	field_type: 'number';
+	field_name: string;
+	project_number: number;
+	// Apparently this is always returned as a string when not null
+	from?: number | string | null;
+	// But this is a number 🤦
+	// AND UNDEFINED WHEN NOT SET/cleared out
+	to?: number | null;
+}
+
+interface ProjectsV2SingleSelectFieldValueEdit {
+	field_node_id: string;
+	field_type: 'single_select';
+	field_name: string;
+	project_number: number;
+	from?: { id: string; name: string; color: string; description: string } | null;
+	to?: { id: string; name: string; color: string; description: string } | null;
+}
+
+type ProjectsV2FieldEditedEventChangesFieldValue =
+	| ProjectsV2NumberFieldValueEdit
+	| ProjectsV2SingleSelectFieldValueEdit
+	| Extract<ProjectsV2ItemEditedEvent['changes']['field_value'], { field_type: 'date' | 'text' | 'iteration' }>;
+
+async function handleProjectsV2ItemEvent(c: AppContext) {
+	const logger = c.get('logger');
+
+	const body = c.get('rawJsonBody') as unknown as ProjectsV2ItemEvent;
+
+	const {
+		action,
+		projects_v2_item: { project_node_id: projectNodeId, content_node_id: contentNodeId, content_type: contentType },
+	} = body;
+
+	const entityFromGitHub = await ctx.github.getIssueOrPullRequestLabelsByContentId({
+		contentId: contentNodeId,
+	});
+
+	const entityFromZenHub = await ctx.zenhub.getIssueInfoByNumber({
+		repositoryGitHubNumber: entityFromGitHub.repository.databaseId,
+		issueNumber: entityFromGitHub.number,
+	});
+
+	logger.debug('[GITHUB] Projects V2 item event', {
+		action,
+		projectNodeId,
+		contentType,
+		contentNodeId,
+		entityFromGitHub,
+	});
+
+	const labels = entityFromGitHub.labels.map((label) => label.name);
+
+	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
+
+	switch (action) {
+		case 'edited': {
+			const { changes } = body;
+			logger.debug('[GITHUB] Projects V2 item edited', { changes });
+
+			const fieldChange = changes.field_value as ProjectsV2FieldEditedEventChangesFieldValue;
+
+			switch (fieldChange.field_type) {
+				case 'number': {
+					// Unfortunately, we have to deal with hard coded names...
+					if (fieldChange.field_name !== StatusFieldNames.Estimate) {
+						break;
+					}
+
+					const newEstimate = fieldChange.to ?? null;
+
+					await Promise.all(
+						boardsTheIssueShouldBeIn.map(async (board) => {
+							await ctx.github.addIssueToProjectBoard({
+								issueId: contentNodeId,
+								projectBoardId: board.projectId,
+								estimateUpdate: {
+									fieldId: board.estimateFieldId,
+									value: newEstimate,
+								},
+							});
+						}),
+					);
+
+					await ctx.zenhub.setIssueEstimate({
+						issueId: entityFromZenHub.id,
+						estimate: newEstimate,
+					});
+
+					logger.info(`Updated estimate for entity in boards`, {
+						entityType: entityFromGitHub.__typename,
+						repository: entityFromGitHub.repository.name,
+						number: entityFromGitHub.number,
+						boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+						previousEstimate: fieldChange.from ?? null,
+						newEstimate,
+					});
+
+					break;
+				}
+
+				case 'single_select': {
+					// Unfortunately, we have to deal with hard coded names...
+					if (fieldChange.field_name !== StatusFieldNames.Status) {
+						break;
+					}
+
+					// Cleared status -> we'll use the "New Issues" pipeline
+					// And GitHub does NOT return the previous status name if the field is cleared out... -.-
+					const newStatusPipeline = fieldChange.to?.name ?? StatusFieldValues.NewIssue;
+
+					await Promise.all(
+						boardsTheIssueShouldBeIn.map(async (board) => {
+							const statusFieldValue = board.statusFieldOptions.find(
+								(option) => option.name === newStatusPipeline,
+							);
+
+							if (!statusFieldValue) {
+								logger.error(
+									`Status field value not found for new status in board ${board.projectId}`,
+									{
+										repository: entityFromGitHub.repository.name,
+										number: entityFromGitHub.number,
+										board: board.projectId,
+										status: newStatusPipeline,
+									},
+								);
+
+								return;
+							}
+
+							await ctx.github.addIssueToProjectBoard({
+								issueId: contentNodeId,
+								projectBoardId: board.projectId,
+								statusUpdate: {
+									fieldId: board.statusFieldId,
+									value: statusFieldValue.id,
+								},
+							});
+						}),
+					);
+
+					const zenhubPipelineId = ctx
+						.getConfig()
+						.zenhubPipelines.find((pipeline) => pipeline.name === newStatusPipeline)?.id;
+
+					if (!zenhubPipelineId) {
+						logger.error(`ZenHub pipeline not found for new status`, {
+							repository: entityFromGitHub.repository.name,
+							number: entityFromGitHub.number,
+							newStatusPipeline,
+						});
+					} else {
+						await ctx.zenhub.setIssuePipeline({
+							issueId: entityFromZenHub.id,
+							pipelineId: zenhubPipelineId,
+						});
+					}
+
+					logger.info(`Updated status for entity in boards`, {
+						entityType: entityFromGitHub.__typename,
+						repository: entityFromGitHub.repository.name,
+						number: entityFromGitHub.number,
+						boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+						previousStatus: fieldChange.from?.name ?? null,
+						newStatus: newStatusPipeline,
+					});
+
+					break;
+				}
+
+				// Ignored types
+				default:
+					break;
+			}
+
+			break;
+		}
+
+		// Ignored events
+		case 'created':
+		case 'deleted':
+		case 'archived':
+		case 'restored':
+		case 'converted':
+		case 'reordered':
+			break;
+
+		default:
+			// @ts-expect-error - this is fine
+			logger.warning(`Unhandled projects V2 item event action: ${body.action}`);
+	}
+}
+
 export function registerGitHubRoute(app: App) {
 	// Signature check first
 	app.use('/github', async (c, next) => {
@@ -355,9 +610,28 @@ export function registerGitHubRoute(app: App) {
 				});
 			});
 		} else if (isPullRequestEvent(event, body)) {
-			void handledBody(c);
+			// Probably won't need this, tbd
+			void handlePullRequestsEvent(c).catch((error) => {
+				logger.error('Error handling pull requests event', {
+					error,
+					event,
+					action: body.action,
+					repository: body.repository.name,
+					pullRequestNumber: body.pull_request.number,
+					pullRequestNodeId: body.pull_request.node_id,
+				});
+			});
 		} else if (isProjectsV2ItemEvent(event, body)) {
-			void handledBody(c);
+			void handleProjectsV2ItemEvent(c).catch((error) => {
+				const { creator, ...rest } = body.projects_v2_item;
+
+				logger.error('Error handling projects V2 item event', {
+					error,
+					event,
+					action: body.action,
+					projectV2Item: rest,
+				});
+			});
 		} else {
 			logger.warning(`Unhandled event: ${event}`);
 			logger.debug(JSON.stringify(body, null, 2));
