@@ -51,8 +51,16 @@ export async function getIssueOrPullRequestProjectItemId(
 		return cached;
 	}
 
-	const { projectItemId } = await getOctokit().graphql<{
-		projectItemId: string;
+	const {
+		addToBoard: {
+			item: { id: projectItemId },
+		},
+	} = await getOctokit().graphql<{
+		addToBoard: {
+			item: {
+				id: string;
+			};
+		};
 	}>(MUTATION_STEP_ADD_TO_BOARD, {
 		projectBoardId,
 		issueOrPRId: issueOrPullRequestId,
