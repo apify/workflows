@@ -75,7 +75,7 @@ const app = new Hono<{
 		const contentType = c.req.header('Content-Type');
 		const reqId = c.get('requestId');
 
-		log.debug(`[${reqId}] Received request with Content-Type: ${contentType ?? 'missing header'}`);
+		log.perf(`[${reqId}] Received request with Content-Type: ${contentType ?? 'missing header'}`);
 
 		if (
 			!contentType?.startsWith('application/json') &&
