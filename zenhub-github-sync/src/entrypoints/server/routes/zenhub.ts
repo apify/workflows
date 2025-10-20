@@ -54,7 +54,7 @@ export function registerZenHubRoute(app: App) {
 
 		const { issue_number: issueNumber, repo } = body;
 
-		const { issueId, labels } = await ctx.github.getIssueByNumber({
+		const { issueId, labels } = await ctx.github.getIssueOrPullRequestByNumber({
 			repositoryName: repo,
 			issueNumber: Number.parseInt(issueNumber, 10),
 		});
@@ -80,8 +80,8 @@ export function registerZenHubRoute(app: App) {
 					async () => {
 						await Promise.all(
 							projectBoardIds.map(async (projectBoardId) => {
-								await ctx.github.addIssueToProjectBoard({
-									issueId,
+								await ctx.github.addIssueOrPullRequestToProjectBoard({
+									issueOrPullRequestId: issueId,
 									projectBoardId: projectBoardId.projectId,
 									estimateUpdate: {
 										fieldId: projectBoardId.estimateFieldId,
@@ -113,8 +113,8 @@ export function registerZenHubRoute(app: App) {
 					async () => {
 						await Promise.all(
 							projectBoardIds.map(async (projectBoardId) => {
-								await ctx.github.addIssueToProjectBoard({
-									issueId,
+								await ctx.github.addIssueOrPullRequestToProjectBoard({
+									issueOrPullRequestId: issueId,
 									projectBoardId: projectBoardId.projectId,
 									estimateUpdate: {
 										fieldId: projectBoardId.estimateFieldId,
@@ -134,43 +134,47 @@ export function registerZenHubRoute(app: App) {
 				break;
 			}
 			case 'issue_transfer': {
-				await runIfNoSimilarEventHappenedRecently(issueId, {
-					event: 'statusUpdate',
-					data: {
-						newStatus: body.to_pipeline_name,
+				await runIfNoSimilarEventHappenedRecently(
+					issueId,
+					{
+						event: 'statusUpdate',
+						data: {
+							newStatus: body.to_pipeline_name,
+						},
+						timestamp: Date.now(),
 					},
-					timestamp: Date.now(),
-				}, async () => {
-					await Promise.all(
-						projectBoardIds.map(async (projectBoardId) => {
-							const statusFieldValue = projectBoardId.statusFieldOptions.find(
-								(option) => option.name === body.to_pipeline_name,
-							);
-
-							if (!statusFieldValue) {
-								logger.error(
-									`Status field value not found for pipeline ${body.to_pipeline_name} for project board ${projectBoardId.projectId}`,
-									{ body },
+					async () => {
+						await Promise.all(
+							projectBoardIds.map(async (projectBoardId) => {
+								const statusFieldValue = projectBoardId.statusFieldOptions.find(
+									(option) => option.name === body.to_pipeline_name,
 								);
-								return;
-							}
 
-							await ctx.github.addIssueToProjectBoard({
-								issueId,
-								projectBoardId: projectBoardId.projectId,
-								statusUpdate: {
-									fieldId: projectBoardId.statusFieldId,
-									value: statusFieldValue.id,
-								},
-							});
-						}),
-					);
+								if (!statusFieldValue) {
+									logger.error(
+										`Status field value not found for pipeline ${body.to_pipeline_name} for project board ${projectBoardId.projectId}`,
+										{ body },
+									);
+									return;
+								}
 
-					logger.info(
-						`Updated status for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
-						{ body },
-					);
-				});
+								await ctx.github.addIssueOrPullRequestToProjectBoard({
+									issueOrPullRequestId: issueId,
+									projectBoardId: projectBoardId.projectId,
+									statusUpdate: {
+										fieldId: projectBoardId.statusFieldId,
+										value: statusFieldValue.id,
+									},
+								});
+							}),
+						);
+
+						logger.info(
+							`Updated status for issue ${issueNumber} in project boards ${projectBoardIds.map((projectBoardId) => projectBoardId.projectId).join(', ')}`,
+							{ body },
+						);
+					},
+				);
 
 				break;
 			}

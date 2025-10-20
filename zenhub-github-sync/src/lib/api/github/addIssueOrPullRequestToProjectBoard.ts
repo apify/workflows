@@ -27,7 +27,7 @@ mutation SetEstimateForIssue($projectBoardId: ID!, $projectItemId: ID!, $estimat
 
 export interface GitHubAPICall {
 	projectBoardId: string;
-	issueId: string;
+	issueOrPullRequestId: string;
 	statusUpdate?: {
 		fieldId: string;
 		value: string;
@@ -42,8 +42,13 @@ export interface AddIssueToProjectBoardResult {
 	projectItemId: string;
 }
 
-export async function addIssueToProjectBoard(apiCall: GitHubAPICall): Promise<AddIssueToProjectBoardResult> {
-	const issueProjectItemId = await getIssueOrPullRequestProjectItemId(apiCall.projectBoardId, apiCall.issueId);
+export async function addIssueOrPullRequestToProjectBoard(
+	apiCall: GitHubAPICall,
+): Promise<AddIssueToProjectBoardResult> {
+	const issueProjectItemId = await getIssueOrPullRequestProjectItemId(
+		apiCall.projectBoardId,
+		apiCall.issueOrPullRequestId,
+	);
 
 	const promises: Promise<void>[] = [];
 

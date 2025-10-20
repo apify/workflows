@@ -49,8 +49,8 @@ switch (action) {
 
 const existingProjectBoards = await ctx.github.getIssueProjectBoards({
 	repositoryName: repository.name,
-	issueNumber: issue.number,
-	issueId: issue.node_id,
+	issueOrPullRequestNumber: issue.number,
+	issueOrPullRequestId: issue.node_id,
 });
 
 const boardsToRemoveFrom = existingProjectBoards.filter(
@@ -59,8 +59,8 @@ const boardsToRemoveFrom = existingProjectBoards.filter(
 
 await Promise.all(
 	boardsToAddTo.map(async (board) => {
-		await ctx.github.addIssueToProjectBoard({
-			issueId: issue.node_id,
+		await ctx.github.addIssueOrPullRequestToProjectBoard({
+			issueOrPullRequestId: issue.node_id,
 			projectBoardId: board.projectId,
 			statusUpdate: statusToUse
 				? {

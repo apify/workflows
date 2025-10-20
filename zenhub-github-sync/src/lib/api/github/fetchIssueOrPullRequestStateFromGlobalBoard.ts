@@ -1,5 +1,5 @@
 import { getConfig, getOctokit } from '../../ctx.ts';
-import { addIssueToProjectBoard } from './addIssueToProjectBoard.ts';
+import { addIssueOrPullRequestToProjectBoard } from './addIssueOrPullRequestToProjectBoard.ts';
 
 const QUERY = /* gql */ `
 query GetIssueProjectBoards($nodeId: ID!) {
@@ -35,14 +35,14 @@ export interface IssueState {
 	estimate: number | null;
 }
 
-export async function fetchIssueStateFromGlobalBoard(
+export async function fetchIssueOrPullRequestStateFromGlobalBoard(
 	options: FetchIssueStateFromGlobalBoardIdOptions,
 ): Promise<IssueState> {
 	const { githubBoardId } = getConfig().globalBoard!;
 
 	// Thanks GitHub...
-	const { projectItemId } = await addIssueToProjectBoard({
-		issueId: options.issueId,
+	const { projectItemId } = await addIssueOrPullRequestToProjectBoard({
+		issueOrPullRequestId: options.issueId,
 		projectBoardId: githubBoardId,
 	});
 

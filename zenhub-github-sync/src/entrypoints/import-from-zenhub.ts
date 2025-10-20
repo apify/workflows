@@ -94,7 +94,7 @@ async function addIssueToProjectBoards(issue: PipelineIssue, pipeline: Pipeline)
 	for (const projectBoardId of projectBoardIds) {
 		const apiCall: ctx.github.GitHubAPICall = {
 			projectBoardId: projectBoardId.projectId,
-			issueId: issue.ghNodeId,
+			issueOrPullRequestId: issue.ghNodeId,
 		};
 
 		apiCall.statusUpdate = {
@@ -112,5 +112,5 @@ async function addIssueToProjectBoards(issue: PipelineIssue, pipeline: Pipeline)
 		apiCalls.push(apiCall);
 	}
 
-	await Promise.all(apiCalls.map(async (apiCall) => ctx.github.addIssueToProjectBoard(apiCall)));
+	await Promise.all(apiCalls.map(async (apiCall) => ctx.github.addIssueOrPullRequestToProjectBoard(apiCall)));
 }

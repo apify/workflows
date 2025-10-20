@@ -59,7 +59,7 @@ async function handleIssuesEvent(c: AppContext) {
 		repository,
 	} = body;
 
-	const issueFromGitHub = await ctx.github.getIssueByNumber({
+	const issueFromGitHub = await ctx.github.getIssueOrPullRequestByNumber({
 		repositoryName: body.repository.name,
 		issueNumber,
 	});
@@ -109,8 +109,8 @@ async function handleIssuesEvent(c: AppContext) {
 						return;
 					}
 
-					await ctx.github.addIssueToProjectBoard({
-						issueId: issueNodeId,
+					await ctx.github.addIssueOrPullRequestToProjectBoard({
+						issueOrPullRequestId: issueNodeId,
 						projectBoardId: board.projectId,
 						statusUpdate: {
 							fieldId: board.statusFieldId,
@@ -169,8 +169,8 @@ async function handleIssuesEvent(c: AppContext) {
 						return;
 					}
 
-					await ctx.github.addIssueToProjectBoard({
-						issueId: issueNodeId,
+					await ctx.github.addIssueOrPullRequestToProjectBoard({
+						issueOrPullRequestId: issueNodeId,
 						projectBoardId: board.projectId,
 						statusUpdate: {
 							fieldId: board.statusFieldId,
@@ -194,11 +194,11 @@ async function handleIssuesEvent(c: AppContext) {
 		case 'labeled': {
 			const existingIssueBoards = await ctx.github.getIssueProjectBoards({
 				repositoryName: repository.name,
-				issueNumber,
-				issueId: issueNodeId,
+				issueOrPullRequestNumber: issueNumber,
+				issueOrPullRequestId: issueNodeId,
 			});
 
-			const { status, estimate } = await ctx.github.fetchIssueStateFromGlobalBoard({
+			const { status, estimate } = await ctx.github.fetchIssueOrPullRequestStateFromGlobalBoard({
 				repositoryName: repository.name,
 				issueId: issueNodeId,
 			});
@@ -220,8 +220,8 @@ async function handleIssuesEvent(c: AppContext) {
 							});
 						}
 
-						await ctx.github.addIssueToProjectBoard({
-							issueId: issueNodeId,
+						await ctx.github.addIssueOrPullRequestToProjectBoard({
+							issueOrPullRequestId: issueNodeId,
 							projectBoardId: board.projectId,
 							statusUpdate: statusFieldValue
 								? {
@@ -258,8 +258,8 @@ async function handleIssuesEvent(c: AppContext) {
 		case 'unlabeled': {
 			const existingIssueBoards = await ctx.github.getIssueProjectBoards({
 				repositoryName: repository.name,
-				issueNumber,
-				issueId: issueNodeId,
+				issueOrPullRequestNumber: issueNumber,
+				issueOrPullRequestId: issueNodeId,
 			});
 
 			const boardsToRemoveFrom = existingIssueBoards.filter((board) => {
@@ -461,8 +461,8 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 						async () => {
 							await Promise.all(
 								boardsTheIssueShouldBeIn.map(async (board) => {
-									await ctx.github.addIssueToProjectBoard({
-										issueId: contentNodeId,
+									await ctx.github.addIssueOrPullRequestToProjectBoard({
+										issueOrPullRequestId: contentNodeId,
 										projectBoardId: board.projectId,
 										estimateUpdate: {
 											fieldId: board.estimateFieldId,
@@ -531,8 +531,8 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 										return;
 									}
 
-									await ctx.github.addIssueToProjectBoard({
-										issueId: contentNodeId,
+									await ctx.github.addIssueOrPullRequestToProjectBoard({
+										issueOrPullRequestId: contentNodeId,
 										projectBoardId: board.projectId,
 										statusUpdate: {
 											fieldId: board.statusFieldId,
