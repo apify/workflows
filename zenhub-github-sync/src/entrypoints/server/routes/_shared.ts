@@ -1,3 +1,5 @@
+import { Collection } from '@discordjs/collection';
+import { AsyncQueue } from '@sapphire/async-queue';
 import { log } from 'apify';
 import { LRUCache } from 'lru-cache';
 
@@ -28,6 +30,8 @@ const eventCache = new LRUCache<string, EventGap>({
 	updateAgeOnGet: false,
 	allowStale: false,
 });
+
+const eventCacheQueue = new Collection<string, AsyncQueue>();
 
 export function addEventGap(entityId: string, event: EventGap) {
 	eventCache.set(`${entityId}:${event.event}`, event);
@@ -79,13 +83,22 @@ export async function runIfNoSimilarEventHappenedRecently(
 	event: EventGap,
 	callback: () => Promise<void>,
 ) {
-	if (similarEventHappenedRecently(entityId, event)) {
-		return;
+	const key = `${entityId}:${event.event}`;
+
+	const queue = eventCacheQueue.ensure(key, () => new AsyncQueue());
+	await queue.wait();
+
+	try {
+		if (similarEventHappenedRecently(entityId, event)) {
+			return;
+		}
+
+		// Cache the new event
+		addEventGap(entityId, event);
+
+		// Then call the callback
+		await callback();
+	} finally {
+		queue.shift();
 	}
-
-	// Cache the new event
-	addEventGap(entityId, event);
-
-	// Then call the callback
-	await callback();
 }

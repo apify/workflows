@@ -332,6 +332,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@discordjs/collection@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@discordjs/collection@npm:2.1.1"
+  checksum: 10c0/7bbb007271a046c981957b4a0543f6ca7e4c294a2d40987437ff06db5e92dbf35b8dc61719db2a7bc99557a58275742aa34be9f50487870a6e80acfc4fe45fa1
+  languageName: node
+  linkType: hard
+
 "@eslint-community/eslint-utils@npm:^4.7.0, @eslint-community/eslint-utils@npm:^4.8.0":
   version: 4.9.0
   resolution: "@eslint-community/eslint-utils@npm:4.9.0"
@@ -1691,7 +1698,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sapphire/async-queue@npm:^1.5.0, @sapphire/async-queue@npm:^1.5.1":
+"@sapphire/async-queue@npm:^1.5.0, @sapphire/async-queue@npm:^1.5.1, @sapphire/async-queue@npm:^1.5.5":
   version: 1.5.5
   resolution: "@sapphire/async-queue@npm:1.5.5"
   checksum: 10c0/4d61cbd90513e25f60ec611cd6c85b62a85b58c227c14050bcaeb4141a472fddb1da32dea5c4769cd213b97a5b83a076af333cbbe90efb97973d9fce47ef3ef0
@@ -5730,6 +5737,7 @@ __metadata:
     "@actions/github": "npm:^6.0.1"
     "@apify/eslint-config": "npm:^1.1.0"
     "@apify/tsconfig": "npm:^0.1.1"
+    "@discordjs/collection": "npm:^2.1.1"
     "@hono/node-server": "npm:^1.13.7"
     "@hono/otel": "npm:^0.5.0"
     "@inquirer/prompts": "npm:^7.8.6"
@@ -5737,6 +5745,7 @@ __metadata:
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/sdk-node": "npm:^0.206.0"
     "@opentelemetry/sdk-trace-node": "npm:^2.1.0"
+    "@sapphire/async-queue": "npm:^1.5.5"
     "@sapphire/utilities": "npm:^3.18.2"
     "@skyra/env-utilities": "npm:^2.0.1"
     "@types/js-yaml": "npm:^4"

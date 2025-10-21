@@ -167,11 +167,11 @@ process.on('SIGQUIT', () => {
 Actor.on('migrating', async () => {
 	log.info('Migrating, shutting down server');
 	server.close();
-	await Actor.exit({ timeoutSecs: 5, exit: true });
+	await Actor.exit({ timeoutSecs: 1, exit: true });
 });
 
 Actor.on('aborting', async () => {
 	log.info('Aborting, shutting down server');
 	server.close();
-	await Actor.exit({ timeoutSecs: 5, exit: true });
+	await Actor.exit({ timeoutSecs: 1, exit: true });
 });

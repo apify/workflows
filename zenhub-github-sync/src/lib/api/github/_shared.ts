@@ -1,3 +1,5 @@
+import { Collection } from '@discordjs/collection';
+import { AsyncQueue } from '@sapphire/async-queue';
 import { log } from 'apify';
 import { LRUCache } from 'lru-cache';
 
@@ -16,6 +18,8 @@ mutation AddIssueToBoard($projectBoardId: ID!, $issueOrPRId: ID!) {
 `;
 
 type CacheKey = `${string}:${string}`;
+
+const queueCache = new Collection<CacheKey, AsyncQueue>();
 
 const cacheOfIssueOrPullRequestIdToProjectItemId = new LRUCache<CacheKey, string>({
 	// Cache a maximum of 10_000 items
@@ -39,40 +43,50 @@ export async function getIssueOrPullRequestProjectItemId(
 	projectBoardId: string,
 	issueOrPullRequestId: string,
 ): Promise<string> {
-	const cached = cacheOfIssueOrPullRequestIdToProjectItemId.get(`${projectBoardId}:${issueOrPullRequestId}`);
+	const key = `${projectBoardId}:${issueOrPullRequestId}` as CacheKey;
 
-	if (cached) {
-		log.debug('[ITEM ID CACHE] Cache hit for issue or pull request project item ID', {
+	const queue = queueCache.ensure(key, () => new AsyncQueue());
+
+	await queue.wait();
+
+	try {
+		const cached = cacheOfIssueOrPullRequestIdToProjectItemId.get(key);
+
+		if (cached) {
+			log.debug('[ITEM ID CACHE] Cache hit for issue or pull request project item ID', {
+				projectBoardId,
+				issueOrPullRequestId,
+				projectItemId: cached,
+			});
+
+			return cached;
+		}
+
+		const {
+			addToBoard: {
+				item: { id: projectItemId },
+			},
+		} = await getOctokit().graphql<{
+			addToBoard: {
+				item: {
+					id: string;
+				};
+			};
+		}>(MUTATION_STEP_ADD_TO_BOARD, {
 			projectBoardId,
-			issueOrPullRequestId,
-			projectItemId: cached,
+			issueOrPRId: issueOrPullRequestId,
 		});
 
-		return cached;
+		log.info('Cache miss for issue or pull request project item ID', {
+			projectBoardId,
+			issueOrPullRequestId,
+			projectItemId,
+		});
+
+		cacheOfIssueOrPullRequestIdToProjectItemId.set(key, projectItemId);
+
+		return projectItemId;
+	} finally {
+		queue.shift();
 	}
-
-	const {
-		addToBoard: {
-			item: { id: projectItemId },
-		},
-	} = await getOctokit().graphql<{
-		addToBoard: {
-			item: {
-				id: string;
-			};
-		};
-	}>(MUTATION_STEP_ADD_TO_BOARD, {
-		projectBoardId,
-		issueOrPRId: issueOrPullRequestId,
-	});
-
-	log.info('Cache miss for issue or pull request project item ID', {
-		projectBoardId,
-		issueOrPullRequestId,
-		projectItemId,
-	});
-
-	cacheOfIssueOrPullRequestIdToProjectItemId.set(`${projectBoardId}:${issueOrPullRequestId}`, projectItemId);
-
-	return projectItemId;
 }
