@@ -14,6 +14,7 @@ import { requestId } from 'hono/request-id';
 
 import { consoleExporter, OTelExporter } from './lib/OTelExporter.ts';
 import { registerGitHubRoute } from './routes/github.ts';
+import { registerInternalRoute } from './routes/internal.ts';
 import { registerZenHubRoute } from './routes/zenhub.ts';
 
 const traceExporter = new OTelExporter();
@@ -135,6 +136,7 @@ export type AppContext = App extends Hono<infer U> ? Context<U> : never;
 // Register routes
 registerGitHubRoute(app);
 registerZenHubRoute(app);
+registerInternalRoute(app);
 
 // Start server
 const port = envParseInteger('ACTOR_WEB_SERVER_PORT', 3000);

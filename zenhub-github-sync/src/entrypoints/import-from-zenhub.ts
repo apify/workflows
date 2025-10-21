@@ -5,11 +5,13 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { exit } from 'node:process';
 
 import { confirm } from '@inquirer/prompts';
+import { envParseString } from '@skyra/env-utilities';
 
 import type { PipelineIssue } from '../lib/api/zenhub/getPipelineIssuesForRepositories.ts';
 import type { Pipeline } from '../lib/config/_shared.ts';
 import * as ctx from '../lib/ctx.ts';
 import { allowedRepositories } from './server/lib/utils.ts';
+import type { EventGap } from './server/routes/_shared.ts';
 
 console.log(
 	'By running this script, everything from ZenHub will be imported to GitHub, based on the configuration file, overwriting anything that was changed on the GitHub project boards!',
@@ -44,6 +46,20 @@ async function storeResults() {
 	await writeFile(new URL('../../results.json', import.meta.url), JSON.stringify(results, null, 2));
 }
 
+const internalWebhookUrl = (() => {
+	const urlString = envParseString('INTERNAL_WEBHOOK_URL', null);
+
+	if (!urlString) {
+		return null;
+	}
+
+	const url = new URL(urlString);
+
+	url.pathname = '/internal/event-cache-queue';
+
+	return url;
+})();
+
 for (const pipeline of config.zenhubPipelines) {
 	console.log(`Syncing pipeline ${pipeline.name} (${pipeline.id})`);
 
@@ -62,6 +78,40 @@ for (const pipeline of config.zenhubPipelines) {
 			console.log(`  Processing issue ${issue.number} for repository ${issue.repository.name}`);
 
 			try {
+				if (internalWebhookUrl) {
+					const res = await fetch(internalWebhookUrl, {
+						method: 'POST',
+						body: JSON.stringify({
+							entityId: issue.ghNodeId,
+							event: {
+								event: 'statusUpdate',
+								data: {
+									newStatus: pipeline.name,
+								},
+								timestamp: Date.now(),
+							} satisfies EventGap,
+						}),
+						headers: {
+							'Content-Type': 'application/json',
+							'User-Agent': 'zenhub-github-sync/internal',
+						},
+					});
+
+					const text = await res.text();
+
+					if (res.status !== 200) {
+						console.error(
+							`  Error caching event for issue ${issue.number} for repository ${issue.repository.name}`,
+							text,
+						);
+					} else {
+						console.log(
+							`  Cached event for issue ${issue.number} for repository ${issue.repository.name}`,
+							text,
+						);
+					}
+				}
+
 				await addIssueToProjectBoards(issue, pipeline);
 			} catch (error) {
 				console.error(

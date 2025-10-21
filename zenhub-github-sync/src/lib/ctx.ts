@@ -92,5 +92,6 @@ declare module '@skyra/env-utilities' {
 
 		ACTOR_WEB_SERVER_PORT?: IntegerString;
 		GITHUB_WEBHOOK_SECRET: string;
+		INTERNAL_WEBHOOK_URL?: string;
 	}
 }

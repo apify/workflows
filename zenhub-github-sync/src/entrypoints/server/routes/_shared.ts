@@ -9,7 +9,7 @@ interface EventDone<T, D> {
 	timestamp: number;
 }
 
-type EventGap =
+export type EventGap =
 	| EventDone<
 			'estimateUpdate',
 			{

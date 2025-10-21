@@ -431,12 +431,16 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 
 	const labels = entityFromGitHub.labels.map((label) => label.name);
 
-	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
+	const boardsTheIssueShouldBeIn = ctx.config.matchers
+		.githubProjectBoardIdsByLabels(ctx.getConfig(), labels)
+		// Filter out the board that the event came from
+		.filter((board) => board.projectId !== projectNodeId);
 
 	switch (action) {
 		case 'edited': {
 			const { changes } = body;
-			logger.debug('[GITHUB] Projects V2 item edited', { changes });
+			// Someone broke apify log's truncation...
+			logger.debug(`[GITHUB] Projects V2 item edited: ${JSON.stringify(changes)}`);
 
 			const fieldChange = changes.field_value as ProjectsV2FieldEditedEventChangesFieldValue;
 

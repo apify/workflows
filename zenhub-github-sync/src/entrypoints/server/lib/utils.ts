@@ -23,6 +23,7 @@ export const allowedRepositories = [
 	'impit',
 	'store-website-content-crawler',
 	'workflows',
+	'actor-templates',
 
 	// test repo
 	'vlad-zenhub-github-test',
