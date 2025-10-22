@@ -9,6 +9,7 @@ query GetIssueProjectBoards($repositoryName: String!, $issueNumber: Int!) {
           __typename
           ... on Issue {
             id
+            number
             labels(first: 100) {
               nodes {
                 name
@@ -18,6 +19,7 @@ query GetIssueProjectBoards($repositoryName: String!, $issueNumber: Int!) {
           }
           ... on PullRequest {
             id
+            number
             labels(first: 100) {
               nodes {
                 name
@@ -37,6 +39,8 @@ export interface GetIssueOrPullRequestByNumberOptions {
 	issueNumber: number;
 }
 
+export type GetIssueOrPullRequestByNumberResult = Awaited<ReturnType<typeof getIssueOrPullRequestByNumber>>;
+
 export async function getIssueOrPullRequestByNumber(options: GetIssueOrPullRequestByNumberOptions) {
 	const result = await getOctokit().graphql<{
 		viewer: {
@@ -45,6 +49,7 @@ export async function getIssueOrPullRequestByNumber(options: GetIssueOrPullReque
 					issueOrPullRequest: {
 						__typename: 'Issue' | 'PullRequest';
 						id: string;
+						number: number;
 						labels: {
 							nodes: {
 								name: string;
@@ -62,6 +67,7 @@ export async function getIssueOrPullRequestByNumber(options: GetIssueOrPullReque
 
 	return {
 		issueId: result.viewer.organization.repository.issueOrPullRequest.id,
+		number: result.viewer.organization.repository.issueOrPullRequest.number,
 		labels: result.viewer.organization.repository.issueOrPullRequest.labels.nodes,
 	};
 }

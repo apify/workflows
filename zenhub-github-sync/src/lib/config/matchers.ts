@@ -2,6 +2,8 @@ import assert from 'node:assert';
 
 import type { Config } from './_shared.ts';
 
+export type GitHubProjectBoard = ReturnType<typeof githubProjectBoardIdsByLabels>[number];
+
 export function githubProjectBoardIdsByLabels(config: Config, labels: string[]) {
 	assert(config.globalBoard, 'Global board is not set');
 

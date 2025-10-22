@@ -21,6 +21,8 @@ type RawIssueInfoResponse = GraphQLResponse<{
 	};
 }>;
 
+export type ZenHubIssue = Awaited<ReturnType<typeof getIssueInfoByNumber>>;
+
 export async function getIssueInfoByNumber(options: GetIssueInfoByNumberOptions) {
 	const result = await graphqlQuery<RawIssueInfoResponse>(QUERY, {
 		repositoryGitHubId: options.repositoryGitHubNumber,

@@ -3,10 +3,15 @@ import type {
 	ProjectsV2ItemEditedEvent,
 	ProjectsV2ItemEvent,
 	PullRequestEvent,
+	Repository,
 	WebhookEventName,
 } from '@octokit/webhooks-types';
 import { envParseString } from '@skyra/env-utilities';
+import type { Log } from 'apify';
 
+import type { GetIssueOrPullRequestByNumberResult } from '../../../lib/api/github/getIssueOrPullRequestByNumber.ts';
+import type { ZenHubIssue } from '../../../lib/api/zenhub/getIssueInfo.ts';
+import type { GitHubProjectBoard } from '../../../lib/config/matchers.ts';
 import * as ctx from '../../../lib/ctx.ts';
 import type { App, AppContext } from '../app.ts';
 import { StatusFieldNames, StatusFieldValues } from '../lib/consts.ts';
@@ -48,6 +53,255 @@ function hexToBytes(hex: string) {
 	return bytes;
 }
 
+async function handleOpenedIssueOrPullRequest({
+	logger,
+	repository,
+	issueOrPullRequest,
+	zenhubIssue,
+	boardsTheIssueShouldBeIn,
+}: {
+	logger: Log;
+	repository: Repository;
+	issueOrPullRequest: GetIssueOrPullRequestByNumberResult;
+	zenhubIssue: ZenHubIssue;
+	boardsTheIssueShouldBeIn: GitHubProjectBoard[];
+}) {
+	// We always handle it on GitHub side, regardless of the cache. Mostly this should prevent ZenHub also triggering GitHub
+	addEventGap(issueOrPullRequest.issueId, {
+		event: 'statusUpdate',
+		data: {
+			newStatus: StatusFieldValues.NewIssue,
+		},
+		timestamp: Date.now(),
+	});
+
+	// Add to all boards as new issue
+	await Promise.all(
+		boardsTheIssueShouldBeIn.map(async (board) => {
+			const statusFieldValue = board.statusFieldOptions.find(
+				(option) => option.name === StatusFieldValues.NewIssue,
+			);
+
+			if (!statusFieldValue) {
+				logger.error(`Status field value not found for new issue in board ${board.projectId}`, {
+					repository: repository.name,
+					issue: issueOrPullRequest.number,
+					board: board.projectId,
+				});
+				return;
+			}
+
+			await ctx.github.addIssueOrPullRequestToProjectBoard({
+				issueOrPullRequestId: issueOrPullRequest.issueId,
+				projectBoardId: board.projectId,
+				statusUpdate: {
+					fieldId: board.statusFieldId,
+					value: statusFieldValue.id,
+				},
+			});
+		}),
+	);
+
+	const zenhubPipelineId = ctx
+		.getConfig()
+		.zenhubPipelines.find((pipeline) => pipeline.name === StatusFieldValues.NewIssue)?.id;
+
+	if (!zenhubPipelineId) {
+		logger.error(`ZenHub pipeline not found for new issue`, {
+			repository: repository.name,
+			issue: issueOrPullRequest.number,
+		});
+	} else {
+		await ctx.zenhub.setIssuePipeline({
+			issueId: zenhubIssue.id,
+			pipelineId: zenhubPipelineId,
+		});
+	}
+
+	logger.info(`Added issue to all boards on "New Issues" pipeline`, {
+		repository: repository.name,
+		issue: issueOrPullRequest.number,
+		boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+	});
+}
+
+async function handleClosedIssueOrPullRequest({
+	logger,
+	repository,
+	issueOrPullRequest,
+	boardsTheIssueShouldBeIn,
+}: {
+	logger: Log;
+	repository: Repository;
+	issueOrPullRequest: GetIssueOrPullRequestByNumberResult;
+	boardsTheIssueShouldBeIn: GitHubProjectBoard[];
+}) {
+	addEventGap(issueOrPullRequest.issueId, {
+		event: 'statusUpdate',
+		data: {
+			newStatus: StatusFieldValues.Closed,
+		},
+		timestamp: Date.now(),
+	});
+
+	await Promise.all(
+		boardsTheIssueShouldBeIn.map(async (board) => {
+			const statusFieldValue = board.statusFieldOptions.find(
+				(option) => option.name === StatusFieldValues.Closed,
+			);
+
+			if (!statusFieldValue) {
+				logger.error(`Status field value not found for closed issue in board ${board.projectId}`, {
+					repository: repository.name,
+					issue: issueOrPullRequest.number,
+					board: board.projectId,
+				});
+				return;
+			}
+
+			await ctx.github.addIssueOrPullRequestToProjectBoard({
+				issueOrPullRequestId: issueOrPullRequest.issueId,
+				projectBoardId: board.projectId,
+				statusUpdate: {
+					fieldId: board.statusFieldId,
+					value: statusFieldValue.id,
+				},
+			});
+		}),
+	);
+
+	// Closed is automatic on ZenHub so we don't need to do anything there
+
+	logger.info(`Issue closed, marked on all boards`, {
+		repository: repository.name,
+		issue: issueOrPullRequest.number,
+		boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+	});
+}
+
+async function handleLabeledIssueOrPullRequest({
+	logger,
+	repository,
+	issueOrPullRequest,
+	boardsTheIssueShouldBeIn,
+}: {
+	logger: Log;
+	repository: Repository;
+	issueOrPullRequest: GetIssueOrPullRequestByNumberResult;
+	boardsTheIssueShouldBeIn: GitHubProjectBoard[];
+}) {
+	const existingIssueBoards = await ctx.github.getIssueProjectBoards({
+		repositoryName: repository.name,
+		issueOrPullRequestNumber: issueOrPullRequest.number,
+		issueOrPullRequestId: issueOrPullRequest.issueId,
+	});
+
+	const { status, estimate } = await ctx.github.fetchIssueOrPullRequestStateFromGlobalBoard({
+		repositoryName: repository.name,
+		issueId: issueOrPullRequest.issueId,
+	});
+
+	const boardsToAddTo = boardsTheIssueShouldBeIn.filter(
+		(board) => !existingIssueBoards.some((b) => b.projectBoardId === board.projectId),
+	);
+
+	if (boardsToAddTo.length > 0) {
+		await Promise.all(
+			boardsToAddTo.map(async (board) => {
+				const statusFieldValue = board.statusFieldOptions.find((option) => option.name === status);
+
+				if (!statusFieldValue) {
+					logger.error(`Status field value not found for labeled issue in board ${board.projectId}`, {
+						repository: repository.name,
+						issue: issueOrPullRequest.number,
+						board: board.projectId,
+					});
+				}
+
+				await ctx.github.addIssueOrPullRequestToProjectBoard({
+					issueOrPullRequestId: issueOrPullRequest.issueId,
+					projectBoardId: board.projectId,
+					statusUpdate: statusFieldValue
+						? {
+								fieldId: board.statusFieldId,
+								value: statusFieldValue.id,
+							}
+						: undefined,
+					estimateUpdate: estimate
+						? {
+								fieldId: board.estimateFieldId,
+								value: estimate,
+							}
+						: undefined,
+				});
+			}),
+		);
+
+		logger.info(`Added issue to new boards`, {
+			repository: repository.name,
+			issue: issueOrPullRequest.number,
+			newBoards: boardsToAddTo.map((board) => board.projectId),
+		});
+	} else {
+		logger.info(`Issue already in all boards`, {
+			repository: repository.name,
+			issue: issueOrPullRequest.number,
+			boards: existingIssueBoards.map((board) => board.projectBoardId),
+		});
+	}
+}
+
+async function handleUnlabeledIssueOrPullRequest({
+	logger,
+	repository,
+	issueOrPullRequest,
+	boardsTheIssueShouldBeIn,
+}: {
+	logger: Log;
+	repository: Repository;
+	issueOrPullRequest: GetIssueOrPullRequestByNumberResult;
+	boardsTheIssueShouldBeIn: GitHubProjectBoard[];
+}) {
+	const allBoardIdsConfigured = ctx.getAllBoardIdsConfigured();
+
+	const existingIssueBoards = await ctx.github.getIssueProjectBoards({
+		repositoryName: repository.name,
+		issueOrPullRequestNumber: issueOrPullRequest.number,
+		issueOrPullRequestId: issueOrPullRequest.issueId,
+	});
+
+	const boardsToRemoveFrom = existingIssueBoards.filter((board) => {
+		// Not a board we handle -> probably manual, keep those
+		if (!allBoardIdsConfigured.includes(board.projectBoardId)) {
+			return false;
+		}
+
+		return !boardsTheIssueShouldBeIn.some((b) => b.projectId === board.projectBoardId);
+	});
+
+	if (boardsToRemoveFrom.length > 0) {
+		await Promise.all(
+			boardsToRemoveFrom.map(async (board) => {
+				await ctx.github.removeIssueFromProjectBoard({
+					projectBoardId: board.projectBoardId,
+					itemId: board.projectItemId,
+				});
+			}),
+		);
+
+		logger.info(`Removed issue from boards`, {
+			repository: repository.name,
+			issue: issueOrPullRequest.number,
+			removedBoards: boardsToRemoveFrom.map((board) => board.projectBoardId),
+		});
+	} else {
+		logger.info(`Issue does not need to be removed from any boards`, {
+			repository: repository.name,
+			issue: issueOrPullRequest.number,
+		});
+	}
+}
+
 async function handleIssuesEvent(c: AppContext) {
 	const logger = c.get('logger');
 
@@ -78,220 +332,51 @@ async function handleIssuesEvent(c: AppContext) {
 
 	const labels = issueFromGitHub.labels.map((label) => label.name);
 
-	const allBoardIdsConfigured = ctx.getAllBoardIdsConfigured();
 	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
 
 	switch (action) {
 		case 'opened':
 		case 'reopened': {
-			// We always handle it on GitHub side, regardless of the cache. Mostly this should prevent ZenHub also triggering GitHub
-			addEventGap(issueNodeId, {
-				event: 'statusUpdate',
-				data: {
-					newStatus: StatusFieldValues.NewIssue,
-				},
-				timestamp: Date.now(),
-			});
-
-			// Add to all boards as new issue
-			await Promise.all(
-				boardsTheIssueShouldBeIn.map(async (board) => {
-					const statusFieldValue = board.statusFieldOptions.find(
-						(option) => option.name === StatusFieldValues.NewIssue,
-					);
-
-					if (!statusFieldValue) {
-						logger.error(`Status field value not found for new issue in board ${board.projectId}`, {
-							repository: repository.name,
-							issue: issueNumber,
-							board: board.projectId,
-						});
-						return;
-					}
-
-					await ctx.github.addIssueOrPullRequestToProjectBoard({
-						issueOrPullRequestId: issueNodeId,
-						projectBoardId: board.projectId,
-						statusUpdate: {
-							fieldId: board.statusFieldId,
-							value: statusFieldValue.id,
-						},
-					});
-				}),
-			);
-
-			const zenhubPipelineId = ctx
-				.getConfig()
-				.zenhubPipelines.find((pipeline) => pipeline.name === StatusFieldValues.NewIssue)?.id;
-
-			if (!zenhubPipelineId) {
-				logger.error(`ZenHub pipeline not found for new issue`, {
-					repository: repository.name,
-					issue: issueNumber,
-				});
-			} else {
-				await ctx.zenhub.setIssuePipeline({
-					issueId: issueFromZenHub.id,
-					pipelineId: zenhubPipelineId,
-				});
-			}
-
-			logger.info(`Added issue to all boards on "New Issues" pipeline`, {
-				repository: repository.name,
-				issue: issueNumber,
-				boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+			await handleOpenedIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				zenhubIssue: issueFromZenHub,
+				boardsTheIssueShouldBeIn,
 			});
 
 			break;
 		}
 
 		case 'closed': {
-			addEventGap(issueNodeId, {
-				event: 'statusUpdate',
-				data: {
-					newStatus: StatusFieldValues.Closed,
-				},
-				timestamp: Date.now(),
-			});
-
-			await Promise.all(
-				boardsTheIssueShouldBeIn.map(async (board) => {
-					const statusFieldValue = board.statusFieldOptions.find(
-						(option) => option.name === StatusFieldValues.Closed,
-					);
-
-					if (!statusFieldValue) {
-						logger.error(`Status field value not found for closed issue in board ${board.projectId}`, {
-							repository: repository.name,
-							issue: issueNumber,
-							board: board.projectId,
-						});
-						return;
-					}
-
-					await ctx.github.addIssueOrPullRequestToProjectBoard({
-						issueOrPullRequestId: issueNodeId,
-						projectBoardId: board.projectId,
-						statusUpdate: {
-							fieldId: board.statusFieldId,
-							value: statusFieldValue.id,
-						},
-					});
-				}),
-			);
-
-			// Closed is automatic on ZenHub so we don't need to do anything there
-
-			logger.info(`Issue closed, marked on all boards`, {
-				repository: repository.name,
-				issue: issueNumber,
-				boards: boardsTheIssueShouldBeIn.map((board) => board.projectId),
+			await handleClosedIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
 			});
 
 			break;
 		}
 
 		case 'labeled': {
-			const existingIssueBoards = await ctx.github.getIssueProjectBoards({
-				repositoryName: repository.name,
-				issueOrPullRequestNumber: issueNumber,
-				issueOrPullRequestId: issueNodeId,
+			await handleLabeledIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
 			});
-
-			const { status, estimate } = await ctx.github.fetchIssueOrPullRequestStateFromGlobalBoard({
-				repositoryName: repository.name,
-				issueId: issueNodeId,
-			});
-
-			const boardsToAddTo = boardsTheIssueShouldBeIn.filter(
-				(board) => !existingIssueBoards.some((b) => b.projectBoardId === board.projectId),
-			);
-
-			if (boardsToAddTo.length > 0) {
-				await Promise.all(
-					boardsToAddTo.map(async (board) => {
-						const statusFieldValue = board.statusFieldOptions.find((option) => option.name === status);
-
-						if (!statusFieldValue) {
-							logger.error(`Status field value not found for labeled issue in board ${board.projectId}`, {
-								repository: repository.name,
-								issue: issueNumber,
-								board: board.projectId,
-							});
-						}
-
-						await ctx.github.addIssueOrPullRequestToProjectBoard({
-							issueOrPullRequestId: issueNodeId,
-							projectBoardId: board.projectId,
-							statusUpdate: statusFieldValue
-								? {
-										fieldId: board.statusFieldId,
-										value: statusFieldValue.id,
-									}
-								: undefined,
-							estimateUpdate: estimate
-								? {
-										fieldId: board.estimateFieldId,
-										value: estimate,
-									}
-								: undefined,
-						});
-					}),
-				);
-
-				logger.info(`Added issue to new boards`, {
-					repository: repository.name,
-					issue: issueNumber,
-					newBoards: boardsToAddTo.map((board) => board.projectId),
-				});
-			} else {
-				logger.info(`Issue already in all boards`, {
-					repository: repository.name,
-					issue: issueNumber,
-					boards: existingIssueBoards.map((board) => board.projectBoardId),
-				});
-			}
 
 			break;
 		}
 
 		case 'unlabeled': {
-			const existingIssueBoards = await ctx.github.getIssueProjectBoards({
-				repositoryName: repository.name,
-				issueOrPullRequestNumber: issueNumber,
-				issueOrPullRequestId: issueNodeId,
+			await handleUnlabeledIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
 			});
-
-			const boardsToRemoveFrom = existingIssueBoards.filter((board) => {
-				// Not a board we handle -> probably manual, keep those
-				if (!allBoardIdsConfigured.includes(board.projectBoardId)) {
-					return false;
-				}
-
-				return !boardsTheIssueShouldBeIn.some((b) => b.projectId === board.projectBoardId);
-			});
-
-			if (boardsToRemoveFrom.length > 0) {
-				await Promise.all(
-					boardsToRemoveFrom.map(async (board) => {
-						await ctx.github.removeIssueFromProjectBoard({
-							projectBoardId: board.projectBoardId,
-							itemId: board.projectItemId,
-						});
-					}),
-				);
-
-				logger.info(`Removed issue from boards`, {
-					repository: repository.name,
-					issue: issueNumber,
-					removedBoards: boardsToRemoveFrom.map((board) => board.projectBoardId),
-				});
-			} else {
-				logger.info(`Issue does not need to be removed from any boards`, {
-					repository: repository.name,
-					issue: issueNumber,
-				});
-			}
 
 			break;
 		}
@@ -332,22 +417,74 @@ async function handlePullRequestsEvent(c: AppContext) {
 		repository,
 	} = body;
 
+	const issueFromGitHub = await ctx.github.getIssueOrPullRequestByNumber({
+		repositoryName: body.repository.name,
+		issueNumber: pullRequestNumber,
+	});
+
+	const issueFromZenHub = await ctx.zenhub.getIssueInfoByNumber({
+		repositoryGitHubNumber: repository.id,
+		issueNumber: pullRequestNumber,
+	});
+
 	logger.debug('[GITHUB] Pull request event', {
 		repository: repository.name,
 		githubNumericId: pullRequestNumber,
 		githubNodeId: pullRequestNodeId,
 		action,
+		zenhubId: issueFromZenHub.id,
 	});
+
+	const labels = issueFromGitHub.labels.map((label) => label.name);
+
+	const boardsTheIssueShouldBeIn = ctx.config.matchers.githubProjectBoardIdsByLabels(ctx.getConfig(), labels);
 
 	switch (action) {
 		case 'opened':
-		case 'reopened':
-		case 'closed':
-			break;
+		case 'reopened': {
+			await handleOpenedIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				zenhubIssue: issueFromZenHub,
+				boardsTheIssueShouldBeIn,
+			});
 
-		case 'labeled':
-		case 'unlabeled':
 			break;
+		}
+
+		case 'closed': {
+			await handleClosedIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
+			});
+
+			break;
+		}
+
+		case 'labeled': {
+			await handleLabeledIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
+			});
+
+			break;
+		}
+
+		case 'unlabeled': {
+			await handleUnlabeledIssueOrPullRequest({
+				logger,
+				repository,
+				issueOrPullRequest: issueFromGitHub,
+				boardsTheIssueShouldBeIn,
+			});
+
+			break;
+		}
 
 		// Ignored events
 		case 'assigned':
