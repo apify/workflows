@@ -53,24 +53,28 @@ function hexToBytes(hex: string) {
 	return bytes;
 }
 
-async function handleOpenedIssueOrPullRequest({
+async function handleOpenedOrReopenedIssueOrPullRequest({
 	logger,
 	repository,
+	isPullRequest,
 	issueOrPullRequest,
 	zenhubIssue,
 	boardsTheIssueShouldBeIn,
 }: {
 	logger: Log;
 	repository: Repository;
+	isPullRequest: boolean;
 	issueOrPullRequest: GetIssueOrPullRequestByNumberResult;
 	zenhubIssue: ZenHubIssue;
 	boardsTheIssueShouldBeIn: GitHubProjectBoard[];
 }) {
+	const statusToUse = isPullRequest ? StatusFieldValues.PullRequest : StatusFieldValues.NewIssue;
+
 	// We always handle it on GitHub side, regardless of the cache. Mostly this should prevent ZenHub also triggering GitHub
 	addEventGap(issueOrPullRequest.issueId, {
 		event: 'statusUpdate',
 		data: {
-			newStatus: StatusFieldValues.NewIssue,
+			newStatus: statusToUse,
 		},
 		timestamp: Date.now(),
 	});
@@ -78,9 +82,7 @@ async function handleOpenedIssueOrPullRequest({
 	// Add to all boards as new issue
 	await Promise.all(
 		boardsTheIssueShouldBeIn.map(async (board) => {
-			const statusFieldValue = board.statusFieldOptions.find(
-				(option) => option.name === StatusFieldValues.NewIssue,
-			);
+			const statusFieldValue = board.statusFieldOptions.find((option) => option.name === statusToUse);
 
 			if (!statusFieldValue) {
 				logger.error(`Status field value not found for new issue in board ${board.projectId}`, {
@@ -102,9 +104,7 @@ async function handleOpenedIssueOrPullRequest({
 		}),
 	);
 
-	const zenhubPipelineId = ctx
-		.getConfig()
-		.zenhubPipelines.find((pipeline) => pipeline.name === StatusFieldValues.NewIssue)?.id;
+	const zenhubPipelineId = ctx.getConfig().zenhubPipelines.find((pipeline) => pipeline.name === statusToUse)?.id;
 
 	if (!zenhubPipelineId) {
 		logger.error(`ZenHub pipeline not found for new issue`, {
@@ -337,9 +337,10 @@ async function handleIssuesEvent(c: AppContext) {
 	switch (action) {
 		case 'opened':
 		case 'reopened': {
-			await handleOpenedIssueOrPullRequest({
+			await handleOpenedOrReopenedIssueOrPullRequest({
 				logger,
 				repository,
+				isPullRequest: false,
 				issueOrPullRequest: issueFromGitHub,
 				zenhubIssue: issueFromZenHub,
 				boardsTheIssueShouldBeIn,
@@ -442,9 +443,10 @@ async function handlePullRequestsEvent(c: AppContext) {
 	switch (action) {
 		case 'opened':
 		case 'reopened': {
-			await handleOpenedIssueOrPullRequest({
+			await handleOpenedOrReopenedIssueOrPullRequest({
 				logger,
 				repository,
+				isPullRequest: true,
 				issueOrPullRequest: issueFromGitHub,
 				zenhubIssue: issueFromZenHub,
 				boardsTheIssueShouldBeIn,
