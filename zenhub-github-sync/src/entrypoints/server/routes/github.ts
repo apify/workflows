@@ -799,11 +799,12 @@ export function registerGitHubRoute(app: App) {
 					issueNumber: body.issue.number,
 					issueNodeId: body.issue.node_id,
 				});
+
+				return handledBody(c);
 			});
 		}
 
 		if (isPullRequestEvent(event, body)) {
-			// Probably won't need this, tbd
 			return handlePullRequestsEvent(c).catch((error) => {
 				logger.error('Error handling pull requests event', {
 					error,
@@ -813,6 +814,8 @@ export function registerGitHubRoute(app: App) {
 					pullRequestNumber: body.pull_request.number,
 					pullRequestNodeId: body.pull_request.node_id,
 				});
+
+				return handledBody(c);
 			});
 		}
 
@@ -825,6 +828,8 @@ export function registerGitHubRoute(app: App) {
 					action: body.action,
 					projectV2Item: rest,
 				});
+
+				return handledBody(c);
 			});
 		}
 
