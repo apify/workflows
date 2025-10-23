@@ -1,0 +1,14 @@
+name: 'Execute Workflow'
+description: 'Execute GitHub Actions workflows and wait for them to complete'
+
+inputs:
+  workflow:
+    description: "Workflow filename relative to .github/workflows (e.g., 'my-workflow.yaml')"
+    required: true
+  inputs:
+    description: 'Inputs to pass to the workflow, must be a JSON string'
+    required: false
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
