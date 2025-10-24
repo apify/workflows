@@ -29986,7 +29986,7 @@ function run() {
             const workflowFileName = core.getInput('workflow');
             const inputsJson = core.getInput('inputs');
             const inputs = inputsJson ? JSON.parse(inputsJson) : {};
-            const octokit = github.getOctokit('');
+            const octokit = github.getOctokit(core.getInput('token'));
             const owner = github.context.repo.owner;
             const repo = github.context.repo.repo;
             const ref = github.context.ref;

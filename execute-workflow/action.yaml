@@ -8,6 +8,10 @@ inputs:
   inputs:
     description: 'Inputs to pass to the workflow, must be a JSON string'
     required: false
+  token:
+    description: 'GitHub token for authentication'
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: 'node20'
