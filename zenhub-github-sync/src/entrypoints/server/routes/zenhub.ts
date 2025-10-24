@@ -136,7 +136,7 @@ export function registerZenHubRoute(app: App) {
 			case 'issue_transfer': {
 				if (body.workspace_id !== ctx.zenhub.getWorkspaceId()) {
 					logger.info(
-						`Skipping issue transfer for issue ${issueNumber} in workspace ${body.workspace_id} because it is not the main workspace`,
+						`Skipping issue transfer for issue ${issueNumber} in workspace ${body.workspace_id} (${body.workspace_name}) because it is not the main workspace`,
 						{ body },
 					);
 					break;
