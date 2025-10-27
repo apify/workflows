@@ -522,9 +522,9 @@ interface ProjectsV2NumberFieldValueEdit {
 	project_number: number;
 	// Apparently this is always returned as a string when not null
 	from?: number | string | null;
-	// But this is a number 🤦
+	// But this is a number OR string 🤦
 	// AND UNDEFINED WHEN NOT SET/cleared out
-	to?: number | null;
+	to?: number | string | null;
 }
 
 interface ProjectsV2SingleSelectFieldValueEdit {
@@ -590,7 +590,7 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 						break;
 					}
 
-					const newEstimate = fieldChange.to ?? null;
+					const newEstimate = fieldChange.to ? Number(fieldChange.to) : null;
 
 					await runIfNoSimilarEventHappenedRecently(
 						contentNodeId,
