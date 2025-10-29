@@ -29963,15 +29963,6 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(7484));
 const github = __importStar(__nccwpck_require__(3228));
@@ -29979,91 +29970,89 @@ const PackageJSON = __importStar(__nccwpck_require__(8330));
 //
 // Main task function (async wrapper)
 //
-function run() {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info(`🏃 Execute Workflow Action v${PackageJSON.version}`);
-        try {
-            const workflowFileName = core.getInput('workflow');
-            const inputsJson = core.getInput('inputs');
-            const inputs = inputsJson ? JSON.parse(inputsJson) : {};
-            const octokit = github.getOctokit(core.getInput('token'));
-            const owner = github.context.repo.owner;
-            const repo = github.context.repo.repo;
-            const ref = github.context.ref;
-            const workflows = yield octokit.paginate(octokit.rest.actions.listRepoWorkflows.endpoint.merge({
-                owner,
-                repo,
-            }));
-            const workflowPath = `.github/workflows/${workflowFileName}`;
-            const foundWorkflow = workflows.find((workflow) => workflow.path === workflowPath);
-            if (!foundWorkflow)
-                throw new Error(`Unable to find workflow '${workflowPath}' in ${owner}/${repo} 😥`);
-            console.log(`🔎 Found workflow, id: ${foundWorkflow.id}, name: ${foundWorkflow.name}, path: ${foundWorkflow.path}`);
-            // Get current workflow runs before dispatching
-            const runsBefore = yield octokit.rest.actions.listWorkflowRuns({
+async function run() {
+    core.info(`🏃 Execute Workflow Action v${PackageJSON.version}`);
+    try {
+        const workflowFileName = core.getInput('workflow');
+        const inputsJson = core.getInput('inputs');
+        const inputs = inputsJson ? JSON.parse(inputsJson) : {};
+        const octokit = github.getOctokit(core.getInput('token'));
+        const owner = github.context.repo.owner;
+        const repo = github.context.repo.repo;
+        const ref = github.context.ref;
+        const workflows = await octokit.paginate(octokit.rest.actions.listRepoWorkflows.endpoint.merge({
+            owner,
+            repo,
+        }));
+        const workflowPath = `.github/workflows/${workflowFileName}`;
+        const foundWorkflow = workflows.find((workflow) => workflow.path === workflowPath);
+        if (!foundWorkflow)
+            throw new Error(`Unable to find workflow '${workflowPath}' in ${owner}/${repo} 😥`);
+        console.log(`🔎 Found workflow, id: ${foundWorkflow.id}, name: ${foundWorkflow.name}, path: ${foundWorkflow.path}`);
+        // Get current workflow runs before dispatching
+        const runsBefore = await octokit.rest.actions.listWorkflowRuns({
+            owner,
+            repo,
+            workflow_id: foundWorkflow.id,
+            per_page: 5,
+        });
+        // Call workflow_dispatch API
+        console.log('🚀 Calling GitHub API to dispatch workflow...');
+        await octokit.request(`POST /repos/${owner}/${repo}/actions/workflows/${foundWorkflow.id}/dispatches`, {
+            ref,
+            inputs,
+        });
+        // Wait for the new run to appear
+        core.info('⏳ Waiting for workflow run to start...');
+        let workflowRun;
+        const maxWaitTime = 60000; // 60 seconds
+        const pollInterval = 1000; // 1 second
+        const startTime = Date.now();
+        while (!workflowRun && Date.now() - startTime < maxWaitTime) {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            const runsAfter = await octokit.rest.actions.listWorkflowRuns({
                 owner,
                 repo,
                 workflow_id: foundWorkflow.id,
                 per_page: 5,
             });
-            // Call workflow_dispatch API
-            console.log('🚀 Calling GitHub API to dispatch workflow...');
-            yield octokit.request(`POST /repos/${owner}/${repo}/actions/workflows/${foundWorkflow.id}/dispatches`, {
-                ref,
-                inputs,
+            // Find the new run (one that wasn't in the before list)
+            const newRun = runsAfter.data.workflow_runs.find((run) => !runsBefore.data.workflow_runs.some((oldRun) => oldRun.id === run.id));
+            if (newRun) {
+                workflowRun = newRun;
+            }
+        }
+        if (!workflowRun) {
+            throw new Error('Timeout waiting for workflow run to start');
+        }
+        core.info(`✅ Workflow run started: ${workflowRun.html_url}`);
+        core.setOutput('workflowRunId', workflowRun.id);
+        // Poll until the workflow completes
+        core.info('⏳ Waiting for workflow run to complete...');
+        while (workflowRun.status !== 'completed') {
+            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+            const runStatus = await octokit.rest.actions.getWorkflowRun({
+                owner,
+                repo,
+                run_id: workflowRun.id,
             });
-            // Wait for the new run to appear
-            core.info('⏳ Waiting for workflow run to start...');
-            let workflowRun;
-            const maxWaitTime = 60000; // 60 seconds
-            const pollInterval = 1000; // 1 second
-            const startTime = Date.now();
-            while (!workflowRun && Date.now() - startTime < maxWaitTime) {
-                yield new Promise((resolve) => setTimeout(resolve, pollInterval));
-                const runsAfter = yield octokit.rest.actions.listWorkflowRuns({
-                    owner,
-                    repo,
-                    workflow_id: foundWorkflow.id,
-                    per_page: 5,
-                });
-                // Find the new run (one that wasn't in the before list)
-                const newRun = runsAfter.data.workflow_runs.find((run) => !runsBefore.data.workflow_runs.some((oldRun) => oldRun.id === run.id));
-                if (newRun) {
-                    workflowRun = newRun;
-                }
-            }
-            if (!workflowRun) {
-                throw new Error('Timeout waiting for workflow run to start');
-            }
-            core.info(`✅ Workflow run started: ${workflowRun.html_url}`);
-            core.setOutput('workflowRunId', workflowRun.id);
-            // Poll until the workflow completes
-            core.info('⏳ Waiting for workflow run to complete...');
-            while (workflowRun.status !== 'completed') {
-                yield new Promise((resolve) => setTimeout(resolve, pollInterval));
-                const runStatus = yield octokit.rest.actions.getWorkflowRun({
-                    owner,
-                    repo,
-                    run_id: workflowRun.id,
-                });
-                workflowRun = runStatus.data;
-                core.info(`📊 Status: ${workflowRun.status}`);
-            }
-            core.info(`🏁 Workflow run completed with conclusion: ${workflowRun.conclusion}`);
-            core.setOutput('conclusion', workflowRun.conclusion);
-            if (workflowRun.conclusion !== 'success') {
-                throw new Error(`Workflow run failed with conclusion: ${workflowRun.conclusion}`);
-            }
+            workflowRun = runStatus.data;
+            core.info(`📊 Status: ${workflowRun.status}`);
         }
-        catch (error) {
-            const e = error;
-            if (e.message.endsWith('a disabled workflow')) {
-                core.warning('Workflow is disabled, no action was taken');
-                return;
-            }
-            core.setFailed(e.message);
+        core.info(`🏁 Workflow run completed with conclusion: ${workflowRun.conclusion}`);
+        core.setOutput('conclusion', workflowRun.conclusion);
+        if (workflowRun.conclusion !== 'success') {
+            throw new Error(`Workflow run failed with conclusion: ${workflowRun.conclusion}`);
         }
-    });
+    }
+    catch (error) {
+        const e = error;
+        if (e.message.endsWith('a disabled workflow')) {
+            core.warning('Workflow is disabled, no action was taken');
+            return;
+        }
+        core.setFailed(e.message);
+    }
 }
 run();
 
