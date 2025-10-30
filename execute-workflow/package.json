@@ -4,7 +4,7 @@
   "description": "Execute GitHub Actions workflows",
   "main": "dist/index.js",
   "scripts": {
-    "build": "ncc build src/main.ts -o dist",
+    "build": "ncc build src/main.ts -o dist -m",
     "format": "prettier --write src/"
   },
   "keywords": [
