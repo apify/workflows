@@ -31,7 +31,7 @@ export interface FetchIssueStateFromGlobalBoardIdOptions {
 }
 
 export interface IssueState {
-	status: string;
+	status: string | null;
 	estimate: number | null;
 }
 
@@ -60,7 +60,7 @@ export async function fetchIssueOrPullRequestStateFromGlobalBoard(
 	}>(QUERY, { nodeId: projectItemId });
 
 	return {
-		status: node.status?.name ?? 'New Issues',
+		status: node.status?.name ?? null,
 		estimate: node.estimate?.number ?? null,
 	};
 }

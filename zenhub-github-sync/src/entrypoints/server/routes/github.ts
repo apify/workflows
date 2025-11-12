@@ -208,15 +208,27 @@ async function handleLabeledIssueOrPullRequest({
 	if (boardsToAddTo.length > 0) {
 		await Promise.all(
 			boardsToAddTo.map(async (board) => {
-				const statusFieldValue = board.statusFieldOptions.find((option) => option.name === status);
+				const statusFieldValue = (() => {
+					if (status) {
+						const result = board.statusFieldOptions.find((option) => option.name === status);
 
-				if (!statusFieldValue) {
-					logger.error(`Status field value not found for labeled issue in board ${board.projectId}`, {
-						repository: repository.name,
-						issue: issueOrPullRequest.number,
-						board: board.projectId,
-					});
-				}
+						if (!result) {
+							logger.error(`Status field value not found for labeled issue in board ${board.projectId}`, {
+								repository: repository.name,
+								issue: issueOrPullRequest.number,
+								board: board.projectId,
+							});
+						}
+
+						return result;
+					}
+
+					if (issueOrPullRequest.closed) {
+						return board.statusFieldOptions.find((option) => option.name === StatusFieldValues.Closed);
+					}
+
+					return board.statusFieldOptions.find((option) => option.name === StatusFieldValues.NewIssue);
+				})();
 
 				await ctx.github.addIssueOrPullRequestToProjectBoard({
 					issueOrPullRequestId: issueOrPullRequest.issueId,
@@ -302,6 +314,19 @@ async function handleUnlabeledIssueOrPullRequest({
 	}
 }
 
+const ignoredIssuesEvents: string[] = [
+	'assigned',
+	'unassigned',
+	'deleted',
+	'milestoned',
+	'demilestoned',
+	'edited',
+	'locked',
+	'pinned',
+	'unlocked',
+	'unpinned',
+] satisfies IssuesEvent['action'][];
+
 async function handleIssuesEvent(c: AppContext) {
 	const logger = c.get('logger');
 
@@ -312,6 +337,16 @@ async function handleIssuesEvent(c: AppContext) {
 		issue: { node_id: issueNodeId, number: issueNumber },
 		repository,
 	} = body;
+
+	if (ignoredIssuesEvents.includes(action)) {
+		logger.debug(`Ignoring issues event`, {
+			action,
+			issueNodeId,
+			issueNumber,
+		});
+
+		return handledBody(c);
+	}
 
 	const issueFromGitHub = await ctx.github.getIssueOrPullRequestByNumber({
 		repositoryName: body.repository.name,
@@ -407,6 +442,25 @@ async function handleIssuesEvent(c: AppContext) {
 	return handledBody(c);
 }
 
+const ignoredPullRequestEvents: string[] = [
+	'assigned',
+	'unassigned',
+	'milestoned',
+	'demilestoned',
+	'edited',
+	'locked',
+	'unlocked',
+	'auto_merge_enabled',
+	'auto_merge_disabled',
+	'converted_to_draft',
+	'ready_for_review',
+	'enqueued',
+	'dequeued',
+	'review_requested',
+	'review_request_removed',
+	'synchronize',
+] satisfies PullRequestEvent['action'][];
+
 async function handlePullRequestsEvent(c: AppContext) {
 	const logger = c.get('logger');
 
@@ -417,6 +471,16 @@ async function handlePullRequestsEvent(c: AppContext) {
 		pull_request: { number: pullRequestNumber, node_id: pullRequestNodeId },
 		repository,
 	} = body;
+
+	if (ignoredPullRequestEvents.includes(action)) {
+		logger.debug(`Ignoring pull request event`, {
+			action,
+			pullRequestNumber,
+			pullRequestNodeId,
+		});
+
+		return handledBody(c);
+	}
 
 	const issueFromGitHub = await ctx.github.getIssueOrPullRequestByNumber({
 		repositoryName: body.repository.name,
@@ -541,6 +605,15 @@ type ProjectsV2FieldEditedEventChangesFieldValue =
 	| ProjectsV2SingleSelectFieldValueEdit
 	| Extract<ProjectsV2ItemEditedEvent['changes']['field_value'], { field_type: 'date' | 'text' | 'iteration' }>;
 
+const ignoredProjectsV2ItemEvents: string[] = [
+	'created',
+	'deleted',
+	'archived',
+	'restored',
+	'converted',
+	'reordered',
+] satisfies ProjectsV2ItemEvent['action'][];
+
 async function handleProjectsV2ItemEvent(c: AppContext) {
 	const logger = c.get('logger');
 
@@ -550,6 +623,17 @@ async function handleProjectsV2ItemEvent(c: AppContext) {
 		action,
 		projects_v2_item: { project_node_id: projectNodeId, content_node_id: contentNodeId, content_type: contentType },
 	} = body;
+
+	if (ignoredProjectsV2ItemEvents.includes(action)) {
+		logger.debug(`Ignoring projects V2 item event`, {
+			action,
+			projectNodeId,
+			contentNodeId,
+			contentType,
+		});
+
+		return handledBody(c);
+	}
 
 	const entityFromGitHub = await ctx.github.getIssueOrPullRequestLabelsByContentId({
 		contentId: contentNodeId,

@@ -10,6 +10,7 @@ query GetIssueProjectBoards($repositoryName: String!, $issueNumber: Int!) {
           ... on Issue {
             id
             number
+            closed
             labels(first: 100) {
               nodes {
                 name
@@ -20,6 +21,7 @@ query GetIssueProjectBoards($repositoryName: String!, $issueNumber: Int!) {
           ... on PullRequest {
             id
             number
+            closed
             labels(first: 100) {
               nodes {
                 name
@@ -50,6 +52,7 @@ export async function getIssueOrPullRequestByNumber(options: GetIssueOrPullReque
 						__typename: 'Issue' | 'PullRequest';
 						id: string;
 						number: number;
+						closed: boolean;
 						labels: {
 							nodes: {
 								name: string;
@@ -68,6 +71,7 @@ export async function getIssueOrPullRequestByNumber(options: GetIssueOrPullReque
 	return {
 		issueId: result.viewer.organization.repository.issueOrPullRequest.id,
 		number: result.viewer.organization.repository.issueOrPullRequest.number,
+		closed: result.viewer.organization.repository.issueOrPullRequest.closed,
 		labels: result.viewer.organization.repository.issueOrPullRequest.labels.nodes,
 	};
 }
