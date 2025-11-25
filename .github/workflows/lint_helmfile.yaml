@@ -26,11 +26,11 @@ on:
 
 env:
   # renovate: datasource=github-releases depName=helmfile/helmfile
-  HELMFILE_VERSION: v0.164.0
+  HELMFILE_VERSION: v0.171.0
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     steps:
       - name: clone repository
         uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
         run: |
           HELMFILE_VERSION_WITHOUT_PREFIX=${HELMFILE_VERSION:1}
           mkdir -p $HOME/.local/bin
-          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_amd64.tar.gz
+          curl -fsSL -o helmfile.tar.gz https://github.com/helmfile/helmfile/releases/download/${{ env.HELMFILE_VERSION }}/helmfile_${HELMFILE_VERSION_WITHOUT_PREFIX}_linux_arm64.tar.gz
           tar -C $HOME/.local/bin/ -xf ./helmfile.tar.gz
           chmod +x $HOME/.local/bin/helmfile
           echo "$HOME/.local/bin" >> $GITHUB_PATH

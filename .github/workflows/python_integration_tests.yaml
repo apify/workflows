@@ -6,6 +6,10 @@ on:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
         description: API token of the Python testing user on Apify
         required: true
+      APIFY_TEST_USER_2_API_TOKEN:
+        description: Second API token of different testing user on Apify. For multi-user test cases, such as sharing restricted access storage.
+        required: false
+
     inputs:
       python-versions:
         description: List of Python versions to be used
@@ -19,11 +23,12 @@ concurrency:
 
 jobs:
   # Job to run integration tests from the main repository.
-  integration_tests_on_main:
+  integration_tests:
     name: Integration tests
     runs-on: ubuntu-latest
     # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
+
     strategy:
       matrix:
         python-version: ${{ fromJSON(inputs.python-versions)}}
@@ -51,52 +56,3 @@ jobs:
         env:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
-
-  # Job to request approval before running integration tests for PRs from forks.
-  integration_tests_on_fork_approval:
-    name: Approve integration tests for PRs from forks
-    runs-on: ubuntu-latest
-    # Run this only for PRs from forks. Skip otherwise.
-    if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
-    environment:
-      name: fork-pr-integration-tests
-      url: ${{ github.event.pull_request.html_url }}
-    steps:
-      - name: Await approval
-        run: echo "Waiting for approval to run integration tests for fork PR."
-
-  # Job to run integration tests for PRs from forks, only after manual approval.
-  integration_tests_on_fork:
-    name: Integration tests for PRs from forks
-    needs: integration_tests_on_fork_approval
-    # Run this only for PRs from forks. Skip otherwise.
-    if: github.event.pull_request.head.repo.owner.login != 'apify' && github.ref != 'refs/heads/master'
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.9", "3.12"] # Oldest and newest supported Python versions.
-      max-parallel: 1 # No parallel tests to avoid overshooting limits.
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Set up uv package manager
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Run integration tests
-        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
-        env:
-          APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}

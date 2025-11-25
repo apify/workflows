@@ -60,8 +60,7 @@ runs:
           )
           new_version="${{ inputs.version_number }}b${next_beta}"
           echo "Updating version in pyproject.toml to ${new_version}"
-          # Update the "version" key in the [project] section of pyproject.toml.
-          sed -i '/^\[project\]/,/^\[/ s/^\(version\s*=\s*\)".*"/\1"'${new_version}'"/' pyproject.toml
+          uv version "${new_version}"
         fi
 
     # Builds the package.

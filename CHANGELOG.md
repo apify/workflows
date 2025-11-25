@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.35.1](https://github.com/apify/workflows/compare/v0.35.0...v0.35.1) (2025-10-09)
+
+
+### Bug Fixes
+
+* local lint workflow and PR toolkit ([#225](https://github.com/apify/workflows/issues/225)) ([1ffab79](https://github.com/apify/workflows/commit/1ffab79d7742b23dc656c1cad42bda97b9037b8d))
+
+## [0.35.0](https://github.com/apify/workflows/compare/v0.34.0...v0.35.0) (2025-10-07)
+
+
+### Features
+
+* run workflows on ARM (phase 1: most used) ([#222](https://github.com/apify/workflows/issues/222)) ([1604185](https://github.com/apify/workflows/commit/16041859d1246f1255835048564b17ca49343965))
+
+## [0.34.0](https://github.com/apify/workflows/compare/v0.33.2...v0.34.0) (2025-09-26)
+
+
+### Features
+
+* limited support for secure parameters passed to CF stack ([#217](https://github.com/apify/workflows/issues/217)) ([c455286](https://github.com/apify/workflows/commit/c4552861499024c3d6df0ba32693d5d7acb1f5a9))
+
+## [0.33.2](https://github.com/apify/workflows/compare/v0.33.1...v0.33.2) (2025-09-10)
+
+
+### Bug Fixes
+
+* **git-cliff-release:** Handle rc tags ([#213](https://github.com/apify/workflows/issues/213)) ([8230ca7](https://github.com/apify/workflows/commit/8230ca74f027e3a708c6401bcc81a0cdb32e0687))
+* sync branches ([#216](https://github.com/apify/workflows/issues/216)) ([cbc1b9e](https://github.com/apify/workflows/commit/cbc1b9e21de4802c4217f597c04dd6e8425c43fa))
+
 ## [0.33.1](https://github.com/apify/workflows/compare/v0.33.0...v0.33.1) (2025-07-01)
 
 

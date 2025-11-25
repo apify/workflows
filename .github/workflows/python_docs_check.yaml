@@ -49,3 +49,5 @@ jobs:
 
       - name: Build docs website
         run: make build-docs
+        env:
+          APIFY_SIGNING_TOKEN: ${{ secrets.APIFY_SIGNING_TOKEN }}

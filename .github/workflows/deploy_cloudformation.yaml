@@ -88,6 +88,9 @@ on:
       slackToken:
         description: Slack API token
         required: false
+      secretParameters:
+        description: Secret parameters (plaint text or file) for cloudformation template. Limited security, scoped per CF stack.
+        required: false
 
 jobs:
   deploy:
@@ -192,7 +195,9 @@ jobs:
           fi
 
           OPTIONAL_PARAMETERS=""
-          if [ "${{ inputs.parameters }}" != "" ]; then
+          if [ "${{ inputs.parameters }}" != "" ] && [ "${{ secrets.secretParameters }}" != "" ]; then
+              OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --parameter-overrides ${{ inputs.parameters }} ${{ secrets.secretParameters }}"
+          elif [ "${{ inputs.parameters }}" != "" ] && [ "${{ secrets.secretParameters }}" == "" ]; then
               OPTIONAL_PARAMETERS="${OPTIONAL_PARAMETERS} --parameter-overrides ${{ inputs.parameters }}"
           fi
           if [ "${{ inputs.capabilities }}" != "" ]; then
