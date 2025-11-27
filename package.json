@@ -1,0 +1,25 @@
+{
+	"name": "apify-workflows",
+	"private": true,
+	"packageManager": "yarn@4.10.3",
+	"volta": {
+		"node": "24.10.0",
+		"yarn": "4.10.3"
+	},
+	"workspaces": [
+		"zenhub-github-sync"
+	],
+	"devDependencies": {
+		"@apify/eslint-config": "^1.1.0",
+		"@biomejs/biome": "^2.2.4",
+		"eslint": "^9.37.0",
+		"eslint-config-prettier": "^10.1.8",
+		"typescript-eslint": "^8.46.1"
+	},
+	"scripts": {
+		"lint": "eslint",
+		"lint:fix": "eslint --fix",
+		"format": "biome format",
+		"format:fix": "biome format --write"
+	}
+}

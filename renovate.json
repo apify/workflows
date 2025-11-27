@@ -1,33 +1,22 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:base"
-  ],
-  "schedule": [
-    "before 3am on the last day of the month"
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": [
-        ".*yaml$"
-      ],
-      "matchStrings": [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s.*?_VERSION:\\s(?<currentValue>.*)\\s"
-      ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    }
-  ],
-  "packageRules": [
-    {
-      "groupName": "all non-major dependencies",
-      "groupSlug": "all-minor-patch",
-      "matchPackagePatterns": [
-        "*"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ]
-    }
-  ]
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+	"extends": ["config:base"],
+	"schedule": ["before 3am on the last day of the month"],
+	"regexManagers": [
+		{
+			"fileMatch": [".*yaml$"],
+			"matchStrings": [
+				"datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\s.*?_VERSION:\\s(?<currentValue>.*)\\s"
+			],
+			"versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
+		}
+	],
+	"packageRules": [
+		{
+			"groupName": "all non-major dependencies",
+			"groupSlug": "all-minor-patch",
+			"matchPackagePatterns": ["*"],
+			"matchUpdateTypes": ["minor", "patch"]
+		}
+	]
 }

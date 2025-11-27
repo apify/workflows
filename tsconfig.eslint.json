@@ -1,0 +1,3 @@
+{
+	"include": ["zenhub-github-sync/src/**/*", "eslint.config.mjs"]
+}

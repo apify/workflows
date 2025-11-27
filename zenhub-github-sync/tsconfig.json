@@ -1,0 +1,19 @@
+{
+	"extends": "@apify/tsconfig",
+	"compilerOptions": {
+		"target": "ES2024",
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"resolveJsonModule": true,
+		"lib": ["ES2024"],
+		"rootDir": "src",
+		"tsBuildInfoFile": "node_modules/.cache/.tsbuildinfo",
+		"noImplicitOverride": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"erasableSyntaxOnly": true
+	},
+	"include": ["src"]
+}
