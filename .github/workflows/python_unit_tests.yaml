@@ -6,6 +6,9 @@ on:
       httpbin_url:
         required: false
         description: Used to set the HTTPBIN_URL environment variable
+      CODECOV_TOKEN:
+        required: true
+        description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
         description: List of Python versions to be used
@@ -54,4 +57,9 @@ jobs:
         run: make install-dev
 
       - name: Run unit tests
-        run: make unit-tests
+        run: make unit-tests-cov
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
