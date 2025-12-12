@@ -14,10 +14,17 @@ on:
         description: List of Python versions to be used.
         required: true
         type: string
-      os:
+      operating-systems:
         description: List of operating systems to be used.
-        default: '["ubuntu-latest", "windows-latest"]'
-        required: false
+        required: true
+        type: string
+      python-version-for-codecov:
+        description: Python version to be used for codecov upload.
+        required: true
+        type: string
+      operating-system-for-codecov:
+        description: Operating system to be used for codecov upload.
+        required: true
         type: string
 
 jobs:
@@ -26,8 +33,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.os)}}
-        python-version: ${{ fromJSON(inputs.python-versions)}}
+        os: ${{ fromJSON(inputs.operating-systems) }}
+        python-version: ${{ fromJSON(inputs.python-versions) }}
     runs-on: ${{ matrix.os }}
     env:
       HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
@@ -61,7 +68,7 @@ jobs:
 
       # Upload coverage only for the ubuntu-latest and latest Python to avoid redundant uploads.
       - name: Upload unit test coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
+        if: matrix.os == ${{ inputs.operating-system-for-codecov }} && matrix.python-version == ${{ inputs.python-version-for-codecov }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

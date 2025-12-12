@@ -17,6 +17,18 @@ on:
         description: List of Python versions to be used.
         required: true
         type: string
+      operating-systems:
+        description: List of operating systems to be used.
+        required: true
+        type: string
+      python-version-for-codecov:
+        description: Python version to be used for codecov upload.
+        required: true
+        type: string
+      operating-system-for-codecov:
+        description: Operating system to be used for codecov upload.
+        required: true
+        type: string
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
 # This avoids exceeding API usage limits on the test user account.
@@ -27,14 +39,17 @@ jobs:
   # Job to run integration tests from the main repository.
   integration_tests:
     name: Integration tests
-    runs-on: ubuntu-latest
+
     # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
 
     strategy:
       matrix:
-        python-version: ${{ fromJSON(inputs.python-versions)}}
+        os: ${{ fromJSON(inputs.operating-systems) }}
+        python-version: ${{ fromJSON(inputs.python-versions) }}
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
+    
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
@@ -61,7 +76,7 @@ jobs:
 
       # Upload coverage only for the latest Python to avoid redundant uploads.
       - name: Upload integration test coverage
-        if: matrix.python-version == '3.14'
+        if: matrix.os == ${{ inputs.operating-system-for-codecov }} && matrix.python-version == ${{ inputs.python-version-for-codecov }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
