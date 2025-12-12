@@ -24,7 +24,7 @@ This action polls the GitHub Checks API to monitor check run status and conclusi
 
 ### `wait-interval`
 
-**Optional** - Seconds to wait between polling attempts. Default: `10`.
+**Optional** - Seconds to wait between polling attempts. Default: `5`.
 
 ### `running-workflow-name`
 
@@ -63,7 +63,6 @@ jobs:
           ref: ${{ github.sha }}
           check-name: 'Run tests'
           token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 10
 
       - name: Deploy
         run: echo 'Deploying...'
