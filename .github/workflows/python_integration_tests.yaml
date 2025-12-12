@@ -59,7 +59,7 @@ jobs:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
 
-      - name: Upload unit coverage to Codecov
+      - name: Upload integration test coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

@@ -59,7 +59,7 @@ jobs:
       - name: Run unit tests
         run: make unit-tests-cov
 
-      - name: Upload unit coverage to Codecov
+      - name: Upload unit test coverage
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
