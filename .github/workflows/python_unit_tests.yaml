@@ -11,7 +11,7 @@ on:
         description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
-        description: List of Python versions to be used.
+        description: List of Python versions to be used (stringified JSON array).
         required: true
         type: string
       operating-systems:
