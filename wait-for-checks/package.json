@@ -1,0 +1,25 @@
+{
+  "name": "wait-for-checks",
+  "version": "1.0.0",
+  "description": "Wait for GitHub check runs to complete",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "ncc build src/main.ts -o dist -m",
+    "format": "prettier --write src/"
+  },
+  "keywords": [
+    "github",
+    "actions"
+  ],
+  "author": "Apify",
+  "license": "MIT",
+  "devDependencies": {
+    "@actions/core": "^1.10.1",
+    "@actions/github": "^6.0.0",
+    "@vercel/ncc": "^0.38.1",
+    "typescript-eslint": "^8.0.0",
+    "eslint": "^9.8.0",
+    "typescript": "^5.5.4",
+    "prettier": "^3.3.3"
+  }
+}
