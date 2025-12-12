@@ -4,15 +4,29 @@ on:
   workflow_call:
     secrets:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
-        description: API token of the Python testing user on Apify
+        description: Apify API token for the primary Python SDK test user.
         required: true
       APIFY_TEST_USER_2_API_TOKEN:
-        description: Second API token of different testing user on Apify. For multi-user test cases, such as sharing restricted access storage.
+        description: Apify API token for a secondary test user, used in multi-user scenarios (e.g. sharing restricted storage).
         required: false
-
+      CODECOV_TOKEN:
+        required: true
+        description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
-        description: List of Python versions to be used
+        description: List of Python versions to be used (stringified JSON array).
+        required: true
+        type: string
+      operating-systems:
+        description: List of operating systems to be used.
+        required: true
+        type: string
+      python-version-for-codecov:
+        description: Python version to be used for codecov upload.
+        required: true
+        type: string
+      operating-system-for-codecov:
+        description: Operating system to be used for codecov upload.
         required: true
         type: string
 
@@ -25,26 +39,29 @@ jobs:
   # Job to run integration tests from the main repository.
   integration_tests:
     name: Integration tests
-    runs-on: ubuntu-latest
+
     # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
     if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
 
     strategy:
       matrix:
-        python-version: ${{ fromJSON(inputs.python-versions)}}
+        os: ${{ fromJSON(inputs.operating-systems) }}
+        python-version: ${{ fromJSON(inputs.python-versions) }}
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Set up uv package manager
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -52,7 +69,16 @@ jobs:
         run: make install-dev
 
       - name: Run integration tests
-        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests
+        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests-cov
         env:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
+
+      # Upload coverage only for the latest Python to avoid redundant uploads.
+      - name: Upload integration test coverage
+        if: ${{ matrix.os == inputs.operating-system-for-codecov && matrix.python-version == inputs.python-version-for-codecov }}
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-integration.xml
+          flags: integration
