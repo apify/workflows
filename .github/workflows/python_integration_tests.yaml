@@ -76,7 +76,7 @@ jobs:
 
       # Upload coverage only for the latest Python to avoid redundant uploads.
       - name: Upload integration test coverage
-        if: matrix.os == ${{ inputs.operating-system-for-codecov }} && matrix.python-version == ${{ inputs.python-version-for-codecov }}
+        if: ${{ matrix.os == inputs.operating-system-for-codecov && matrix.python-version == inputs.python-version-for-codecov }}
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
