@@ -59,7 +59,9 @@ jobs:
       - name: Run unit tests
         run: make unit-tests-cov
 
+      # Upload coverage only for the ubuntu-latest and latest Python to avoid redundant uploads.
       - name: Upload unit test coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.14'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
