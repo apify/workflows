@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       python-versions:
-        description: List of Python versions to be used
+        description: List of Python versions to be used.
         required: true
         type: string
 

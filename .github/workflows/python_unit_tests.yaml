@@ -5,17 +5,17 @@ on:
     secrets:
       httpbin_url:
         required: false
-        description: Used to set the HTTPBIN_URL environment variable
+        description: URL that sets the HTTPBIN_URL environment variable.
       CODECOV_TOKEN:
         required: true
         description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
-        description: List of Python versions to be used
+        description: List of Python versions to be used.
         required: true
         type: string
       os:
-        description: List of operating systems to be used
+        description: List of operating systems to be used.
         default: '["ubuntu-latest", "windows-latest"]'
         required: false
         type: string
@@ -59,7 +59,9 @@ jobs:
       - name: Run unit tests
         run: make unit-tests-cov
 
-      - name: Upload coverage reports to Codecov
+      - name: Upload unit coverage to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-unit.xml
+          flags: unit

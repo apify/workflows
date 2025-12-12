@@ -4,15 +4,17 @@ on:
   workflow_call:
     secrets:
       APIFY_TEST_USER_PYTHON_SDK_API_TOKEN:
-        description: API token of the Python testing user on Apify
+        description: Apify API token for the primary Python SDK test user.
         required: true
       APIFY_TEST_USER_2_API_TOKEN:
-        description: Second API token of different testing user on Apify. For multi-user test cases, such as sharing restricted access storage.
+        description: Apify API token for a secondary test user, used in multi-user scenarios (e.g. sharing restricted storage).
         required: false
-
+      CODECOV_TOKEN:
+        required: true
+        description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
-        description: List of Python versions to be used
+        description: List of Python versions to be used.
         required: true
         type: string
 
@@ -56,3 +58,10 @@ jobs:
         env:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
+
+      - name: Upload unit coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage-integration.xml
+          flags: integration
