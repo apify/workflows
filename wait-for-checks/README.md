@@ -131,11 +131,18 @@ jobs:
 
 ## How it works
 
-1. Queries the GitHub Checks API for all check runs on the specified ref
-2. Applies filters (`check-name`, `check-regexp`, `ignore-checks`, `running-workflow-name`)
-3. Polls every `wait-interval` seconds until all filtered checks have status `completed`
-4. Verifies that all check conclusions are in the `allowed-conclusions` list
-5. Fails the action if any check has a disallowed conclusion
+1. **Resolves the ref** to a commit SHA (if it's a branch or tag)
+2. **Handles `[skip ci]` commits** by walking up the parent chain:
+   - Checks if the commit message contains skip CI patterns: `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`
+   - If found, moves to the parent commit
+   - **Fails immediately** if encountering a merge commit with `[skip ci]`
+   - Continues up to 100 commits until finding one without `[skip ci]`
+   - Uses that commit for checking
+3. **Queries the GitHub Checks API** for all check runs on the resolved commit
+4. **Applies filters** (`check-name`, `check-regexp`, `ignore-checks`, `running-workflow-name`)
+5. **Polls** every `wait-interval` seconds until all filtered checks have status `completed`
+6. **Verifies** that all check conclusions are in the `allowed-conclusions` list
+7. **Fails** the action if any check has a disallowed conclusion
 
 ## Development
 
@@ -152,8 +159,30 @@ npm run build
 npm run format
 ```
 
+## Skip CI Handling
+
+This action automatically handles commits with `[skip ci]` in their commit messages:
+
+All GitHub-supported patterns are detected (case-insensitive):
+- `[skip ci]`
+- `[ci skip]`
+- `[no ci]`
+- `[skip actions]`
+- `[actions skip]`
+
+### Example
+
+```
+main: abc123 [skip ci] ← Input ref points here
+  ↓
+parent: def456 [skip ci]
+  ↓
+parent: ghi789 ← Action uses this commit's checks
+```
+
 ## Notes
 
 - The action will fail if the specified check never runs against the ref
 - Check names correspond to job names in workflows (or `jobs.<job_id>.name` if specified)
 - Matrix jobs will have names like "Job name (matrix-value)"
+- When using branch refs like `refs/heads/main`, the action resolves to the commit SHA first
