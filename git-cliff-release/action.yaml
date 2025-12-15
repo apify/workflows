@@ -58,13 +58,13 @@ runs:
   using: composite
   steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
         path: ${{ github.workspace }}/__release_metadata_repo
     - name: Install git-cliff
       shell: bash
-      run: pip install git-cliff
+      run: pip install 'git-cliff<2.11.0'
     - name: Locally remove pre-release tags
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
@@ -121,7 +121,7 @@ runs:
         fi
 
         echo 'release_notes<<EOF' >> $GITHUB_OUTPUT
-        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context | 
+        git-cliff --tag "${{ steps.version_number.outputs.tag_name }}" --unreleased --context |
           python enhance_context.py --repo $GITHUB_REPO --release-notes "${enhance_context_args[@]}" |
           git-cliff --from-context - --strip all |
           tee -a $GITHUB_OUTPUT
