@@ -64,7 +64,7 @@ runs:
         path: ${{ github.workspace }}/__release_metadata_repo
     - name: Install git-cliff
       shell: bash
-      run: pip install git-cliff<2.11.0
+      run: pip install 'git-cliff<2.11.0'
     - name: Locally remove pre-release tags
       shell: bash
       working-directory: ${{ github.workspace }}/__release_metadata_repo
