@@ -1,0 +1,43 @@
+name: 'Wait for Checks'
+description: 'Wait for GitHub check runs to complete successfully'
+
+inputs:
+  check-name:
+    description: 'Name of a specific check to wait for'
+    required: false
+    default: ''
+  check-regexp:
+    description: 'Regular expression to filter checks by name'
+    required: false
+    default: ''
+  ref:
+    description: 'Git ref to check (branch/tag/commit sha)'
+    required: true
+  token:
+    description: 'GitHub token for authentication'
+    required: false
+    default: ${{ github.token }}
+  wait-interval:
+    description: 'Seconds to wait between polling'
+    required: false
+    default: '10'
+  running-workflow-name:
+    description: 'Name of the current workflow to ignore'
+    required: false
+    default: ''
+  allowed-conclusions:
+    description: 'Comma-separated list of allowed conclusions'
+    required: false
+    default: 'success,skipped'
+  ignore-checks:
+    description: 'Comma-separated list of check names to ignore'
+    required: false
+    default: ''
+  verbose:
+    description: 'Print detailed logs'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'
