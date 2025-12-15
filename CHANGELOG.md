@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.36.0](https://github.com/apify/workflows/compare/v0.35.1...v0.36.0) (2025-12-15)
+
+
+### Features
+
+* Add execute-workflow action ([#228](https://github.com/apify/workflows/issues/228)) ([1751282](https://github.com/apify/workflows/commit/1751282df5a42a2035bd924e63828d47797a5c60))
+
+
+### Bug Fixes
+
+* Fix git cliff release workflow ([#239](https://github.com/apify/workflows/issues/239)) ([e86aabf](https://github.com/apify/workflows/commit/e86aabf1093a8ba778a09f10995fc6f4695be5d1))
+
 ## [0.35.1](https://github.com/apify/workflows/compare/v0.35.0...v0.35.1) (2025-10-09)
 
 
