@@ -10,7 +10,7 @@ on:
         description: Apify API token for a secondary test user, used in multi-user scenarios (e.g. sharing restricted storage).
         required: false
       CODECOV_TOKEN:
-        required: true
+        required: false
         description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
@@ -41,7 +41,11 @@ jobs:
     name: Integration tests
 
     # Run this only for PRs from the main repository or for pushes to master. Skip otherwise.
-    if: github.event.pull_request.head.repo.owner.login == 'apify' || github.ref == 'refs/heads/master'
+    if: >-
+      ${{
+        (github.event_name == 'pull_request' && github.event.pull_request.head.repo.owner.login == 'apify') ||
+        (github.event_name == 'push' && github.ref == 'refs/heads/master')
+      }}
 
     strategy:
       matrix:
@@ -50,6 +54,9 @@ jobs:
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     runs-on: ${{ matrix.os }}
+
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - name: Checkout repository
@@ -74,11 +81,17 @@ jobs:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
 
-      # Upload coverage only for the latest Python to avoid redundant uploads.
+      # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
+      # is available (e.g. not for fork PRs).
       - name: Upload integration test coverage
-        if: ${{ matrix.os == inputs.operating-system-for-codecov && matrix.python-version == inputs.python-version-for-codecov }}
+        if: >-
+          ${{
+            matrix.os == inputs.operating-system-for-codecov &&
+            matrix.python-version == inputs.python-version-for-codecov &&
+            env.CODECOV_TOKEN != ''
+          }}
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage-integration.xml
           flags: integration

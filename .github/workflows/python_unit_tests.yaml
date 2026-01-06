@@ -7,7 +7,7 @@ on:
         required: false
         description: URL that sets the HTTPBIN_URL environment variable.
       CODECOV_TOKEN:
-        required: true
+        required: false
         description: Token for uploading coverage reports to Codecov.
     inputs:
       python-versions:
@@ -38,6 +38,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - name: macOS cleanup
@@ -66,11 +67,17 @@ jobs:
       - name: Run unit tests
         run: make unit-tests-cov
 
-      # Upload coverage only for the ubuntu-latest and latest Python to avoid redundant uploads.
+      # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
+      # is available (e.g. not for fork PRs).
       - name: Upload unit test coverage
-        if: ${{ matrix.os == inputs.operating-system-for-codecov && matrix.python-version == inputs.python-version-for-codecov }}
+        if: >-
+          ${{
+            matrix.os == inputs.operating-system-for-codecov &&
+            matrix.python-version == inputs.python-version-for-codecov &&
+            env.CODECOV_TOKEN != ''
+          }}
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage-unit.xml
           flags: unit
