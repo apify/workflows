@@ -38,6 +38,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
       - name: macOS cleanup
@@ -73,10 +74,10 @@ jobs:
           ${{
             matrix.os == inputs.operating-system-for-codecov &&
             matrix.python-version == inputs.python-version-for-codecov &&
-            secrets.CODECOV_TOKEN != ''
+            env.CODECOV_TOKEN != ''
           }}
         uses: codecov/codecov-action@v5
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          token: ${{ env.CODECOV_TOKEN }}
           files: coverage-unit.xml
           flags: unit
