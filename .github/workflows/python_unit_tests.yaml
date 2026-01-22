@@ -3,29 +3,31 @@ name: Unit tests
 on:
   workflow_call:
     secrets:
-      httpbin_url:
+      APIFY_HTTPBIN_TOKEN:
+        description: Token for Apify httpbin service. If provided, uses httpbin.apify.actor, otherwise falls back to httpbin.org.
         required: false
-        description: URL that sets the HTTPBIN_URL environment variable.
       CODECOV_TOKEN:
-        required: false
         description: Token for uploading coverage reports to Codecov.
+        required: false
     inputs:
-      python-versions:
+      python_versions:
         description: List of Python versions to be used (stringified JSON array).
         required: true
         type: string
-      operating-systems:
-        description: List of operating systems to be used.
+      operating_systems:
+        description: List of operating systems to be used (stringified JSON array).
         required: true
         type: string
-      python-version-for-codecov:
-        description: Python version to be used for codecov upload.
-        required: true
+      python_version_for_codecov:
+        description: Python version to use for codecov upload. Leave empty to skip codecov.
+        required: false
         type: string
-      operating-system-for-codecov:
-        description: Operating system to be used for codecov upload.
-        required: true
+        default: ""
+      operating_system_for_codecov:
+        description: Operating system to use for codecov upload. Leave empty to skip codecov.
+        required: false
         type: string
+        default: ""
       install_command:
         description: Command to install Python dependencies.
         required: false
@@ -36,6 +38,11 @@ on:
         required: false
         type: string
         default: uv run poe unit-tests-cov
+      tests_concurrency:
+        description: Number of parallel test processes. Uses pytest-xdist numprocesses value.
+        required: false
+        type: string
+        default: auto
 
 jobs:
   unit_tests:
@@ -43,11 +50,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJSON(inputs.operating-systems) }}
-        python-version: ${{ fromJSON(inputs.python-versions) }}
+        os: ${{ fromJSON(inputs.operating_systems) }}
+        python-version: ${{ fromJSON(inputs.python_versions) }}
     runs-on: ${{ matrix.os }}
     env:
-      HTTPBIN_URL: ${{ secrets.httpbin_url || 'https://httpbin.org' }}
+      HTTPBIN_URL: ${{ secrets.APIFY_HTTPBIN_TOKEN && format('https://httpbin.apify.actor?token={0}', secrets.APIFY_HTTPBIN_TOKEN) || 'https://httpbin.org' }}
+      TESTS_CONCURRENCY: ${{ inputs.tests_concurrency }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
@@ -77,14 +85,16 @@ jobs:
       - name: Run unit tests
         run: ${{ inputs.run_tests_command }}
 
-      # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
-      # is available (e.g. not for fork PRs).
+      # Upload coverage only for the specified OS and Python version,
+      # and only when the Codecov token is available (e.g. not for fork PRs).
       - name: Upload unit test coverage
         if: >-
           ${{
-            matrix.os == inputs.operating-system-for-codecov &&
-            matrix.python-version == inputs.python-version-for-codecov &&
-            env.CODECOV_TOKEN != ''
+            env.CODECOV_TOKEN != '' &&
+            inputs.operating_system_for_codecov != '' &&
+            inputs.python_version_for_codecov != '' &&
+            matrix.os == inputs.operating_system_for_codecov &&
+            matrix.python-version == inputs.python_version_for_codecov
           }}
         uses: codecov/codecov-action@v5
         with:

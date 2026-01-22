@@ -2,12 +2,18 @@ name: Docs check
 
 on:
   workflow_call:
+    secrets:
+      APIFY_SIGNING_TOKEN:
+        description: Token for signing Apify packages.
+        required: false
     inputs:
       python_version:
+        description: Python version to use for building docs.
         required: false
         type: string
-        default: "3.14" # The newest Python version.
+        default: "3.14"
       node_version:
+        description: Node.js version to use for building docs.
         required: false
         type: string
         default: "20"
