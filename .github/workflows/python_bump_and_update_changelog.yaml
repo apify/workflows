@@ -6,7 +6,7 @@ on:
       python_version:
         required: false
         type: string
-        default: "3.13" # The newest Python version.
+        default: "3.14" # The newest Python version.
       version_number:
         description: Version number of the new release (no leading "v")
         required: true

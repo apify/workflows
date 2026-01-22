@@ -29,6 +29,16 @@ on:
         description: Operating system to be used for codecov upload.
         required: true
         type: string
+      install_command:
+        description: Command to install Python dependencies.
+        required: false
+        type: string
+        default: uv run poe install-dev
+      run_tests_command:
+        description: Command to run integration tests.
+        required: false
+        type: string
+        default: uv run poe integration-tests-cov
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
 # This avoids exceeding API usage limits on the test user account.
@@ -73,10 +83,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python dependencies
-        run: make install-dev
+        run: ${{ inputs.install_command }}
 
       - name: Run integration tests
-        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests-cov
+        run: ${{ inputs.run_tests_command }}
         env:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}

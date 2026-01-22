@@ -7,6 +7,16 @@ on:
         description: List of Python versions to be used (stringified JSON array).
         required: true
         type: string
+      install_command:
+        description: Command to install Python dependencies.
+        required: false
+        type: string
+        default: uv run poe install-dev
+      lint_command:
+        description: Command to run lint check.
+        required: false
+        type: string
+        default: uv run poe lint
 
 jobs:
   lint_check:
@@ -31,7 +41,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python dependencies
-        run: make install-dev
+        run: ${{ inputs.install_command }}
 
       - name: Run lint check
-        run: make lint
+        run: ${{ inputs.lint_command }}
