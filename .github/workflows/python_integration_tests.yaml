@@ -73,11 +73,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python dependencies
-        run: make install-dev
+        run: uv run poe install-dev
 
       - name: Run integration tests
-        run: make INTEGRATION_TESTS_CONCURRENCY=8 integration-tests-cov
+        run: uv run poe integration-tests-cov
         env:
+          INTEGRATION_TESTS_CONCURRENCY: 8
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
 

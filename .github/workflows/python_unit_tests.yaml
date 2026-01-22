@@ -62,10 +62,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python dependencies
-        run: make install-dev
+        run: uv run poe install-dev
 
       - name: Run unit tests
-        run: make unit-tests-cov
+        run: uv run poe unit-tests-cov
 
       # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
       # is available (e.g. not for fork PRs).
