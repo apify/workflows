@@ -14,7 +14,17 @@ inputs:
   python_version:
     required: false
     type: string
-    default: "3.13" # The newest Python version.
+    default: "3.14" # The newest Python version.
+  install_command:
+    description: Command to install Python dependencies.
+    required: false
+    type: string
+    default: uv run poe install-dev
+  build_command:
+    description: Command to build package.
+    required: false
+    type: string
+    default: uv run poe build
 
 runs:
   using: composite
@@ -36,7 +46,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
-      run: make install-dev
+      run: ${{ inputs.install_command }}
 
     # Updates the version number in the project's configuration.
     - name: Set version in pyproject.toml
@@ -66,4 +76,4 @@ runs:
     # Builds the package.
     - name: Build package
       shell: bash
-      run: make build
+      run: ${{ inputs.build_command }}

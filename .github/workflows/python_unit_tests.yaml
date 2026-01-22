@@ -26,6 +26,16 @@ on:
         description: Operating system to be used for codecov upload.
         required: true
         type: string
+      install_command:
+        description: Command to install Python dependencies.
+        required: false
+        type: string
+        default: uv run poe install-dev
+      run_tests_command:
+        description: Command to run unit tests.
+        required: false
+        type: string
+        default: uv run poe unit-tests-cov
 
 jobs:
   unit_tests:
@@ -62,10 +72,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Python dependencies
-        run: uv run poe install-dev
+        run: ${{ inputs.install_command }}
 
       - name: Run unit tests
-        run: uv run poe unit-tests-cov
+        run: ${{ inputs.run_tests_command }}
 
       # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
       # is available (e.g. not for fork PRs).
