@@ -3,7 +3,7 @@ name: Lint check
 on:
   workflow_call:
     inputs:
-      python-versions:
+      python_versions:
         description: List of Python versions to be used (stringified JSON array).
         required: true
         type: string
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ${{ fromJSON(inputs.python-versions)}}
+        python-version: ${{ fromJSON(inputs.python_versions) }}
 
     steps:
       - name: Checkout repository

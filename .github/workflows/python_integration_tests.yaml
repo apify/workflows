@@ -10,25 +10,27 @@ on:
         description: Apify API token for a secondary test user, used in multi-user scenarios (e.g. sharing restricted storage).
         required: false
       CODECOV_TOKEN:
-        required: false
         description: Token for uploading coverage reports to Codecov.
+        required: false
     inputs:
-      python-versions:
+      python_versions:
         description: List of Python versions to be used (stringified JSON array).
         required: true
         type: string
-      operating-systems:
-        description: List of operating systems to be used.
+      operating_systems:
+        description: List of operating systems to be used (stringified JSON array).
         required: true
         type: string
-      python-version-for-codecov:
-        description: Python version to be used for codecov upload.
-        required: true
+      python_version_for_codecov:
+        description: Python version to use for codecov upload. Leave empty to skip codecov.
+        required: false
         type: string
-      operating-system-for-codecov:
-        description: Operating system to be used for codecov upload.
-        required: true
+        default: ""
+      operating_system_for_codecov:
+        description: Operating system to use for codecov upload. Leave empty to skip codecov.
+        required: false
         type: string
+        default: ""
       install_command:
         description: Command to install Python dependencies.
         required: false
@@ -39,6 +41,11 @@ on:
         required: false
         type: string
         default: uv run poe integration-tests-cov
+      tests_concurrency:
+        description: Number of parallel test processes. Uses pytest-xdist numprocesses value.
+        required: false
+        type: string
+        default: auto
 
 # Concurrency control to ensure only one instance of this workflow runs at a time.
 # This avoids exceeding API usage limits on the test user account.
@@ -59,13 +66,14 @@ jobs:
 
     strategy:
       matrix:
-        os: ${{ fromJSON(inputs.operating-systems) }}
-        python-version: ${{ fromJSON(inputs.python-versions) }}
+        os: ${{ fromJSON(inputs.operating_systems) }}
+        python-version: ${{ fromJSON(inputs.python_versions) }}
       max-parallel: 1 # No parallel tests to avoid exceeding API limits.
 
     runs-on: ${{ matrix.os }}
 
     env:
+      TESTS_CONCURRENCY: ${{ inputs.tests_concurrency }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     steps:
@@ -91,13 +99,15 @@ jobs:
           APIFY_TEST_USER_API_TOKEN: ${{ secrets.APIFY_TEST_USER_PYTHON_SDK_API_TOKEN }}
           APIFY_TEST_USER_2_API_TOKEN: ${{ secrets.APIFY_TEST_USER_2_API_TOKEN }}
 
-      # Upload coverage only for the ubuntu-latest and latest Python, and only when the Codecov token
+      # Upload coverage only for the specified OS and Python version, and only when the Codecov token
       # is available (e.g. not for fork PRs).
       - name: Upload integration test coverage
         if: >-
           ${{
-            matrix.os == inputs.operating-system-for-codecov &&
-            matrix.python-version == inputs.python-version-for-codecov &&
+            inputs.operating_system_for_codecov != '' &&
+            inputs.python_version_for_codecov != '' &&
+            matrix.os == inputs.operating_system_for_codecov &&
+            matrix.python-version == inputs.python_version_for_codecov &&
             env.CODECOV_TOKEN != ''
           }}
         uses: codecov/codecov-action@v5
