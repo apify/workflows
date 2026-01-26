@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'execute-workflow/**'
+      - 'wait-for-checks/**'
 
 permissions:
   contents: write
@@ -25,20 +26,28 @@ jobs:
         with:
           node-version: '24'
           cache: 'npm'
-          cache-dependency-path: execute-workflow/package-lock.json
+          cache-dependency-path: |
+            execute-workflow/package-lock.json
+            wait-for-checks/package-lock.json
 
-      - name: Install dependencies
+      - name: Install and build execute-workflow
         working-directory: execute-workflow
-        run: npm ci
+        run: |
+          npm ci
+          npm run build
 
-      - name: Rebuild dist
-        working-directory: execute-workflow
-        run: npm run build
+      - name: Install and build wait-for-checks
+        working-directory: wait-for-checks
+        run: |
+          npm ci
+          npm run build
 
       - name: Commit and push if changed
         uses: EndBug/add-and-commit@v9
         with:
           author_name: Apify Release Bot
           author_email: noreply@apify.com
-          message: "chore: rebuild execute-workflow dist [skip ci]"
-          add: 'execute-workflow/dist/'
+          message: "chore: rebuild js actions dist [skip ci]"
+          add: |
+            execute-workflow/dist/
+            wait-for-checks/dist/
