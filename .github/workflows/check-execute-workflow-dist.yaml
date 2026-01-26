@@ -38,7 +38,7 @@ jobs:
       - name: Commit and push if changed
         uses: EndBug/add-and-commit@v9
         with:
-          author_name: Apify Release Bot
-          author_email: noreply@apify.com
+          author_name: github-actions[bot]
+          author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: rebuild execute-workflow dist [skip ci]"
           add: 'execute-workflow/dist/'
