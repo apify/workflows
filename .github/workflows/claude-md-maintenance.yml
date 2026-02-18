@@ -32,7 +32,7 @@ jobs:
 
       - name: Generate CLAUDE.md
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.CLAUDE_MD_MAINTENANCE_ANTHROPIC_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLAUDE_CODE_NON_INTERACTIVE: "1"
         run: |
           PROMPT=$(cat .github/prompts/claude-md-system-prompt.md)
