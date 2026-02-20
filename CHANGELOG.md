@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.36.0](https://github.com/apify/workflows/compare/v0.35.1...v0.36.0) (2026-02-20)
+
+
+### Features
+
+* Add CLAUDE.md generation workflow and system prompt documentation ([#245](https://github.com/apify/workflows/issues/245)) ([eb355ff](https://github.com/apify/workflows/commit/eb355fff70217f9a63c5ad99024f9e02749fe92a))
+* Add execute-workflow action ([#228](https://github.com/apify/workflows/issues/228)) ([1751282](https://github.com/apify/workflows/commit/1751282df5a42a2035bd924e63828d47797a5c60))
+
+
+### Bug Fixes
+
+* Allow fork PRs to run without CODECOV_TOKEN ([#240](https://github.com/apify/workflows/issues/240)) ([11e564c](https://github.com/apify/workflows/commit/11e564c241f12e29f55aad62fdef693c3b893840))
+* Exclude `build` commit type from changelog generation ([#244](https://github.com/apify/workflows/issues/244)) ([da6b4d3](https://github.com/apify/workflows/commit/da6b4d3e814e80f493e037c0317ad764889a19fd))
+* Fix git cliff release workflow ([#239](https://github.com/apify/workflows/issues/239)) ([e86aabf](https://github.com/apify/workflows/commit/e86aabf1093a8ba778a09f10995fc6f4695be5d1))
+* Update actions/checkout to v6 and enhance CLAUDE.md generation prompt ([#246](https://github.com/apify/workflows/issues/246)) ([8fe53fc](https://github.com/apify/workflows/commit/8fe53fc75cfd2b1da98f12269a7b863c4370c7c3))
+
 ## [0.35.1](https://github.com/apify/workflows/compare/v0.35.0...v0.35.1) (2025-10-09)
 
 
