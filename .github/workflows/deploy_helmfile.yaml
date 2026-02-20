@@ -122,7 +122,7 @@ jobs:
 
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v1.27.1
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
@@ -168,7 +168,7 @@ jobs:
       - name: setup dependencies
         env:
           # renovate: datasource=github-releases depName=eksctl-io/eksctl
-          EKSCTL_VERSION: v0.210.0
+          EKSCTL_VERSION: v0.223.0
           # renovate: datasource=github-releases depName=helmfile/helmfile
           HELMFILE_VERSION: ${{ inputs.helmfileVersion }}
           # renovate: datasource=github-releases depName=databus23/helm-diff
@@ -289,7 +289,7 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
+        uses: slackapi/slack-github-action@v1.27.1
         env:
           SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
