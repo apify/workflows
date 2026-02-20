@@ -29,7 +29,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: open release pull-request
-        uses: apify/release-pr-action@v3.2.0
+        uses: apify/release-pr-action@v3.5.0
         with:
           github-token: ${{ secrets.githubToken }}
           changelog-scopes: ${{ inputs.changelogScopes }}
