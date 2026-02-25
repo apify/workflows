@@ -26,7 +26,7 @@ on:
 
 env:
   # renovate: datasource=github-releases depName=helmfile/helmfile
-  HELMFILE_VERSION: v0.171.0
+  HELMFILE_VERSION: v1.3.2
 
 jobs:
   lint:
