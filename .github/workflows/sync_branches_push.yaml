@@ -64,7 +64,7 @@ jobs:
           git config pull.rebase false
 
           git switch ${{ inputs.baseBranch }}
-          git pull origin ${HEAD_BRANCH} --no-edit
+          git pull origin ${HEAD_BRANCH} --no-edit --no-ff
           git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${{ inputs.baseBranch }}:${{ inputs.baseBranch }}
 
       - name: report failure to slack
