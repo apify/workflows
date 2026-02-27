@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.1](https://github.com/apify/workflows/compare/v0.36.0...v0.36.1) (2026-02-27)
+
+
+### Bug Fixes
+
+* **sync_branches:** always sync with merge commit ([#249](https://github.com/apify/workflows/issues/249)) ([9305611](https://github.com/apify/workflows/commit/930561131ebd56964ac3ed056bad8ad28955933a))
+
 ## [0.36.0](https://github.com/apify/workflows/compare/v0.35.1...v0.36.0) (2026-02-20)
 
 
