@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.36.2](https://github.com/apify/workflows/compare/v0.36.1...v0.36.2) (2026-03-05)
+
+
+### Bug Fixes
+
+* bump release-pr-action with a fix ([#254](https://github.com/apify/workflows/issues/254)) ([3bb8d2a](https://github.com/apify/workflows/commit/3bb8d2a3b85ab874b79a158980ea85fbba2770f0))
+* **git-cliff-release:** add emojis for breaking changes of skipped commit types ([#256](https://github.com/apify/workflows/issues/256)) ([88fa65b](https://github.com/apify/workflows/commit/88fa65b8d123d5103daa5348ed89b16e755c2cff))
+
 ## [0.36.1](https://github.com/apify/workflows/compare/v0.36.0...v0.36.1) (2026-02-27)
 
 
