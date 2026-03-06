@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.36.3](https://github.com/apify/workflows/compare/v0.36.2...v0.36.3) (2026-03-06)
+
+
+### Bug Fixes
+
+* Fix changelog generation for non-breaking chnages ([#257](https://github.com/apify/workflows/issues/257)) ([69fcbcf](https://github.com/apify/workflows/commit/69fcbcf6064612ccab31354facf3d6e234f0a90a))
+
 ## [0.36.2](https://github.com/apify/workflows/compare/v0.36.1...v0.36.2) (2026-03-05)
 
 
