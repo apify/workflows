@@ -25,7 +25,7 @@ on:
         description: Github OIDC role ARN
         required: false
         type: string
-        default: "arn:aws:iam::031263542130:role/GithubOIDCRole"
+        default: ""
       awsRegion:
         description: AWS region
         required: false
