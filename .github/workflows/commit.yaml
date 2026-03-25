@@ -72,7 +72,7 @@ jobs:
         with:
           repository: ${{ inputs.repository }}
           token: ${{ secrets.github-token }}
-          ref: ${{ case(inputs.create-branch, null, inputs.branch) }}
+          ref: ${{ !inputs.create-branch && inputs.branch || '' }}
 
       - name: Create and checkout target branch
         if: ${{ inputs.create-branch }}
