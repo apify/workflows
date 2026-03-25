@@ -64,7 +64,7 @@ on:
         required: true
 
 jobs:
-  commit_though_github_api:
+  commit_through_github_api:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: Shallow clone the repo
@@ -160,4 +160,4 @@ jobs:
                 },
             });
 
-            core.info(`sucessfully created commit "${response.createCommitOnBranch.commit.oid}" on branch ${BRANCH}`);
+            core.info(`successfully created commit "${response.createCommitOnBranch.commit.oid}" on branch ${BRANCH}`);
