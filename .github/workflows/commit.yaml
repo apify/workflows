@@ -1,0 +1,163 @@
+name: Make a commit
+
+# This workflow allows to make a commit through the GitHub API.
+# It exists for one simple reason: the commits made this way are
+# automatically signed by GitHub without the need to provide custom
+# managed GPG signing keys.
+#
+# Usage:
+#
+# my_commit_job:
+#   outputs:
+#     patch: ${{ steps.generate-git-patch.outputs.patch }}
+#   steps:
+#     ...
+#     - name: Commit and generate patch
+#       id: generate-git-patch
+#       run: |
+#         # You can put anything here, in the end the commit is going to be assigned
+#         # to the `github-token` owner.
+#         git config user.name "github-actions[bot]"
+#         git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+#
+#         git add .
+#         git commit -m "chore(deploy): bump application version [ignore]" # or whatever
+#
+#         patch=$(git format-patch -n1 --stdout HEAD | base64 -w0)
+#         echo "patch=$patch" >> "$GITHUB_OUTPUT"
+#
+# my_actually_does_commit_job:
+#   needs:
+#     - my_commit_job
+#   uses: apify/workflows/.github/workflows/commit.yaml@v...
+#   with:
+#     patch: ${{ needs.my_commit_job.outputs.patch }}
+#     branch: 'release/something-test-test-test'
+#     repository: ${{ github.repository }}
+#     create-branch: true
+#   secrets:
+#     github-token: ${{ needs.generate-app-token-or-whatever.outputs.token }}
+
+on:
+  workflow_call:
+    inputs:
+      patch:
+        description: Output of git-format-patch (use `git format-patch --stdout -1 HEAD` after commit).
+        type: string
+        required: true
+      branch:
+        type: string
+        required: true
+      repository:
+        description: The github.repository in the format <owner>/<repo name>.
+        type: string
+        required: true
+      create-branch:
+        description: Create the branch from inputs.branch. Will be based on repository HEAD. Otherwise just commit into existing branch.
+        type: boolean
+        default: false
+        required: false
+
+    secrets:
+      github-token:
+        description: Github token of the user/bot to commit under
+        required: true
+
+jobs:
+  commit_through_github_api:
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Shallow clone the repo
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.repository }}
+          token: ${{ secrets.github-token }}
+          ref: ${{ !inputs.create-branch && inputs.branch || '' }}
+
+      - name: Create and checkout target branch
+        if: ${{ inputs.create-branch }}
+        env:
+          TARGET_BRANCH: ${{ inputs.branch }}
+        run: |
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          git fetch --depth=1 origin "$TARGET_BRANCH:refs/heads/$TARGET_BRANCH"
+          git checkout "$TARGET_BRANCH"
+
+      - name: Get HEAD SHA
+        id: get-head-sha
+        run: echo "head_ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Apply commit from git patch
+        env:
+          PATCH: ${{ inputs.patch }}
+        run: base64 -d <<< "$PATCH" | git am
+
+      - name: Commit through API
+        uses: actions/github-script@v8
+        env:
+          REPO: ${{ inputs.repository }}
+          EXPECTED_HEAD_OID: ${{ steps.get-head-sha.outputs.head_ref }}
+          BRANCH: ${{ inputs.branch }}
+        with:
+          github-token: ${{ secrets.github-token }}
+          script: |
+            const { execSync } = require('node:child_process');
+            const { readFileSync } = require('node:fs');
+
+            const STATUS = { ADDED: 'A', DELETED: 'D', MODIFIED: 'M' };
+
+            const commitMessage = execSync('git log -n1 --pretty=%B', { encoding: 'utf8' }).trim();
+            const gitFileChanges = execSync('git diff-tree -r --no-commit-id --name-status --no-renames HEAD', { encoding: 'utf8' })
+                .split('\n')
+                .map((line) => line.split(/\s+/).map((part) => part.trim()))
+                .filter((lineSplit) => lineSplit.length === 2);
+
+            const fileChanges = { additions: [], deletions: [] };
+            for (const [status, fileName] of gitFileChanges) {
+                switch (status) {
+                    case STATUS.ADDED:
+                    case STATUS.MODIFIED:
+                        fileChanges.additions.push({
+                            path: fileName,
+                            contents: readFileSync(fileName, { encoding: 'base64' }),
+                        });
+                        break;
+
+                    case STATUS.DELETED:
+                        fileChanges.deletions.push({
+                            path: fileName,
+                        });
+                        break;
+
+                    default:
+                        throw new Error(`unknown git file change status "${status}"`);
+                }
+            }
+
+            const { BRANCH, EXPECTED_HEAD_OID, REPO } = process.env;
+            const messageLines = commitMessage.split('\n');
+
+            const response = await github.graphql(`\
+                mutation Commit($input: CreateCommitOnBranchInput!) {
+                    createCommitOnBranch(input: $input) {
+                        commit {
+                            oid
+                        }
+                    }
+                }
+            `, {
+                input: {
+                    fileChanges,
+                    branch: {
+                        branchName: BRANCH,
+                        repositoryNameWithOwner: REPO,
+                    },
+                    expectedHeadOid: EXPECTED_HEAD_OID,
+                    message: {
+                        headline: messageLines[0],
+                        body: messageLines.slice(1).join('\n'),
+                    },
+                },
+            });
+
+            core.info(`successfully created commit "${response.createCommitOnBranch.commit.oid}" on branch ${BRANCH}`);
