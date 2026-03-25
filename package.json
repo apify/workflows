@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@actions/core": "^3.0.0",
+    "@octokit/rest": "^22.0.1",
+    "@types/node": "^25.5.0",
+    "jest": "^30.3.0",
+    "typescript": "^6.0.2"
+  }
+}
