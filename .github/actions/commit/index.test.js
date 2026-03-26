@@ -25,6 +25,6 @@ describe('signed commit action', () => {
         expect(fileStatuses.some(([status, path]) => path === 'new_file' && status === FILE_STATUS.ADDED)).toBeTruthy();
         expect(fileStatuses.some(([status, path]) => path === '.gitignore' && status === FILE_STATUS.MODIFIED)).toBeTruthy();
         expect(fileStatuses.some(([status, path]) => path === '.gitignore.bak' && status === FILE_STATUS.ADDED)).toBeTruthy();
-        expect(fileStatuses.some(([status, path]) => path === 'package-lock.json' && status === FILE_STATUS.REMOVED)).toBeTruthy();
+        expect(fileStatuses.some(([status, path]) => path === 'package-lock.json' && status === FILE_STATUS.DELETED)).toBeTruthy();
     });
 });

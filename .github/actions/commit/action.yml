@@ -1,5 +1,5 @@
-name: 'API Committer'
-description: 'Commits a git patch via the GitHub GraphQL API for verified signatures'
+name: Commit
+description: Creates a commit from the staged files though the Github GraphQL API (automatically signed)
 inputs:
   commit-message:
     required: true
@@ -19,7 +19,7 @@ inputs:
     required: true
 
 runs:
-  using: "composite"
+  using: composite
   steps:
     - name: Create and checkout target branch
       if: ${{ inputs.create-branch == 'true' }}

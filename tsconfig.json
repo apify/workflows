@@ -3,7 +3,7 @@
     "module": "nodenext",
     "target": "esnext",
     "lib": ["esnext"],
-    "types": ["node"],
+    "types": ["node", "jest"],
     "strict": true,
     "checkJs": true,
     "noUnusedLocals": true,
