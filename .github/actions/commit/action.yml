@@ -1,0 +1,53 @@
+name: Commit
+description: Creates a commit from the staged files though the Github GraphQL API (automatically signed)
+inputs:
+  commit-message:
+    required: true
+    description: The commit message
+  branch:
+    description: 'Target branch name'
+    required: true
+  repository:
+    description: 'Format: <owner>/<repo>'
+    required: true
+  create-branch:
+    description: 'Create branch if it does not exist'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'Token to authenticate API calls'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Create and checkout target branch
+      if: ${{ inputs.create-branch == 'true' }}
+      shell: bash
+      run: |
+        git push origin "HEAD:refs/heads/${{ inputs.branch }}"
+        git fetch --depth=1 origin "${{ inputs.branch }}:refs/heads/${{ inputs.branch }}"
+        git checkout "${{ inputs.branch }}"
+
+    - name: Get HEAD SHA
+      id: get-head-sha
+      shell: bash
+      run: echo "head_ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+    - name: Commit through API
+      uses: actions/github-script@v8
+      env:
+        COMMIT_MESSAGE: ${{ inputs.commit-message }}
+        REPO: ${{ inputs.repository }}
+        EXPECTED_HEAD_OID: ${{ steps.get-head-sha.outputs.head_ref }}
+        BRANCH: ${{ inputs.branch }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const { main } = require('${{ github.action_path }}/index.js');
+
+          await main({
+              github,
+              core,
+              env: process.env,
+          });

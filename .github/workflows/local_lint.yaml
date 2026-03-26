@@ -1,0 +1,40 @@
+name: lint workflows
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+jobs:
+  lint_actions:
+    uses: ./.github/workflows/lint_gh_actions.yaml
+    with:
+      extraArgs: >
+        -ignore 'label "ubuntu-22.04-arm64" is unknown. .+'
+        -ignore 'property "aws_.+" is not defined in .+'
+
+  test_actions:
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          check-latest: true
+
+      - name: Install dependencies
+        run: npm clean-install --ignore-scripts
+
+      - name: Typecheck
+        run: ./node_modules/.bin/tsc --noEmit
+
+      - name: Run action tests
+        run: ./node_modules/.bin/jest .github/actions
+
