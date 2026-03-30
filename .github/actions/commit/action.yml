@@ -23,10 +23,16 @@ runs:
   steps:
     - name: Create and checkout target branch
       if: ${{ inputs.create-branch == 'true' }}
+      # The `shell` field is for some reason required when
+      # using composite actions. :)
       shell: bash
       run: |
         git push origin "HEAD:refs/heads/${{ inputs.branch }}"
         git fetch --depth=1 origin "${{ inputs.branch }}:refs/heads/${{ inputs.branch }}"
+
+    - name: Checkout branch
+      shell: bash
+      run: |
         git checkout "${{ inputs.branch }}"
 
     - name: Get HEAD SHA
