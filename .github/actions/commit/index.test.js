@@ -9,6 +9,7 @@ describe('signed commit action', () => {
     afterEach(async () => {
         await exec('git reset .');
         await exec('git checkout -- .');
+        await exec('git clean -fd');
     });
 
     it('correctly diffs files', async () => {

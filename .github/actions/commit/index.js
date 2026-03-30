@@ -104,13 +104,22 @@ async function status() {
 
     return stagedFileStatuses.split('\n')
         .map((line) => {
-            const parts = line.split(/\s+/);
-            if (parts.length !== 2) {
+            // The file path can contain spaces. We should only split by
+            // the first occurrence of a white space character.
+            const columnDelimiter = line.search(/\s+/);
+            if (columnDelimiter === -1) {
+                return null;
+            }
+
+            const status = line.slice(0, columnDelimiter);
+            const path = line.slice(columnDelimiter + 1);
+
+            if (!status || !path) {
                 return null;
             }
 
             /** @type {[string, string]} */
-            const it = [parts[0], parts[1]];
+            const it = [status, path];
 
             return it;
         })
