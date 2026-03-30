@@ -28,4 +28,14 @@ describe('signed commit action', () => {
         expect(fileStatuses.some(([status, path]) => path === '.gitignore.bak' && status === FILE_STATUS.ADDED)).toBeTruthy();
         expect(fileStatuses.some(([status, path]) => path === 'package-lock.json' && status === FILE_STATUS.DELETED)).toBeTruthy();
     });
+
+    it('handles paths with whitespace', async () => {
+        const fileName = 'file with spaces.txt';
+
+        await exec(`echo "some content" > '${fileName}'`);
+        await exec(`git add '${fileName}'`);
+
+        const fileStatuses = await status();
+        expect(fileStatuses.at(0)).toEqual([FILE_STATUS.ADDED, fileName]);
+    });
 });
