@@ -50,7 +50,7 @@ runs:
       with:
         github-token: ${{ inputs.github-token }}
         script: |
-          const { main } = require('${{ github.action_path }}/index.js');
+          const { main } = require('${{ github.action_path }}/index.mts');
 
           await main({
               github,

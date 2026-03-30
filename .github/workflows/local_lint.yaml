@@ -36,5 +36,5 @@ jobs:
         run: ./node_modules/.bin/tsc --noEmit
 
       - name: Run action tests
-        run: ./node_modules/.bin/jest .github/actions
+        run: ./node_modules/.bin/vitest .github/actions
 

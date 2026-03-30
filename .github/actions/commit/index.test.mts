@@ -1,7 +1,9 @@
-const util = require('node:util');
-const childProcess = require('node:child_process');
+import * as util from 'node:util';
+import * as childProcess from 'node:child_process';
 
-const { status, FILE_STATUS } = require('./index.js');
+import { describe, afterEach, it, expect } from 'vitest';
+
+import { status, FILE_STATUS } from './index.mts';
 
 const exec = util.promisify(childProcess.exec);
 

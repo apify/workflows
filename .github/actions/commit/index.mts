@@ -1,19 +1,20 @@
-const util = require('node:util');
-const childProcess = require('node:child_process');
-const fs = require('node:fs/promises');
+import * as util from 'node:util';
+import * as childProcess from 'node:child_process';
+import * as fs from 'node:fs/promises';
+
+import type { Octokit } from '@octokit/rest';
+import type * as Core from '@actions/core';
 
 const exec = util.promisify(childProcess.exec);
 
-const FILE_STATUS = { ADDED: 'A', DELETED: 'D', MODIFIED: 'M' };
+export const FILE_STATUS = { ADDED: 'A', DELETED: 'D', MODIFIED: 'M' };
 
-/**
- * @param {{
- *      core: import('@actions/core'),
- *      github: import('@octokit/rest').Octokit,
- *      env: Record<string, string>,
- * }} _
- */
-async function main({ github, env, core }) {
+type FileChanges = {
+    additions: { path: string; contents: string; }[];
+    deletions: { path: string; }[];
+};
+
+export async function main({ github, env, core }: { github: Octokit, env: Record<string, string>, core: typeof Core }) {
     const {
         COMMIT_MESSAGE,
         REPO,
@@ -21,13 +22,7 @@ async function main({ github, env, core }) {
         BRANCH,
     } = env;
 
-    /**
-     * @type {{
-     *    additions: { path: string, contents: string }[],
-     *    deletions: { path: string }[],
-     * }}
-     */
-    const fileChanges = { additions: [], deletions: [] };
+    const fileChanges: FileChanges = { additions: [], deletions: [] };
     const stagedFiles = await status();
 
     for (const [status, path] of stagedFiles) {
@@ -82,7 +77,7 @@ async function main({ github, env, core }) {
                 body: messageBody,
             },
         },
-    });
+    }) as any;
 
     const commitSha = response.createCommitOnBranch.commit.oid;
     core.info(`successfully pushed commit "${commitSha}"`);
@@ -92,10 +87,8 @@ async function main({ github, env, core }) {
 
 /**
  * Produces the list of staged files for committing in the format: `Array<[status, path]>`
- *
- * @return {Promise<[string, string][]>}
  */
-async function status() {
+export async function status(): Promise<Readonly<[string, string]>[]> {
     const cmd = [
         'git',
         'diff-index',
@@ -123,12 +116,7 @@ async function status() {
                 return null;
             }
 
-            /** @type {[string, string]} */
-            const it = [status, path];
-
-            return it;
+            return [status, path] as const;
         })
         .filter((it) => !!it);
 }
-
-module.exports = { main, status, FILE_STATUS };
