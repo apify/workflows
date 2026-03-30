@@ -7,11 +7,28 @@ import type * as Core from '@actions/core';
 
 const exec = util.promisify(childProcess.exec);
 
-export const FILE_STATUS = { ADDED: 'A', DELETED: 'D', MODIFIED: 'M' };
+// The other statuses are ignored:
+//   C: should not be produced, as we're using --no-renames,
+//   R: same as C,
+//   T: file type change (symlink, git submodule) -> this cannot be committed through the API,
+//   U: merge conflict,
+//   X: unknown - git bug.
+export const FILE_STATUS = { ADDED: 'A', DELETED: 'D', MODIFIED: 'M' } as const;
 
 type FileChanges = {
     additions: { path: string; contents: string; }[];
     deletions: { path: string; }[];
+};
+
+type GitFileStatus = {
+    // octal numbers
+    modeBefore: number;
+    modeAfter: number;
+
+    shaBefore: string;
+    shaAfter: string;
+    fileStatus: string;
+    filePath: string;
 };
 
 export async function main({ github, env, core }: { github: Octokit, env: Record<string, string>, core: typeof Core }) {
@@ -25,23 +42,28 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
     const fileChanges: FileChanges = { additions: [], deletions: [] };
     const stagedFiles = await status();
 
-    for (const [status, path] of stagedFiles) {
-        switch (status) {
+    for (const { filePath, fileStatus, modeBefore, modeAfter } of stagedFiles) {
+        // changes in the file mode cannot be committed though the GitHub API
+        if (fileStatus === FILE_STATUS.MODIFIED && modeBefore !== modeAfter) {
+            throw new Error(`file mode for "${filePath}" changed, this change cannot be commited using this action`);
+        }
+
+        switch (fileStatus) {
             case FILE_STATUS.ADDED:
             case FILE_STATUS.MODIFIED:
                 fileChanges.additions.push({
-                    path,
-                    contents: await fs.readFile(path, { encoding: 'base64' }),
+                    path: filePath,
+                    contents: await fs.readFile(filePath, { encoding: 'base64' }),
                 });
 
                 break;
 
             case FILE_STATUS.DELETED:
-                fileChanges.deletions.push({ path });
+                fileChanges.deletions.push({ path: filePath });
                 break;
 
             default:
-                throw new Error(`unexpected file status "${status}"`);
+                throw new Error(`unexpected file status "${fileStatus}"`);
         }
     }
 
@@ -88,35 +110,36 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
 /**
  * Produces the list of staged files for committing in the format: `Array<[status, path]>`
  */
-export async function status(): Promise<Readonly<[string, string]>[]> {
+export async function status(options: Omit<childProcess.ExecOptions, 'encoding'> = {}): Promise<GitFileStatus[]> {
     const cmd = [
         'git',
         'diff-index',
         '--cached',      // only from the staging area (added files)
-        '--name-status', // show file name and status (from FILE_STATUS)
         '--no-renames',  // do not track file renames (copy/move) - we only need added / removed
         'HEAD',
     ];
 
-    const stagedFileStatuses = (await exec(cmd.join(' '), { encoding: 'utf8' })).stdout.trim();
+    const stagedFileStatuses = (await exec(cmd.join(' '), { encoding: 'utf8', ...options })).stdout.trim();
 
+    // see: man git-diff-index(1) - section RAW OUTPUT FORMAT
     return stagedFileStatuses.split('\n')
         .map((line) => {
-            // The file path can contain spaces. We should only split by
-            // the first occurrence of a white space character.
-            const columnDelimiter = line.search(/\s+/);
-            if (columnDelimiter === -1) {
+            const tabSplit = line.split('\t');
+            if (tabSplit.length !== 2) {
                 return null;
             }
 
-            const status = line.slice(0, columnDelimiter);
-            const path = line.slice(columnDelimiter + 1);
+            const [info, filePath] = tabSplit;
+            const [modeBefore, modeAfter, shaBefore, shaAfter, fileStatus] = info.split(' ');
 
-            if (!status || !path) {
-                return null;
-            }
-
-            return [status, path] as const;
+            return {
+                modeBefore: parseInt(modeBefore.slice(1), 8),
+                modeAfter: parseInt(modeAfter, 8),
+                shaBefore,
+                shaAfter,
+                fileStatus,
+                filePath,
+            };
         })
         .filter((it) => !!it);
 }
