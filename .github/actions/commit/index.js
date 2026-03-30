@@ -50,7 +50,12 @@ async function main({ github, env, core }) {
         }
     }
 
-    core.info(`committing file changes: "${JSON.stringify(fileChanges, null, 4)}"`);
+    // Only log file paths not the base64 encoded file contents.
+    const changedPaths = {
+        additions: fileChanges.additions.map(({ path }) => path),
+        deletions: fileChanges.deletions.map(({ path }) => path),
+    };
+    core.info(`committing file changes: "${JSON.stringify(changedPaths, null, 4)}"`);
 
     const commitMessageLines = COMMIT_MESSAGE.split('\n');
     const messageTitle = commitMessageLines[0];
