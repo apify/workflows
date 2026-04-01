@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "@actions/core": "^3.0.0",
+    "@octokit/rest": "^22.0.1",
+    "@types/node": "^25.5.0",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  }
+}
