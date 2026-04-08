@@ -22,7 +22,7 @@ describe('signed commit action', () => {
         await doExec(`\
             git init
             git config user.name "test"
-            git config user.name "test@apify.com"
+            git config user.email "test@apify.com"
 
             git commit --no-gpg-sign --allow-empty -m "initial message"
         `);
@@ -112,7 +112,7 @@ describe('signed commit action', () => {
         `);
 
         await fs.chmod(filePath, 0o755);
-        await doExec(`git add ${filePath}`);
+        await doExec(`git add ${theFile}`);
 
         const statuses = await status({ cwd: repoDir });
 

@@ -1,5 +1,5 @@
 name: Commit
-description: Creates a commit from the staged files though the Github GraphQL API (automatically signed)
+description: Creates a commit from the staged files through the GitHub GraphQL API (automatically signed)
 inputs:
   commit-message:
     required: true
