@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.38.0](https://github.com/apify/workflows/compare/v0.37.0...v0.38.0) (2026-04-08)
+
+
+### Features
+
+* Update `actionlint` to support schedule timezones ([#263](https://github.com/apify/workflows/issues/263)) ([4bc301a](https://github.com/apify/workflows/commit/4bc301a86b94261170d702f0d2f1e5d07c31d5f6))
+
 ## [0.37.0](https://github.com/apify/workflows/compare/v0.36.2...v0.37.0) (2026-03-11)
 
 
