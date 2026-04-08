@@ -1,19 +1,23 @@
 {
-  "compilerOptions": {
-    "module": "nodenext",
-    "target": "esnext",
-    "lib": ["esnext"],
-    "types": ["node"],
-    "strict": true,
-    "checkJs": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
-  },
-  "include": [".github/actions/**/*.mts"]
+    "extends": "@apify/tsconfig",
+    "compilerOptions": {
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "target": "esnext",
+        "types": ["node"],
+        "checkJs": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "noUncheckedSideEffectImports": true,
+        "moduleDetection": "force",
+        "skipLibCheck": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true
+    },
+    "include": [
+        ".github/actions/**/*.mts",
+        ".github/actions/**/*.ts",
+        ".github/actions/**/*.mjs",
+        ".github/actions/**/*.js"
+    ]
 }

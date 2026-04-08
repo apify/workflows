@@ -29,12 +29,15 @@ jobs:
           node-version: 'lts/*'
           check-latest: true
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
       - name: Install dependencies
-        run: npm clean-install --ignore-scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Typecheck
-        run: ./node_modules/.bin/tsc --noEmit
+        run: pnpm run actions:type-check
 
-      - name: Run action tests
-        run: ./node_modules/.bin/vitest .github/actions
+      - name: Test
+        run: pnpm run actions:test
 
