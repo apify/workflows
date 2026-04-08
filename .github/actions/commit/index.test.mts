@@ -128,9 +128,13 @@ describe('signed commit action', () => {
             0o600,
         ];
 
-        await Promise.all(validModes.map(
-            (mode) => fs.open(path.join(repoDir, `test-file-with-mode-${mode.toString(8)}`), 'w', mode),
-        ));
+        await Promise.all(validModes.map((mode) => {
+            return fs.writeFile(
+                path.join(repoDir, `test-file-with-mode-${mode.toString(8)}`),
+                '',
+                { flag: 'w', mode },
+            );
+        }));
 
         await doExec('git add .');
         const statuses = await status({ cwd: repoDir });
