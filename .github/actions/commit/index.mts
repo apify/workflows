@@ -36,6 +36,8 @@ const MODE_RW = 0o100644;
 /**
  * Since the GitHub API only supports committing file contents, there is no way to specify executable files.
  * This function checks whether the staging area contains only files with valid (rw-r--r--) mode.
+ *
+ * NOTE: git does not store the actual POSIX file modes. It only stores an executable flag. (for regular files)
  */
 export function checkSupportedFileModes(status: GitFileStatus) {
     if (status.fileStatus === FILE_STATUS.ADDED && status.modeAfter !== MODE_RW) {
