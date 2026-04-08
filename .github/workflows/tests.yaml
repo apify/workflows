@@ -6,11 +6,6 @@ on:
       # TODO: All these inputs are not entirely necessary, they are just there for convenience of "setup Node.js" step,
       #       where they are required. Making them optional requires additional logic, that might be un-necessary for our purposes
       #       Best would be if "actions/setup-node" would be able to parse these from .npmrc and .nvmrc (except token of course)
-      npmAuth:
-        description: Whether to authenticate to NPM registry
-        required: false
-        type: boolean
-        default: true
       nodeVersionFile:
         description: Path to node version file
         required: false
@@ -121,7 +116,6 @@ jobs:
       - name: setup Node.js
         uses: actions/setup-node@v6
         with:
-          always-auth: ${{ inputs.npmAuth }}
           node-version-file: ${{ inputs.nodeVersionFile }}
           registry-url: ${{ inputs.npmRegistryUrl }}
           scope: ${{ inputs.npmScope }}
