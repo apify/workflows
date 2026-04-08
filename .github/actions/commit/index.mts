@@ -124,7 +124,7 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
 }
 
 /**
- * Produces the list of staged files for committing in the format: `Array<[status, path]>`
+ * Produces the list of staged files for committing.
  */
 export async function status(options: Omit<childProcess.ExecOptions, 'encoding'> = {}): Promise<GitFileStatus[]> {
     const cmd = [
