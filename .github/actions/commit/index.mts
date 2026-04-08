@@ -31,6 +31,22 @@ type GitFileStatus = {
     filePath: string;
 };
 
+const MODE_RW = 0o100644;
+
+/**
+ * Since the GitHub API only supports committing file contents, there is no way to specify executable files.
+ * This function checks whether the staging area contains only files with valid (rw-r--r--) mode.
+ */
+export function checkSupportedFileModes(status: GitFileStatus) {
+    if (status.fileStatus === FILE_STATUS.ADDED && status.modeAfter !== MODE_RW) {
+        throw new Error(`Detected unsupported file mode "${status.modeAfter.toString(8)}": "${status.filePath}". The GitHub API does not provide a way to define custom file modes.`);
+    }
+
+    if (status.fileStatus === FILE_STATUS.MODIFIED && status.modeBefore !== status.modeAfter) {
+        throw new Error(`Detected file mode change "${status.modeBefore.toString(8)}" -> "${status.modeAfter.toString(8)}": "${status.filePath}". The GitHub API does not provide a way to define custom file modes.`);
+    }
+}
+
 export async function main({ github, env, core }: { github: Octokit, env: Record<string, string>, core: typeof Core }) {
     const {
         COMMIT_MESSAGE,
@@ -42,11 +58,9 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
     const fileChanges: FileChanges = { additions: [], deletions: [] };
     const stagedFiles = await status();
 
-    for (const { filePath, fileStatus, modeBefore, modeAfter } of stagedFiles) {
-        // changes in the file mode cannot be committed though the GitHub API
-        if (fileStatus === FILE_STATUS.MODIFIED && modeBefore !== modeAfter) {
-            throw new Error(`file mode for "${filePath}" changed, this change cannot be commited using this action`);
-        }
+    for (const file of stagedFiles) {
+        checkSupportedFileModes(file);
+        const { filePath, fileStatus } = file;
 
         switch (fileStatus) {
             case FILE_STATUS.ADDED:

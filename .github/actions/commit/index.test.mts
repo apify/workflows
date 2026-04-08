@@ -6,7 +6,7 @@ import * as childProcess from 'node:child_process';
 
 import { describe, afterEach, beforeEach, it, expect } from 'vitest';
 
-import { status, FILE_STATUS } from './index.mts';
+import { status, FILE_STATUS, checkSupportedFileModes } from './index.mts';
 
 const exec = util.promisify(childProcess.exec);
 
@@ -88,5 +88,53 @@ describe('signed commit action', () => {
         expect(theFile).toBeTruthy();
         expect(theFile!.fileStatus).toEqual(FILE_STATUS.ADDED);
         expect(theFile!.filePath).toEqual(fileName);
+    });
+
+    it('throws when executable files are staged', async () => {
+        const executableFile = 'exe-test';
+
+        await fs.writeFile(path.join(repoDir, executableFile), '', { flag: 'w', mode: 0o755 });
+        await doExec(`git add ${executableFile}`);
+
+        const statuses = await status({ cwd: repoDir });
+
+        expect(() => statuses.forEach(checkSupportedFileModes)).toThrow();
+    });
+
+    it('throws when file is made executable', async () => {
+        const theFile = 'test-file';
+        const filePath = path.join(repoDir, theFile);
+
+        await fs.writeFile(filePath, '', { flag: 'w', mode: 0o644 });
+        await doExec(`\
+            git add ${theFile}
+            git commit --no-gpg-sign -m "add file as rw"
+        `);
+
+        await fs.chmod(filePath, 0o755);
+        await doExec(`git add ${filePath}`);
+
+        const statuses = await status({ cwd: repoDir });
+
+        expect(() => statuses.forEach(checkSupportedFileModes)).toThrow();
+    });
+
+    it('checks file modes and does not throw when correct', async () => {
+        const validModes = [
+            0o666,
+            0o644,
+            0o640,
+            0o604,
+            0o600,
+        ];
+
+        await Promise.all(validModes.map(
+            (mode) => fs.open(path.join(repoDir, `test-file-with-mode-${mode.toString(8)}`), 'w', mode),
+        ));
+
+        await doExec('git add .');
+        const statuses = await status({ cwd: repoDir });
+
+        expect(() => statuses.map(checkSupportedFileModes)).not.toThrow();
     });
 });
