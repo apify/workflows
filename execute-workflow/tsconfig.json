@@ -1,12 +1,14 @@
 {
+  "extends": "@apify/tsconfig",
   "compilerOptions": {
-    "target": "es2022",
-    "module": "commonjs",
-    "rootDir": "./",
-    "strict": true,
+    "module": "ES2022",
     "noImplicitAny": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true
+    "importHelpers": false,
+    "noEmitHelpers": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "strict": true,
+    "erasableSyntaxOnly": true,
   },
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules"]
 }

@@ -1,0 +1,23 @@
+{
+    "extends": "@apify/tsconfig",
+    "compilerOptions": {
+        "module": "nodenext",
+        "moduleResolution": "nodenext",
+        "target": "esnext",
+        "types": ["node"],
+        "checkJs": true,
+        "verbatimModuleSyntax": true,
+        "isolatedModules": true,
+        "noUncheckedSideEffectImports": true,
+        "moduleDetection": "force",
+        "skipLibCheck": true,
+        "noEmit": true,
+        "allowImportingTsExtensions": true
+    },
+    "include": [
+        ".github/actions/**/*.mts",
+        ".github/actions/**/*.ts",
+        ".github/actions/**/*.mjs",
+        ".github/actions/**/*.js"
+    ]
+}

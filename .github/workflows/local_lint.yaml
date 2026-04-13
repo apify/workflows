@@ -1,0 +1,43 @@
+name: lint workflows
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+jobs:
+  lint_actions:
+    uses: ./.github/workflows/lint_gh_actions.yaml
+    with:
+      extraArgs: >
+        -ignore 'label "ubuntu-22.04-arm64" is unknown. .+'
+        -ignore 'property "aws_.+" is not defined in .+'
+
+  test_actions:
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          check-latest: true
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Typecheck
+        run: pnpm run actions:type-check
+
+      - name: Test
+        run: pnpm run actions:test
+
