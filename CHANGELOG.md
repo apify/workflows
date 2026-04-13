@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.39.0](https://github.com/apify/workflows/compare/v0.38.0...v0.39.0) (2026-04-13)
+
+
+### Features
+
+* add signed commit composite action ([#261](https://github.com/apify/workflows/issues/261)) ([19abdfe](https://github.com/apify/workflows/commit/19abdfe3b311eba732c31f552dfbdbc2f85b8f51))
+
 ## [0.38.0](https://github.com/apify/workflows/compare/v0.37.0...v0.38.0) (2026-04-08)
 
 
