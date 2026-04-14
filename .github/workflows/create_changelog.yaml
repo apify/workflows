@@ -62,7 +62,7 @@ jobs:
     steps:
       - name: get changelog
         id: changelog
-        uses: apify/release-pr-action@v3.5.1
+        uses: apify/release-pr-action@v3.5.3
         with:
           slack-token: ${{ secrets.slackToken }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -77,13 +77,13 @@ jobs:
 
       - name: report failure to slack
         if: failure() && inputs.slackChannelIdForFailureMsg != ''
-        uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        uses: slackapi/slack-github-action@v3.0.1
         with:
-          channel-id: ${{ inputs.slackChannelIdForFailureMsg }}
+          method: chat.postMessage
+          token: ${{ secrets.slackToken }}
           payload: |
             {
+              "channel": "${{ inputs.slackChannelIdForFailureMsg }}",
               "text": ":red_circle: *${{ github.repository }} automated release action: ${{ job.status }}*",
               "attachments": [
                 {
