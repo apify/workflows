@@ -69,13 +69,13 @@ jobs:
 
       - name: report failure to slack
         if: ${{ failure() }}
-        uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        uses: slackapi/slack-github-action@v3.0.1
         with:
-          channel-id: ${{ inputs.slackChannelId }}
+          method: chat.postMessage
+          token: ${{ secrets.slackToken }}
           payload: |
             {
+              "channel": "${{ inputs.slackChannelId }}",
               "text": ":red_circle: *${{ github.repository }} syncing ${{ github.base_ref }} to ${{ inputs.baseBranch }}: ${{ job.status }}*",
               "attachments": [
                 {

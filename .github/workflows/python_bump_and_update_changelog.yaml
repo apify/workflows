@@ -41,7 +41,7 @@ jobs:
           python-version: ${{ inputs.python_version }}
 
       - name: Set up uv package manager
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v8.0.0
         with:
           python-version: ${{ inputs.python_version }}
 
@@ -53,7 +53,7 @@ jobs:
           uv version "${new_version}"
 
       - name: Update CHANGELOG.md
-        uses: DamianReeves/write-file-action@master
+        uses: DamianReeves/write-file-action@v1.3
         with:
           path: CHANGELOG.md
           write-mode: overwrite
@@ -61,7 +61,7 @@ jobs:
 
       - name: Commit changes
         id: commit
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           author_name: github-actions[bot]
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
