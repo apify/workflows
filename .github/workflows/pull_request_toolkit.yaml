@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: run pull-request-toolkit action
-        uses: apify/pull-request-toolkit-action@v2.2.0
+        uses: apify/pull-request-toolkit-action@main
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           org-token: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_GITHUB_TOKEN }}
