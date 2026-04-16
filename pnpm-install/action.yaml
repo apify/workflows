@@ -1,6 +1,12 @@
 name: "pnpm install"
 description: "Run pnpm install with cache enabled"
 
+inputs:
+  working-directory:
+    description: "Directory containing pnpm-lock.yaml (defaults to repo root)"
+    required: false
+    default: "."
+
 runs:
   using: "composite"
   steps:
@@ -37,6 +43,7 @@ runs:
 
     - name: Install dependencies
       shell: bash
+      working-directory: ${{ inputs.working-directory }}
       run: |
         pnpm install --frozen-lockfile --prefer-offline --loglevel error
       env:
