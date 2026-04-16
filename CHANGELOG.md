@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.40.0](https://github.com/apify/workflows/compare/v0.39.0...v0.40.0) (2026-04-16)
+
+
+### Features
+
+* pnpm install action ([#267](https://github.com/apify/workflows/issues/267)) ([34be977](https://github.com/apify/workflows/commit/34be977c08bfc2df907caced8dd9bf532565f4a7))
+* **pnpm-install:** add working-directory input ([#269](https://github.com/apify/workflows/issues/269)) ([ea5bf00](https://github.com/apify/workflows/commit/ea5bf000e4c4a028a4f964c4e38f464fe57fbe61))
+
+
+### Bug Fixes
+
+* **pnpm-install:** pass working-directory to package_json_file ([#270](https://github.com/apify/workflows/issues/270)) ([588e2e3](https://github.com/apify/workflows/commit/588e2e3c96c7a54335f6ce2b0d8688139539386f))
+
 ## [0.39.0](https://github.com/apify/workflows/compare/v0.38.0...v0.39.0) (2026-04-13)
 
 
