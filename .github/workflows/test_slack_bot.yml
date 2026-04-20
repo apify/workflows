@@ -1,0 +1,44 @@
+name: Test Slack notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      slackChannelId:
+        description: Slack Channel ID to send test message to
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send test message
+        uses: slackapi/slack-github-action@v3.0.1
+        with:
+          method: chat.postMessage
+          token: ${{ secrets.SLACK_BOT_TOKEN }}
+          payload: |
+            {
+              "channel": "${{ inputs.slackChannelId }}",
+              "text": ":white_check_mark: *Slack action v3 test message*",
+              "attachments": [
+                {
+                  "color": "#00cc00",
+                  "blocks": [
+                    {
+                      "type": "section",
+                      "fields": [
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Repository:* ${{ github.repository }}"
+                        },
+                        {
+                          "type": "mrkdwn",
+                          "text": "*Triggered by:* ${{ github.actor }}"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
