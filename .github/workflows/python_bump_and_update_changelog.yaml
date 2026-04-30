@@ -66,3 +66,4 @@ jobs:
           author_name: github-actions[bot]
           author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore(release): Update changelog and package version [skip ci]"
+          pull: '--rebase --autostash'
