@@ -48,7 +48,7 @@ jobs:
           write-mode: overwrite
           contents: ${{ steps.metadata.outputs.changelog }}
       - name: Commit changes
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           author_name: Foo
           author_email: foo@bar.com
@@ -95,7 +95,7 @@ jobs:
           contents: ${{ steps.metadata.outputs.changelog }}
       - name: Commit changes
         id: commit
-        uses: EndBug/add-and-commit@v9
+        uses: EndBug/add-and-commit@v10
         with:
           author_name: Foo
           author_email: foo@bar.com
