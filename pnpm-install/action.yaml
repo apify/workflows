@@ -10,8 +10,13 @@ inputs:
 runs:
   using: "composite"
   steps:
+    # Skip on ARM64: pierotofy/set-swap-space@v1.0 unconditionally calls
+    # `swapoff $(swapon --show=NAME | tail -n 1)`, which on ARM64 GitHub
+    # runners (no pre-allocated swap) resolves to `swapoff <empty>` and
+    # exits non-zero with "swapoff: bad usage". x86_64 runners ship with
+    # an existing swap file, so the action works there.
     - name: Set up swap space
-      if: runner.os == 'Linux'
+      if: runner.os == 'Linux' && runner.arch != 'ARM64'
       uses: pierotofy/set-swap-space@v1.0
       with:
         swap-size-gb: 10
