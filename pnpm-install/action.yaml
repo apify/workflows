@@ -7,14 +7,14 @@ inputs:
     required: false
     default: "."
   github-registry-token:
-    description: |
+    description: >-
       Optional auth token for the GitHub npm registry (npm.pkg.github.com).
-      When set, configures `//npm.pkg.github.com/:_authToken=<token>` in the
+      When set, configures //npm.pkg.github.com/:_authToken=<token> in the
       user-global ~/.npmrc before installing, so private @<scope>/* packages
       published to the GitHub registry resolve. Caller should pass a token
-      with read access to the relevant packages (e.g. a service account PAT
-      via `${{ secrets.GH_REGISTRY_TOKEN }}`). Leave unset for repos that
-      install only from the public npm registry.
+      with read access to the relevant packages (e.g. a service-account PAT
+      from a repo secret). Leave unset for repos that install only from the
+      public npm registry.
     required: false
     default: ""
 
