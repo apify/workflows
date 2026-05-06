@@ -34,8 +34,9 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       # TODO: We need better way (probably using multiple steps with actions/github-script)
+      # 2026-05@vladfrangu: why is this still needed, and can it be bumped to newer versions?
       - name: install octokit
-        run: npm i @octokit/rest@v19
+        run: npm i @octokit/rest@release-19.x
 
       - name: open and merge pull request
         uses: actions/github-script@v9
