@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.40.0](https://github.com/apify/workflows/compare/v0.39.0...v0.40.0) (2026-05-05)
+
+
+### Features
+
+* pnpm install action ([#267](https://github.com/apify/workflows/issues/267)) ([34be977](https://github.com/apify/workflows/commit/34be977c08bfc2df907caced8dd9bf532565f4a7))
+* **pnpm-install:** add working-directory input ([#269](https://github.com/apify/workflows/issues/269)) ([ea5bf00](https://github.com/apify/workflows/commit/ea5bf000e4c4a028a4f964c4e38f464fe57fbe61))
+* **pnpm-install:** optional github-registry-token input ([#277](https://github.com/apify/workflows/issues/277)) ([d035277](https://github.com/apify/workflows/commit/d035277bc372ba0069246ae854685c84f7fbf5f4))
+
+
+### Bug Fixes
+
+* **pnpm-install:** drop ${{ }} expression from description ([#278](https://github.com/apify/workflows/issues/278)) ([6cf59c7](https://github.com/apify/workflows/commit/6cf59c788c638cb14e79d7250098c52c6148121b))
+* **pnpm-install:** keep github-registry-token off disk ([#279](https://github.com/apify/workflows/issues/279)) ([aaa1a36](https://github.com/apify/workflows/commit/aaa1a36dd8538c6281dc289eb7135de8296406ce))
+* **pnpm-install:** pass working-directory to package_json_file ([#270](https://github.com/apify/workflows/issues/270)) ([588e2e3](https://github.com/apify/workflows/commit/588e2e3c96c7a54335f6ce2b0d8688139539386f))
+* **pnpm-install:** skip swap setup on ARM64 runners ([#276](https://github.com/apify/workflows/issues/276)) ([7de7795](https://github.com/apify/workflows/commit/7de77954816459b93a86d690d18c57267521cb66))
+
 ## [0.39.0](https://github.com/apify/workflows/compare/v0.38.0...v0.39.0) (2026-04-13)
 
 
