@@ -1,14 +1,17 @@
 {
   "extends": "@apify/tsconfig",
   "compilerOptions": {
-    "module": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noImplicitAny": true,
     "importHelpers": false,
     "noEmitHelpers": false,
     "skipLibCheck": true,
-    "baseUrl": ".",
     "strict": true,
     "erasableSyntaxOnly": true,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"]
   },
   "exclude": ["node_modules"]
 }
