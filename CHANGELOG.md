@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.0](https://github.com/apify/workflows/compare/v0.40.1...v0.41.0) (2026-05-07)
+
+
+### Features
+
+* bump all GitHub actions versions ([#282](https://github.com/apify/workflows/issues/282)) ([dc24739](https://github.com/apify/workflows/commit/dc2473980423e3c0c65bab4a6b2f0b9c0903cb0e))
+
 ## [0.40.1](https://github.com/apify/workflows/compare/v0.40.0...v0.40.1) (2026-05-07)
 
 
