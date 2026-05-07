@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.40.1](https://github.com/apify/workflows/compare/v0.40.0...v0.40.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* Update `getsentry/action-release` to fix handling of 504 errors ([#280](https://github.com/apify/workflows/issues/280)) ([235dce9](https://github.com/apify/workflows/commit/235dce9859aabb1b67880666c45b651614a1735a))
+
 ## [0.40.0](https://github.com/apify/workflows/compare/v0.39.0...v0.40.0) (2026-05-05)
 
 
