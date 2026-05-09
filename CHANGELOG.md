@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.1](https://github.com/apify/workflows/compare/v0.41.0...v0.41.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **pnpm-install:** pin lock-hash to step output so cache-save survives teardown ([#284](https://github.com/apify/workflows/issues/284)) ([5e01e87](https://github.com/apify/workflows/commit/5e01e87a9839c4a1436e99f3afc6a9293443dc1a))
+
 ## [0.41.0](https://github.com/apify/workflows/compare/v0.40.1...v0.41.0) (2026-05-07)
 
 
