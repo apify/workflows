@@ -67,11 +67,23 @@ runs:
       run: |
         echo "YEAR_MONTH=$(/bin/date -u "+%Y%m")" >> $GITHUB_OUTPUT
 
+    # Pre-compute the lockfile hash and store it as a step output. `actions/cache@v4`
+    # re-evaluates `key:` in its post-step (cache-save) at job teardown, and on some
+    # self-hosted/k8s runners the workspace is wiped before that runs — calling
+    # `hashFiles('**/pnpm-lock.yaml')` from the post-step then fails the job after
+    # all real steps have already passed. Capturing the hash once here pins the
+    # value to a step output, which survives teardown.
+    - name: Compute pnpm-lock.yaml hash
+      id: pnpm-lock-hash
+      shell: bash
+      run: |
+        echo "HASH=${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
     - uses: actions/cache@v4
       name: Setup pnpm cache
       with:
         path: ${{ steps.pnpm-config.outputs.STORE_PATH }}
-        key: ${{ runner.os }}-pnpm-store-cache-${{ steps.cache-rotation.outputs.YEAR_MONTH }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+        key: ${{ runner.os }}-pnpm-store-cache-${{ steps.cache-rotation.outputs.YEAR_MONTH }}-${{ steps.pnpm-lock-hash.outputs.HASH }}
         restore-keys: |
           ${{ runner.os }}-pnpm-store-cache-${{ steps.cache-rotation.outputs.YEAR_MONTH }}-
 
