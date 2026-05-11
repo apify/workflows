@@ -1,2 +1,7 @@
 packages:
   - execute-workflow
+
+# Supply-chain protection: require packages to be at least 24h old before pnpm will install them.
+# Mitigates compromised npm packages discovered and yanked within the first day (shai-hulud worm,
+# nx self-replicator, etc.). 1440 minutes = 24 hours.
+minimumReleaseAge: 1440
