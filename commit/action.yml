@@ -1,26 +1,35 @@
 name: Commit
 description: Creates a commit from the staged files through the GitHub GraphQL API (automatically signed)
 inputs:
-  commit-message:
-    required: true
-    description: 'The commit message'
-  branch:
-    description: 'Target branch name'
-    required: true
-  repository:
-    description: 'Format: <owner>/<repo>'
-    required: true
   github-token:
     description: 'Token to authenticate API calls'
     required: true
+  commit-message:
+    required: true
+    description: 'The commit message'
+  repository:
+    description: 'Format: `<owner>/<repo>`. Defaults to the current repository (`github.repository`).'
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: 'Target branch name. Defaults to the current branch (`github.head_ref` on pull requests, otherwise `github.ref_name`). Required when `create-branch` is `true`.'
+    required: false
+    default: ${{ github.head_ref || github.ref_name }}
   create-branch:
-    description: 'Create branch if it does not exist'
+    description: 'Create branch if it does not exist. When `true`, `branch` must be passed explicitly.'
     default: 'false'
     required: false
 
 runs:
   using: composite
   steps:
+    - name: Validate inputs
+      if: ${{ inputs.create-branch == 'true' && inputs.branch == (github.head_ref || github.ref_name) }}
+      shell: bash
+      run: |
+        echo "::error::When 'create-branch' is true, 'branch' must be passed explicitly (it cannot default to the current branch '${{ github.head_ref || github.ref_name }}')."
+        exit 1
+
     - name: Create and checkout target branch
       if: ${{ inputs.create-branch == 'true' }}
       # The `shell` field is for some reason required when
