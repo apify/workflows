@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.41.2](https://github.com/apify/workflows/compare/v0.41.1...v0.41.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **get_values:** lowercase clean_branch_name outputs ([#287](https://github.com/apify/workflows/issues/287)) ([2da18a4](https://github.com/apify/workflows/commit/2da18a48ae1a62a503a135c986983c03a20c275a))
+
 ## [0.41.1](https://github.com/apify/workflows/compare/v0.41.0...v0.41.1) (2026-05-09)
 
 
