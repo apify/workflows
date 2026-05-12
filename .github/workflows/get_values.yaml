@@ -22,7 +22,7 @@ on:
         description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 35
         value: ${{ jobs.get_values.outputs.clean_branch_name }}
       clean_branch_name_with_suffix:
-        description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 28 concatenated with first 6 chars of branch SHA
+        description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 28 concatenated with the first 6 hex chars of its SHA-1
         value: ${{ jobs.get_values.outputs.clean_branch_name_with_suffix }}
       commit_author:
         description: Author of last commit
