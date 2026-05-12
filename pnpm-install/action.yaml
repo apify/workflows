@@ -32,7 +32,7 @@ runs:
       with:
         swap-size-gb: 10
 
-    - uses: pnpm/action-setup@v4.1.0
+    - uses: pnpm/action-setup@v6.0.8
       name: Install pnpm
       with:
         run_install: false
@@ -46,14 +46,11 @@ runs:
     # install step below. Once that step finishes the env var is gone and
     # ~/.npmrc holds an unusable template, so later steps in the same job
     # cannot exfiltrate the token.
-    #
-    # `npm` is always available on the runner via setup-node and is used
-    # here only because corepack-managed pnpm isn't on PATH at every step.
     - name: Configure GitHub npm registry auth
       if: inputs.github-registry-token != ''
       shell: bash
       run: |
-        npm config set '//npm.pkg.github.com/:_authToken=${GITHUB_REGISTRY_TOKEN}'
+        pnpm config set '//npm.pkg.github.com/:_authToken=${GITHUB_REGISTRY_TOKEN}'
 
     - name: Expose pnpm config(s) through "$GITHUB_OUTPUT"
       id: pnpm-config
