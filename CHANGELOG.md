@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.42.0](https://github.com/apify/workflows/compare/v0.41.2...v0.42.0) (2026-05-12)
+
+
+### Features
+
+* Use `pnpm config` instead of `npm config` ([#289](https://github.com/apify/workflows/issues/289)) ([42a61d7](https://github.com/apify/workflows/commit/42a61d74a91e6b84cf341a3e014e8bc878b3ffc7))
+
 ## [0.41.2](https://github.com/apify/workflows/compare/v0.41.1...v0.41.2) (2026-05-12)
 
 
