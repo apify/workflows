@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.44.0](https://github.com/apify/workflows/compare/v0.43.0...v0.44.0) (2026-05-13)
+
+
+### Features
+
+* Add `commit-sha` output to the `commit` action ([#294](https://github.com/apify/workflows/issues/294)) ([51a7a2d](https://github.com/apify/workflows/commit/51a7a2d7c87be72e6f5b6b9fcc3a7be1d4f0c052))
+
 ## [0.43.0](https://github.com/apify/workflows/compare/v0.42.0...v0.43.0) (2026-05-13)
 
 
