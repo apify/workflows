@@ -20,6 +20,11 @@ inputs:
     default: 'false'
     required: false
 
+outputs:
+  commit-sha:
+    description: 'The SHA of the created commit.'
+    value: ${{ steps.commit.outputs.commit-sha }}
+
 runs:
   using: composite
   steps:
@@ -50,6 +55,7 @@ runs:
       run: echo "head_ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
     - name: Commit through API
+      id: commit
       uses: actions/github-script@v8
       env:
         COMMIT_MESSAGE: ${{ inputs.commit-message }}

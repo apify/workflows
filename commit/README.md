@@ -29,6 +29,10 @@ steps:
 - `branch` (optional, default `${{ github.head_ref || github.ref_name }}`) — Target branch name. On pull requests this resolves to the PR's source branch (`github.head_ref`); on other events it resolves to `github.ref_name`. Required when `create-branch` is `true`.
 - `create-branch` (optional, default `false`) — When `true`, the action pushes `HEAD` to `branch` as a new remote branch before committing. `branch` must be passed explicitly in this case.
 
+### Outputs
+
+- `commit-sha` — The SHA of the created commit.
+
 ### Example: commit to a new branch
 
 ```yaml
