@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.43.0](https://github.com/apify/workflows/compare/v0.42.0...v0.43.0) (2026-05-13)
+
+
+### Features
+
+* Add default inputs to the `commit` action, add a README for it ([#292](https://github.com/apify/workflows/issues/292)) ([b8f2f31](https://github.com/apify/workflows/commit/b8f2f31b3338c310ac55e1adc6b245f7347c088c))
+* Move `commit` action to top level to align with other actions ([#291](https://github.com/apify/workflows/issues/291)) ([36f5d99](https://github.com/apify/workflows/commit/36f5d991ba6d594a9b07c0aaa596cd2fdf9fed8e))
+
 ## [0.42.0](https://github.com/apify/workflows/compare/v0.41.2...v0.42.0) (2026-05-12)
 
 
