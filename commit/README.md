@@ -35,7 +35,7 @@ steps:
 
 ### Outputs
 
-- `commit-sha` — The SHA of the created commit. Empty when `committed` is `false`.
+- `commit-sha` — The SHA of the created commit, or the current commit SHA if no new commit was created.
 - `committed` — `'true'` when a commit was created, `'false'` when there were no changes to commit.
 
 ### Example: commit to a new branch

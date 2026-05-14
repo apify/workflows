@@ -92,8 +92,9 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
 
     if (fileChanges.additions.length === 0 && fileChanges.deletions.length === 0) {
         core.info('no staged changes — skipping commit');
+        const currentHeadSha = (await exec('git rev-parse HEAD', { encoding: 'utf8' })).stdout.trim();
         core.setOutput('committed', 'false');
-        core.setOutput('commit-sha', '');
+        core.setOutput('commit-sha', currentHeadSha);
         return;
     }
 

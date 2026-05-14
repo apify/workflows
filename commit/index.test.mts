@@ -128,6 +128,8 @@ describe('signed commit action', () => {
         const graphql = vi.fn();
         const fakeGithub = { graphql };
 
+        const headSha = (await doExec('git rev-parse HEAD')).stdout.trim();
+
         const originalCwd = process.cwd();
         try {
             process.chdir(repoDir);
@@ -147,7 +149,7 @@ describe('signed commit action', () => {
 
         expect(graphql).not.toHaveBeenCalled();
         expect(outputs.committed).toEqual('false');
-        expect(outputs['commit-sha']).toEqual('');
+        expect(outputs['commit-sha']).toEqual(headSha);
     });
 
     it('checks file modes and does not throw when correct', async () => {
