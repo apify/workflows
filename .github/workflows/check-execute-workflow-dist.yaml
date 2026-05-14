@@ -32,10 +32,19 @@ jobs:
       - name: Rebuild dist
         run: pnpm --filter execute-workflow build
 
+      - name: Stage dist changes
+        id: stage
+        run: |
+          git add 'execute-workflow/dist/'
+          if git diff --cached --quiet; then
+            echo "has-changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit and push if changed
-        uses: EndBug/add-and-commit@v10
+        if: steps.stage.outputs.has-changes == 'true'
+        uses: ./commit
         with:
-          author_name: github-actions[bot]
-          author_email: 41898282+github-actions[bot]@users.noreply.github.com
-          message: "chore: rebuild execute-workflow dist [skip ci]"
-          add: 'execute-workflow/dist/'
+          commit-message: "chore: rebuild execute-workflow dist [skip ci]"
+          github-token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
