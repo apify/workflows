@@ -1,0 +1,53 @@
+[project]
+name = "apify-workflows"
+version = "0"
+description = "Lint and type-check configuration for Python scripts in apify/workflows."
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = [
+    "ruff~=0.15.0",
+    "ty~=0.0.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 120
+include = ["**/*.py"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "COM812",  # May conflict with the formatter.
+    "D",       # pydocstyle - docstring presence/formatting not enforced for this repo's small scripts.
+    "EM",      # flake8-errmsg.
+    "G004",    # Logging statement uses f-string.
+    "ISC001",  # May conflict with the formatter.
+    "PLR0913", # Too many arguments in function definition.
+    "TD002",   # Missing author in TODO.
+    "TRY003",  # Avoid specifying long messages outside the exception class.
+]
+
+[tool.ruff.format]
+quote-style = "single"
+indent-style = "space"
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = "double"
+inline-quotes = "single"
+
+[tool.ruff.lint.per-file-ignores]
+"{python-package-check,git-cliff-release}/**/*.py" = [
+    "INP001", # Implicit namespace package - these are script directories, not packages.
+    "S603",   # `subprocess` call: arguments are trusted (CI-provided or constants).
+    "S607",   # Starting a process with a partial executable path - tools resolved from PATH by design.
+    "T201",   # `print` is the script's UX.
+]
+
+[tool.ty.environment]
+python-version = "3.14"
+
+[tool.ty.src]
+include = ["python-package-check", "git-cliff-release"]

@@ -41,3 +41,26 @@ jobs:
       - name: Test
         run: pnpm run actions:test
 
+  python_checks:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up uv package manager
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.14"
+          enable-cache: true
+
+      - name: Install Python dev dependencies
+        run: uv sync --group dev
+
+      - name: Ruff format
+        run: uv run ruff format --check
+
+      - name: Ruff lint
+        run: uv run ruff check
+
+      - name: Type check
+        run: uv run ty check

@@ -1,0 +1,54 @@
+name: Python package check
+description: >
+  Verify built sdist + wheel artifacts in `dist/` install and import correctly.
+  Run after building the package (e.g. via `prepare-pypi-distribution`).
+
+inputs:
+  package_name:
+    description: Importable Python package name (e.g. `crawlee`, `apify`, `apify_client`).
+    required: true
+  src_package_dir:
+    description: Path to the package source directory, relative to the repository root.
+    required: true
+  dist_dir:
+    description: Directory containing the built sdist + wheel.
+    required: true
+  python_version:
+    description: Python version to use for the verification venvs.
+    required: true
+  extras:
+    description: Optional extras to install (e.g. `all`). Empty for no extras.
+    required: false
+    default: ""
+  smoke_code:
+    description: >
+      Optional extra Python code to run inside the install smoke test, after `import <package>`.
+      Useful for asserting that specific symbols import and construct cleanly.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up uv package manager
+      uses: astral-sh/setup-uv@v8.1.0
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Verify built package
+      shell: bash
+      env:
+        PACKAGE_NAME: ${{ inputs.package_name }}
+        DIST_DIR: ${{ inputs.dist_dir }}
+        PYTHON_VERSION: ${{ inputs.python_version }}
+        EXTRAS: ${{ inputs.extras }}
+        SRC_PACKAGE_DIR: ${{ inputs.src_package_dir }}
+        SMOKE_CODE: ${{ inputs.smoke_code }}
+      run: |
+        uv run --no-project python "${{ github.action_path }}/verify_built_package.py" \
+          --package "$PACKAGE_NAME" \
+          --dist-dir "$DIST_DIR" \
+          --python-version "$PYTHON_VERSION" \
+          --extras "$EXTRAS" \
+          --src-package-dir "$SRC_PACKAGE_DIR" \
+          --smoke-code "$SMOKE_CODE"
