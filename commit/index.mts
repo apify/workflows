@@ -90,6 +90,13 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
     };
     core.info(`committing file changes: "${JSON.stringify(changedPaths, null, 4)}"`);
 
+    if (fileChanges.additions.length === 0 && fileChanges.deletions.length === 0) {
+        core.info('no staged changes — skipping commit');
+        core.setOutput('committed', 'false');
+        core.setOutput('commit-sha', '');
+        return;
+    }
+
     const commitMessageLines = COMMIT_MESSAGE.split('\n');
     const messageTitle = commitMessageLines[0];
     const messageBody = commitMessageLines.slice(1).join('\n').trim();
@@ -121,6 +128,7 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
     core.info(`successfully pushed commit "${commitSha}"`);
 
     core.setOutput('commit-sha', commitSha);
+    core.setOutput('committed', 'true');
 }
 
 /**
