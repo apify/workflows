@@ -42,7 +42,7 @@ jobs:
         run: pnpm run actions:test
 
   python_checks:
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v6
