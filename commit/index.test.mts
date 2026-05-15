@@ -139,7 +139,6 @@ describe('signed commit action', () => {
                 env: {
                     COMMIT_MESSAGE: 'chore: nothing',
                     REPO: 'apify/workflows',
-                    EXPECTED_HEAD_OID: 'abcd1234',
                     BRANCH: 'main',
                 },
             });
@@ -151,6 +150,51 @@ describe('signed commit action', () => {
         expect(outputs.committed).toEqual('false');
         expect(outputs['commit_sha']).toEqual(headSha.slice(0, 7));
         expect(outputs['commit_long_sha']).toEqual(headSha);
+    });
+
+    it('throws when retries > 0 but pull is empty', async () => {
+        const fakeCore = { info: () => {}, warning: () => {}, setOutput: () => {} };
+        const fakeGithub = { graphql: vi.fn() };
+
+        const originalCwd = process.cwd();
+        try {
+            process.chdir(repoDir);
+            await expect(main({
+                github: fakeGithub as any,
+                core: fakeCore as any,
+                env: {
+                    COMMIT_MESSAGE: 'chore: x',
+                    REPO: 'apify/workflows',
+                    BRANCH: 'main',
+                    RETRIES: '2',
+                    PULL: '',
+                },
+            })).rejects.toThrow(/retries.*pull/i);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    it('throws when retries is not a non-negative integer', async () => {
+        const fakeCore = { info: () => {}, warning: () => {}, setOutput: () => {} };
+        const fakeGithub = { graphql: vi.fn() };
+
+        const originalCwd = process.cwd();
+        try {
+            process.chdir(repoDir);
+            await expect(main({
+                github: fakeGithub as any,
+                core: fakeCore as any,
+                env: {
+                    COMMIT_MESSAGE: 'chore: x',
+                    REPO: 'apify/workflows',
+                    BRANCH: 'main',
+                    RETRIES: 'banana',
+                },
+            })).rejects.toThrow(/non-negative integer/);
+        } finally {
+            process.chdir(originalCwd);
+        }
     });
 
     it('checks file modes and does not throw when correct', async () => {

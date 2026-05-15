@@ -49,91 +49,6 @@ export function checkSupportedFileModes(status: GitFileStatus) {
     }
 }
 
-export async function main({ github, env, core }: { github: Octokit, env: Record<string, string>, core: typeof Core }) {
-    const {
-        COMMIT_MESSAGE,
-        REPO,
-        EXPECTED_HEAD_OID,
-        BRANCH,
-    } = env;
-
-    const fileChanges: FileChanges = { additions: [], deletions: [] };
-    const stagedFiles = await status();
-
-    for (const file of stagedFiles) {
-        checkSupportedFileModes(file);
-        const { filePath, fileStatus } = file;
-
-        switch (fileStatus) {
-            case FILE_STATUS.ADDED:
-            case FILE_STATUS.MODIFIED:
-                fileChanges.additions.push({
-                    path: filePath,
-                    contents: await fs.readFile(filePath, { encoding: 'base64' }),
-                });
-
-                break;
-
-            case FILE_STATUS.DELETED:
-                fileChanges.deletions.push({ path: filePath });
-                break;
-
-            default:
-                throw new Error(`unexpected file status "${fileStatus}"`);
-        }
-    }
-
-    // Only log file paths not the base64 encoded file contents.
-    const changedPaths = {
-        additions: fileChanges.additions.map(({ path }) => path),
-        deletions: fileChanges.deletions.map(({ path }) => path),
-    };
-    core.info(`committing file changes: "${JSON.stringify(changedPaths, null, 4)}"`);
-
-    if (fileChanges.additions.length === 0 && fileChanges.deletions.length === 0) {
-        core.info('no staged changes — skipping commit');
-        const currentHeadSha = (await exec('git rev-parse HEAD', { encoding: 'utf8' })).stdout.trim();
-        core.setOutput('committed', 'false');
-        core.setOutput('commit_sha', currentHeadSha.slice(0, 7));
-        core.setOutput('commit_long_sha', currentHeadSha);
-        return;
-    }
-
-    const commitMessageLines = COMMIT_MESSAGE.split('\n');
-    const messageTitle = commitMessageLines[0];
-    const messageBody = commitMessageLines.slice(1).join('\n').trim();
-
-    const response = await github.graphql(`\
-        mutation Commit($input: CreateCommitOnBranchInput!) {
-            createCommitOnBranch(input: $input) {
-                commit {
-                    oid
-                }
-            }
-        }
-    `, {
-        input: {
-            fileChanges,
-            branch: {
-                branchName: BRANCH,
-                repositoryNameWithOwner: REPO,
-            },
-            expectedHeadOid: EXPECTED_HEAD_OID,
-            message: {
-                headline: messageTitle,
-                body: messageBody,
-            },
-        },
-    }) as any;
-
-    const commitSha = response.createCommitOnBranch.commit.oid;
-    core.info(`successfully pushed commit "${commitSha}"`);
-
-    core.setOutput('commit_sha', commitSha.slice(0, 7));
-    core.setOutput('commit_long_sha', commitSha);
-    core.setOutput('committed', 'true');
-}
-
 /**
  * Produces the list of staged files for committing.
  */
@@ -169,4 +84,148 @@ export async function status(options: Omit<childProcess.ExecOptions, 'encoding'>
             };
         })
         .filter((it) => !!it);
+}
+
+async function collectFileChanges(): Promise<FileChanges> {
+    const fileChanges: FileChanges = { additions: [], deletions: [] };
+    const stagedFiles = await status();
+
+    for (const file of stagedFiles) {
+        checkSupportedFileModes(file);
+        const { filePath, fileStatus } = file;
+
+        switch (fileStatus) {
+            case FILE_STATUS.ADDED:
+            case FILE_STATUS.MODIFIED:
+                fileChanges.additions.push({
+                    path: filePath,
+                    contents: await fs.readFile(filePath, { encoding: 'base64' }),
+                });
+
+                break;
+
+            case FILE_STATUS.DELETED:
+                fileChanges.deletions.push({ path: filePath });
+                break;
+
+            default:
+                throw new Error(`unexpected file status "${fileStatus}"`);
+        }
+    }
+
+    return fileChanges;
+}
+
+const RETRY_BASE_DELAY_MS = 1000;
+
+type CreateCommitArgs = {
+    github: Octokit;
+    repo: string;
+    branch: string;
+    expectedHeadOid: string;
+    messageTitle: string;
+    messageBody: string;
+    fileChanges: FileChanges;
+};
+
+async function createCommit({ github, repo, branch, expectedHeadOid, messageTitle, messageBody, fileChanges }: CreateCommitArgs): Promise<string> {
+    const response = await github.graphql(`\
+        mutation Commit($input: CreateCommitOnBranchInput!) {
+            createCommitOnBranch(input: $input) {
+                commit {
+                    oid
+                }
+            }
+        }
+    `, {
+        input: {
+            fileChanges,
+            branch: {
+                branchName: branch,
+                repositoryNameWithOwner: repo,
+            },
+            expectedHeadOid,
+            message: {
+                headline: messageTitle,
+                body: messageBody,
+            },
+        },
+    }) as any;
+
+    return response.createCommitOnBranch.commit.oid;
+}
+
+export async function main({ github, env, core }: { github: Octokit, env: Record<string, string>, core: typeof Core }) {
+    const {
+        COMMIT_MESSAGE,
+        REPO,
+        BRANCH,
+        PULL = '',
+        RETRIES = '0',
+    } = env;
+
+    const retries = parseInt(RETRIES, 10);
+    if (Number.isNaN(retries) || retries < 0) {
+        throw new Error(`'retries' must be a non-negative integer, got "${RETRIES}"`);
+    }
+    if (retries > 0 && PULL === '') {
+        throw new Error(`'retries' is set to ${retries} but 'pull' is empty — retrying requires 'pull' to be set so the action can fetch the new HEAD between attempts.`);
+    }
+
+    const commitMessageLines = COMMIT_MESSAGE.split('\n');
+    const messageTitle = commitMessageLines[0];
+    const messageBody = commitMessageLines.slice(1).join('\n').trim();
+
+    const maxAttempts = retries + 1;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        if (PULL !== '') {
+            const pullCmd = PULL === 'true' ? 'git pull' : `git pull ${PULL}`;
+            core.info(`Executing "${pullCmd}" before committing (attempt ${attempt}/${maxAttempts})`);
+            await exec(pullCmd, { encoding: 'utf8' });
+        }
+
+        const expectedHeadOid = (await exec('git rev-parse HEAD', { encoding: 'utf8' })).stdout.trim();
+        const fileChanges = await collectFileChanges();
+
+        // Only log file paths not the base64 encoded file contents.
+        const changedPaths = {
+            additions: fileChanges.additions.map(({ path }) => path),
+            deletions: fileChanges.deletions.map(({ path }) => path),
+        };
+        core.info(`committing file changes: "${JSON.stringify(changedPaths, null, 4)}"`);
+
+        if (fileChanges.additions.length === 0 && fileChanges.deletions.length === 0) {
+            core.info('no staged changes — skipping commit');
+            core.setOutput('committed', 'false');
+            core.setOutput('commit_sha', expectedHeadOid.slice(0, 7));
+            core.setOutput('commit_long_sha', expectedHeadOid);
+            return;
+        }
+
+        try {
+            const commitSha = await createCommit({
+                github,
+                repo: REPO,
+                branch: BRANCH,
+                expectedHeadOid,
+                messageTitle,
+                messageBody,
+                fileChanges,
+            });
+            core.info(`successfully pushed commit "${commitSha}"`);
+
+            core.setOutput('commit_sha', commitSha.slice(0, 7));
+            core.setOutput('commit_long_sha', commitSha);
+            core.setOutput('committed', 'true');
+            return;
+        } catch (err) {
+            if (attempt < maxAttempts) {
+                const delayMs = RETRY_BASE_DELAY_MS * (2 ** (attempt - 1));
+                core.warning(`commit attempt ${attempt}/${maxAttempts} failed: ${err instanceof Error ? err.message : String(err)} — retrying in ${delayMs}ms`);
+                await new Promise((resolve) => { setTimeout(resolve, delayMs); });
+                continue;
+            }
+            throw err;
+        }
+    }
 }
