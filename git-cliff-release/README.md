@@ -107,6 +107,6 @@ jobs:
         with:
           tag_name: ${{ steps.metadata.outputs.tag_name }}
           name: ${{ steps.metadata.outputs.version_number }}
-          target_commitish: ${{ steps.commit.outputs.commit_sha }}
+          target_commitish: ${{ steps.commit.outputs.commit_long_sha }}
           body: ${{ steps.metadata.outputs.release_notes }}
 ```
