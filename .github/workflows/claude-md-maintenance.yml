@@ -102,15 +102,12 @@ jobs:
         id: branch
         run: echo "name=chore/update-claude-md-$(date +%Y%m%d%H%M%S)" >> "$GITHUB_OUTPUT"
 
-      - name: Stage CLAUDE.md
-        if: steps.diff.outputs.changed == 'true'
-        run: git add CLAUDE.md
-
       - name: Commit CLAUDE.md
         if: steps.diff.outputs.changed == 'true'
-        uses: apify/workflows/commit@main
+        uses: apify/actions/signed-commit@v1.0.0
         with:
-          commit-message: "docs: update CLAUDE.md [skip ci]"
+          message: "docs: update CLAUDE.md [skip ci]"
+          add: CLAUDE.md
           github-token: ${{ github.token }}
           branch: ${{ steps.branch.outputs.name }}
           create-branch: 'true'
