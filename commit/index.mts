@@ -94,7 +94,8 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
         core.info('no staged changes — skipping commit');
         const currentHeadSha = (await exec('git rev-parse HEAD', { encoding: 'utf8' })).stdout.trim();
         core.setOutput('committed', 'false');
-        core.setOutput('commit-sha', currentHeadSha);
+        core.setOutput('commit_sha', currentHeadSha.slice(0, 7));
+        core.setOutput('commit_long_sha', currentHeadSha);
         return;
     }
 
@@ -128,7 +129,8 @@ export async function main({ github, env, core }: { github: Octokit, env: Record
     const commitSha = response.createCommitOnBranch.commit.oid;
     core.info(`successfully pushed commit "${commitSha}"`);
 
-    core.setOutput('commit-sha', commitSha);
+    core.setOutput('commit_sha', commitSha.slice(0, 7));
+    core.setOutput('commit_long_sha', commitSha);
     core.setOutput('committed', 'true');
 }
 

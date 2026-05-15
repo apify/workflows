@@ -149,7 +149,8 @@ describe('signed commit action', () => {
 
         expect(graphql).not.toHaveBeenCalled();
         expect(outputs.committed).toEqual('false');
-        expect(outputs['commit-sha']).toEqual(headSha);
+        expect(outputs['commit_sha']).toEqual(headSha.slice(0, 7));
+        expect(outputs['commit_long_sha']).toEqual(headSha);
     });
 
     it('checks file modes and does not throw when correct', async () => {

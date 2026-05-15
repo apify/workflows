@@ -19,8 +19,8 @@ inputs:
     description: 'Create branch if it does not exist. When `true`, `branch` must be passed explicitly.'
     default: 'false'
     required: false
-  path:
-    description: 'Paths to stage before committing, passed to `git add`. Defaults to `.` (everything).'
+  add:
+    description: 'Paths to stage before committing, passed to `git add`. Defaults to `.` (everything). When set to an empty string, `git add` is not called.'
     default: '.'
     required: false
   pull:
@@ -29,9 +29,12 @@ inputs:
     required: false
 
 outputs:
-  commit-sha:
-    description: 'The SHA of the created commit. Empty when `committed` is `false`.'
-    value: ${{ steps.commit.outputs.commit-sha }}
+  commit_sha:
+    description: 'The short (7-character) SHA of the created commit. Falls back to the current HEAD SHA when no commit was made.'
+    value: ${{ steps.commit.outputs.commit_sha }}
+  commit_long_sha:
+    description: 'The full 40-character SHA of the created commit. Falls back to the current HEAD SHA when no commit was made.'
+    value: ${{ steps.commit.outputs.commit_long_sha }}
   committed:
     description: '`true` when a commit was created, `false` when there were no staged changes to commit.'
     value: ${{ steps.commit.outputs.committed }}
@@ -71,9 +74,10 @@ runs:
         fi
 
     - name: Stage files
+      if: ${{ inputs.add != '' }}
       shell: bash
       run: |
-        git add ${{ inputs.path }}
+        git add ${{ inputs.add }}
 
     - name: Get HEAD SHA
       id: get-head-sha
