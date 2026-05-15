@@ -4,9 +4,9 @@ import * as os from 'node:os';
 import * as fs from 'node:fs/promises';
 import * as childProcess from 'node:child_process';
 
-import { describe, afterEach, beforeEach, it, expect } from 'vitest';
+import { describe, afterEach, beforeEach, it, expect, vi } from 'vitest';
 
-import { status, FILE_STATUS, checkSupportedFileModes } from './index.mts';
+import { status, FILE_STATUS, checkSupportedFileModes, main } from './index.mts';
 
 const exec = util.promisify(childProcess.exec);
 
@@ -117,6 +117,84 @@ describe('signed commit action', () => {
         const statuses = await status({ cwd: repoDir });
 
         expect(() => statuses.forEach(checkSupportedFileModes)).toThrow();
+    });
+
+    it('skips the commit and sets committed=false when nothing is staged', async () => {
+        const outputs: Record<string, string> = {};
+        const fakeCore = {
+            info: () => {},
+            setOutput: (name: string, value: string) => { outputs[name] = value; },
+        };
+        const graphql = vi.fn();
+        const fakeGithub = { graphql };
+
+        const headSha = (await doExec('git rev-parse HEAD')).stdout.trim();
+
+        const originalCwd = process.cwd();
+        try {
+            process.chdir(repoDir);
+            await main({
+                github: fakeGithub as any,
+                core: fakeCore as any,
+                env: {
+                    COMMIT_MESSAGE: 'chore: nothing',
+                    REPO: 'apify/workflows',
+                    BRANCH: 'main',
+                },
+            });
+        } finally {
+            process.chdir(originalCwd);
+        }
+
+        expect(graphql).not.toHaveBeenCalled();
+        expect(outputs.committed).toEqual('false');
+        expect(outputs['commit_sha']).toEqual(headSha.slice(0, 7));
+        expect(outputs['commit_long_sha']).toEqual(headSha);
+    });
+
+    it('throws when retries > 0 but pull is empty', async () => {
+        const fakeCore = { info: () => {}, warning: () => {}, setOutput: () => {} };
+        const fakeGithub = { graphql: vi.fn() };
+
+        const originalCwd = process.cwd();
+        try {
+            process.chdir(repoDir);
+            await expect(main({
+                github: fakeGithub as any,
+                core: fakeCore as any,
+                env: {
+                    COMMIT_MESSAGE: 'chore: x',
+                    REPO: 'apify/workflows',
+                    BRANCH: 'main',
+                    RETRIES: '2',
+                    PULL: '',
+                },
+            })).rejects.toThrow(/retries.*pull/i);
+        } finally {
+            process.chdir(originalCwd);
+        }
+    });
+
+    it('throws when retries is not a non-negative integer', async () => {
+        const fakeCore = { info: () => {}, warning: () => {}, setOutput: () => {} };
+        const fakeGithub = { graphql: vi.fn() };
+
+        const originalCwd = process.cwd();
+        try {
+            process.chdir(repoDir);
+            await expect(main({
+                github: fakeGithub as any,
+                core: fakeCore as any,
+                env: {
+                    COMMIT_MESSAGE: 'chore: x',
+                    REPO: 'apify/workflows',
+                    BRANCH: 'main',
+                    RETRIES: 'banana',
+                },
+            })).rejects.toThrow(/non-negative integer/);
+        } finally {
+            process.chdir(originalCwd);
+        }
     });
 
     it('checks file modes and does not throw when correct', async () => {
