@@ -33,9 +33,8 @@ jobs:
         run: pnpm --filter execute-workflow build
 
       - name: Commit and push if changed
-        uses: EndBug/add-and-commit@v10
+        uses: apify/actions/signed-commit@v1.0.0
         with:
-          author_name: github-actions[bot]
-          author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: rebuild execute-workflow dist [skip ci]"
           add: 'execute-workflow/dist/'
+          github-token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

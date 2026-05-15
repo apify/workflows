@@ -45,7 +45,9 @@ jobs:
   push:
     runs-on: ubuntu-latest
     steps:
-      - name: git
+      - name: Merge head branch into base branch via GitHub API
+        env:
+          GH_TOKEN: ${{ secrets.githubToken }}
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             HEAD_BRANCH="${GITHUB_BASE_REF}"
@@ -55,17 +57,11 @@ jobs:
             echo ">>> Don't know how to handle event name: ${GITHUB_EVENT_NAME}"
             exit 1
           fi
-          mkdir repo
-          cd repo
-          git clone https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git .
 
-          git config --global user.email "${{ inputs.gitConfigEmail }}"
-          git config --global user.name "${{ inputs.gitConfigUsername }}"
-          git config pull.rebase false
-
-          git switch ${{ inputs.baseBranch }}
-          git pull origin ${HEAD_BRANCH} --no-edit --no-ff
-          git push https://github-actions:${{ secrets.githubToken }}@github.com/${{ github.repository }}.git ${{ inputs.baseBranch }}:${{ inputs.baseBranch }}
+          gh api -X POST "repos/${GITHUB_REPOSITORY}/merges" \
+            -f base="${{ inputs.baseBranch }}" \
+            -f head="${HEAD_BRANCH}" \
+            -f commit_message="Merge ${HEAD_BRANCH} into ${{ inputs.baseBranch }}"
 
       - name: report failure to slack
         if: ${{ failure() }}

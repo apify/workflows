@@ -47,12 +47,13 @@ jobs:
           path: CHANGELOG.md
           write-mode: overwrite
           contents: ${{ steps.metadata.outputs.changelog }}
+      - name: Stage changes
+        run: git add -A
       - name: Commit changes
-        uses: EndBug/add-and-commit@v10
+        uses: apify/workflows/commit@main
         with:
-          author_name: Foo
-          author_email: foo@bar.com
-          message: "chore(release): Update changelog and package version [skip ci]"
+          commit-message: "chore(release): Update changelog and package version [skip ci]"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 Manually trigger a release:
@@ -93,18 +94,19 @@ jobs:
           path: CHANGELOG.md
           write-mode: overwrite
           contents: ${{ steps.metadata.outputs.changelog }}
+      - name: Stage changes
+        run: git add -A
       - name: Commit changes
         id: commit
-        uses: EndBug/add-and-commit@v10
+        uses: apify/workflows/commit@main
         with:
-          author_name: Foo
-          author_email: foo@bar.com
-          message: "chore(release): Update changelog and package version [skip ci]"
+          commit-message: "chore(release): Update changelog and package version [skip ci]"
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.metadata.outputs.tag_name }}
           name: ${{ steps.metadata.outputs.version_number }}
-          target_commitish: ${{ steps.commit.commit_long_sha || github.sha }}
+          target_commitish: ${{ steps.commit.outputs.commit_long_sha }}
           body: ${{ steps.metadata.outputs.release_notes }}
 ```
