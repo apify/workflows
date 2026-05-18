@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.45.0](https://github.com/apify/workflows/compare/v0.44.0...v0.45.0) (2026-05-18)
+
+
+### Features
+
+* Add more inputs and outputs to the `commit` action to make it more useful ([#298](https://github.com/apify/workflows/issues/298)) ([a1e8619](https://github.com/apify/workflows/commit/a1e86199fa508a289dd4c4c26477341f55d8d87b))
+
+
+### Bug Fixes
+
+* switch packageManager devEngines to warn + add minimumReleaseAge ([#286](https://github.com/apify/workflows/issues/286)) ([c0c1014](https://github.com/apify/workflows/commit/c0c10147263b2b6ea7c134e9c737a11dcf56699e))
+
 ## [0.44.0](https://github.com/apify/workflows/compare/v0.43.0...v0.44.0) (2026-05-13)
 
 
