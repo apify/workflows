@@ -3,10 +3,6 @@ name: grafana annotation
 on:
   workflow_call:
     inputs:
-      environment:
-        description: Environment
-        required: false
-        type: string
       grafanaAnnotationTags:
         description: Custom annotation tags
         required: false
@@ -28,7 +24,7 @@ on:
     outputs:
       annotation_id:
         description: Annotation Id
-        value: ${{ jobs.grafana.outputs.annotation_id }}   
+        value: ${{ jobs.grafana.outputs.annotation_id }}
 
 jobs:
   grafana:
@@ -36,12 +32,48 @@ jobs:
     outputs:
       annotation_id: ${{ steps.grafana.outputs.annotation-id }}
     steps:
-      - name: add Grafana annotation
+      - name: Add grafana annotation
         id: grafana
-        uses: hexionas/grafana-annotation-action@v1.0.1
-        with:
-          grafanaHost: "https://grafana.apify.dev"
-          grafanaToken: ${{ secrets.grafanaApiToken }}
-          grafanaText: ${{ inputs.grafanaAnnotationText }}
-          grafanaTags: ${{ inputs.grafanaAnnotationTags }}
-          grafanaAnnotationID: ${{ inputs.grafanaAnnotationId }}
+        env:
+          GRAFANA_ANNOTATION_ID: ${{ inputs.grafanaAnnotationId }}
+          GRAFANA_ANNOTATION_TAGS: ${{ inputs.grafanaAnnotationTags }}
+          GRAFANA_ANNOTATION_TEXT: ${{ inputs.grafanaAnnotationText }}
+          GRAFANA_TOKEN: ${{ secrets.grafanaApiToken }}
+          GRAFANA_HOST: "https://grafana.apify.dev"
+        run: |
+          set -euo pipefail
+
+          endpoint="$GRAFANA_HOST/api/annotations"
+
+          # Convert newline-separated tags into a JSON array, dropping empty lines.
+          tags_json=$(printf '%s' "$GRAFANA_ANNOTATION_TAGS" \
+                        | jq -Rn '[inputs | select(. != "")]')
+
+          # Determine whether to create (POST) or close out (PATCH) the annotation.
+          # PATCH mirrors the archived action: it only updates the annotation's
+          # end time to "now" (milliseconds since epoch).
+          if [[ -n "${GRAFANA_ANNOTATION_ID:-}" ]]; then
+            method='PATCH'
+            endpoint="$endpoint/$GRAFANA_ANNOTATION_ID"
+            body=$(jq -n --argjson timeEnd "$(date +%s%3N)" \
+                          '{timeEnd: $timeEnd}')
+          else
+            method='POST'
+            body=$(jq -n \
+                      --arg text "$GRAFANA_ANNOTATION_TEXT" \
+                      --argjson tags "$tags_json" \
+                      '{tags: $tags, text: $text}')
+          fi
+
+          response=$(curl --fail --retry 3 --silent --show-error \
+            -X "$method" "$endpoint" \
+            --header "Authorization: Bearer $GRAFANA_TOKEN" \
+            --header 'Content-Type: application/json' \
+            --data "$body")
+
+          if [[ "$method" == 'POST' ]]; then
+            id=$(jq -r '.id' <<< "$response")
+            echo "annotation-id=$id" >> "$GITHUB_OUTPUT"
+          else
+            echo "annotation-id=$GRAFANA_ANNOTATION_ID" >> "$GITHUB_OUTPUT"
+          fi
