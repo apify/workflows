@@ -3,3 +3,5 @@
 .vscode
 .venv
 .mise.toml
+node_modules/
+*.tsbuildinfo

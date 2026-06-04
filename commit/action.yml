@@ -1,0 +1,105 @@
+name: Commit
+description: Creates a commit from the staged files through the GitHub GraphQL API (automatically signed)
+inputs:
+  github-token:
+    description: 'Token to authenticate API calls'
+    required: true
+  message:
+    required: true
+    description: 'The commit message'
+  repository:
+    description: 'Format: `<owner>/<repo>`. Defaults to the current repository (`github.repository`).'
+    required: false
+    default: ${{ github.repository }}
+  branch:
+    description: 'Target branch name. Defaults to the current branch (`github.head_ref` on pull requests, otherwise `github.ref_name`). Required when `create-branch` is `true`.'
+    required: false
+    default: ${{ github.head_ref || github.ref_name }}
+  create-branch:
+    description: 'Create branch if it does not exist. When `true`, `branch` must be passed explicitly.'
+    default: 'false'
+    required: false
+  add:
+    description: 'Paths to stage before committing, passed to `git add`. Defaults to `.` (everything). When set to an empty string, `git add` is not called.'
+    default: '.'
+    required: false
+  pull:
+    description: 'When non-empty, run `git pull <pull>` before staging and committing (e.g. `--rebase --autostash`). The special value `true` runs a plain `git pull` with no arguments. Defaults to an empty string (no pull).'
+    default: ''
+    required: false
+  retries:
+    description: 'How many times to retry the commit if it fails because the branch was updated by another author in the meantime. Requires `pull` to be non-empty (so the action can fetch the new HEAD between attempts). Defaults to `0` (no retries).'
+    default: '0'
+    required: false
+
+outputs:
+  commit_sha:
+    description: 'The short (7-character) SHA of the created commit. Falls back to the current HEAD SHA when no commit was made.'
+    value: ${{ steps.commit.outputs.commit_sha }}
+  commit_long_sha:
+    description: 'The full 40-character SHA of the created commit. Falls back to the current HEAD SHA when no commit was made.'
+    value: ${{ steps.commit.outputs.commit_long_sha }}
+  committed:
+    description: '`true` when a commit was created, `false` when there were no staged changes to commit.'
+    value: ${{ steps.commit.outputs.committed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate inputs
+      if: ${{ inputs.create-branch == 'true' && inputs.branch == (github.head_ref || github.ref_name) }}
+      shell: bash
+      run: |
+        echo "::error::When 'create-branch' is true, 'branch' must be passed explicitly (it cannot default to the current branch '${{ github.head_ref || github.ref_name }}')."
+        exit 1
+
+    - name: Create and checkout target branch
+      if: ${{ inputs.create-branch == 'true' }}
+      # The `shell` field is for some reason required when
+      # using composite actions. :)
+      shell: bash
+      run: |
+        git push origin "HEAD:refs/heads/${{ inputs.branch }}"
+        git fetch --depth=1 origin "${{ inputs.branch }}:refs/heads/${{ inputs.branch }}"
+
+    - name: Checkout branch
+      shell: bash
+      run: |
+        git checkout "${{ inputs.branch }}"
+
+    - name: Pull latest changes
+      if: ${{ inputs.pull != '' }}
+      shell: bash
+      run: |
+        if [[ "${{ inputs.pull }}" == "true" ]]; then
+          git pull
+        else
+          git pull ${{ inputs.pull }}
+        fi
+
+    - name: Stage files
+      if: ${{ inputs.add != '' }}
+      shell: bash
+      run: |
+        git add ${{ inputs.add }}
+
+    - name: Commit through API
+      id: commit
+      uses: actions/github-script@v8
+      env:
+        COMMIT_MESSAGE: ${{ inputs.message }}
+        REPO: ${{ inputs.repository }}
+        BRANCH: ${{ inputs.branch }}
+        ADD: ${{ inputs.add }}
+        PULL: ${{ inputs.pull }}
+        RETRIES: ${{ inputs.retries }}
+      with:
+        github-token: ${{ inputs.github-token }}
+        script: |
+          const { main } = require('${{ github.action_path }}/index.mts');
+
+          await main({
+              github,
+              core,
+              env: process.env,
+          });

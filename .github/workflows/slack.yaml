@@ -62,13 +62,13 @@ jobs:
           echo "jobStatus=${jobStatus}" >> $GITHUB_OUTPUT
 
       - name: send message
-        uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        uses: slackapi/slack-github-action@v3.0.1
         with:
-          channel-id: ${{ inputs.slackChannelId }}
+          method: chat.postMessage
+          token: ${{ secrets.slackToken }}
           payload: |
             {
+              "channel": "${{ inputs.slackChannelId }}",
               "text": ":${{ steps.format.outputs.emoji }}: *${{ github.repository }} ${{ inputs.subject }} ${{ steps.format.outputs.jobStatus }}*",
               "attachments": [
                 {

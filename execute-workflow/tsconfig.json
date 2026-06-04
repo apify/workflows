@@ -1,12 +1,17 @@
 {
+  "extends": "@apify/tsconfig",
   "compilerOptions": {
-    "target": "es2022",
-    "module": "commonjs",
-    "rootDir": "./",
-    "strict": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "noImplicitAny": true,
-    "esModuleInterop": true,
-    "resolveJsonModule": true
+    "importHelpers": false,
+    "noEmitHelpers": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "erasableSyntaxOnly": true,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"]
   },
-  "exclude": ["node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules"]
 }

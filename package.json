@@ -1,0 +1,26 @@
+{
+    "scripts": {
+        "actions:type-check": "tsc -p ./tsconfig.json",
+        "actions:test": "vitest --run ."
+    },
+    "devDependencies": {
+        "@actions/core": "^3.0.0",
+        "@apify/tsconfig": "^0.1.1",
+        "@octokit/rest": "^22.0.1",
+        "@types/node": "^25.5.0",
+        "typescript": "^6.0.2",
+        "vitest": "^4.1.2"
+    },
+    "packageManager": "pnpm@10.33.4",
+    "devEngines": {
+        "runtime": {
+            "name": "node",
+            "onFail": "error"
+        },
+        "packageManager": {
+            "name": "pnpm",
+            "version": "10.33.4",
+            "onFail": "warn"
+        }
+    }
+}

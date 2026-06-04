@@ -1,5 +1,98 @@
 # Changelog
 
+## [0.45.0](https://github.com/apify/workflows/compare/v0.44.0...v0.45.0) (2026-05-21)
+
+
+### Features
+
+* Add more inputs and outputs to the `commit` action to make it more useful ([#298](https://github.com/apify/workflows/issues/298)) ([a1e8619](https://github.com/apify/workflows/commit/a1e86199fa508a289dd4c4c26477341f55d8d87b))
+
+
+### Bug Fixes
+
+* switch packageManager devEngines to warn + add minimumReleaseAge ([#286](https://github.com/apify/workflows/issues/286)) ([c0c1014](https://github.com/apify/workflows/commit/c0c10147263b2b6ea7c134e9c737a11dcf56699e))
+
+## [0.44.0](https://github.com/apify/workflows/compare/v0.43.0...v0.44.0) (2026-05-13)
+
+
+### Features
+
+* Add `commit-sha` output to the `commit` action ([#294](https://github.com/apify/workflows/issues/294)) ([51a7a2d](https://github.com/apify/workflows/commit/51a7a2d7c87be72e6f5b6b9fcc3a7be1d4f0c052))
+
+## [0.43.0](https://github.com/apify/workflows/compare/v0.42.0...v0.43.0) (2026-05-13)
+
+
+### Features
+
+* Add default inputs to the `commit` action, add a README for it ([#292](https://github.com/apify/workflows/issues/292)) ([b8f2f31](https://github.com/apify/workflows/commit/b8f2f31b3338c310ac55e1adc6b245f7347c088c))
+* Move `commit` action to top level to align with other actions ([#291](https://github.com/apify/workflows/issues/291)) ([36f5d99](https://github.com/apify/workflows/commit/36f5d991ba6d594a9b07c0aaa596cd2fdf9fed8e))
+
+## [0.42.0](https://github.com/apify/workflows/compare/v0.41.2...v0.42.0) (2026-05-12)
+
+
+### Features
+
+* Use `pnpm config` instead of `npm config` ([#289](https://github.com/apify/workflows/issues/289)) ([42a61d7](https://github.com/apify/workflows/commit/42a61d74a91e6b84cf341a3e014e8bc878b3ffc7))
+
+## [0.41.2](https://github.com/apify/workflows/compare/v0.41.1...v0.41.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* **get_values:** lowercase clean_branch_name outputs ([#287](https://github.com/apify/workflows/issues/287)) ([2da18a4](https://github.com/apify/workflows/commit/2da18a48ae1a62a503a135c986983c03a20c275a))
+
+## [0.41.1](https://github.com/apify/workflows/compare/v0.41.0...v0.41.1) (2026-05-09)
+
+
+### Bug Fixes
+
+* **pnpm-install:** pin lock-hash to step output so cache-save survives teardown ([#284](https://github.com/apify/workflows/issues/284)) ([5e01e87](https://github.com/apify/workflows/commit/5e01e87a9839c4a1436e99f3afc6a9293443dc1a))
+
+## [0.41.0](https://github.com/apify/workflows/compare/v0.40.1...v0.41.0) (2026-05-07)
+
+
+### Features
+
+* bump all GitHub actions versions ([#282](https://github.com/apify/workflows/issues/282)) ([dc24739](https://github.com/apify/workflows/commit/dc2473980423e3c0c65bab4a6b2f0b9c0903cb0e))
+
+## [0.40.1](https://github.com/apify/workflows/compare/v0.40.0...v0.40.1) (2026-05-07)
+
+
+### Bug Fixes
+
+* Update `getsentry/action-release` to fix handling of 504 errors ([#280](https://github.com/apify/workflows/issues/280)) ([235dce9](https://github.com/apify/workflows/commit/235dce9859aabb1b67880666c45b651614a1735a))
+
+## [0.40.0](https://github.com/apify/workflows/compare/v0.39.0...v0.40.0) (2026-05-05)
+
+
+### Features
+
+* pnpm install action ([#267](https://github.com/apify/workflows/issues/267)) ([34be977](https://github.com/apify/workflows/commit/34be977c08bfc2df907caced8dd9bf532565f4a7))
+* **pnpm-install:** add working-directory input ([#269](https://github.com/apify/workflows/issues/269)) ([ea5bf00](https://github.com/apify/workflows/commit/ea5bf000e4c4a028a4f964c4e38f464fe57fbe61))
+* **pnpm-install:** optional github-registry-token input ([#277](https://github.com/apify/workflows/issues/277)) ([d035277](https://github.com/apify/workflows/commit/d035277bc372ba0069246ae854685c84f7fbf5f4))
+
+
+### Bug Fixes
+
+* **pnpm-install:** drop ${{ }} expression from description ([#278](https://github.com/apify/workflows/issues/278)) ([6cf59c7](https://github.com/apify/workflows/commit/6cf59c788c638cb14e79d7250098c52c6148121b))
+* **pnpm-install:** keep github-registry-token off disk ([#279](https://github.com/apify/workflows/issues/279)) ([aaa1a36](https://github.com/apify/workflows/commit/aaa1a36dd8538c6281dc289eb7135de8296406ce))
+* **pnpm-install:** pass working-directory to package_json_file ([#270](https://github.com/apify/workflows/issues/270)) ([588e2e3](https://github.com/apify/workflows/commit/588e2e3c96c7a54335f6ce2b0d8688139539386f))
+* **pnpm-install:** skip swap setup on ARM64 runners ([#276](https://github.com/apify/workflows/issues/276)) ([7de7795](https://github.com/apify/workflows/commit/7de77954816459b93a86d690d18c57267521cb66))
+
+## [0.39.0](https://github.com/apify/workflows/compare/v0.38.0...v0.39.0) (2026-04-13)
+
+
+### Features
+
+* add signed commit composite action ([#261](https://github.com/apify/workflows/issues/261)) ([19abdfe](https://github.com/apify/workflows/commit/19abdfe3b311eba732c31f552dfbdbc2f85b8f51))
+
+## [0.38.0](https://github.com/apify/workflows/compare/v0.37.0...v0.38.0) (2026-04-08)
+
+
+### Features
+
+* Update `actionlint` to support schedule timezones ([#263](https://github.com/apify/workflows/issues/263)) ([4bc301a](https://github.com/apify/workflows/commit/4bc301a86b94261170d702f0d2f1e5d07c31d5f6))
+
 ## [0.37.0](https://github.com/apify/workflows/compare/v0.36.2...v0.37.0) (2026-03-11)
 
 

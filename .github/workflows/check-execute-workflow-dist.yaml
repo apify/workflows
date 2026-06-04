@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'execute-workflow/**'
+      - '.github/workflows/check-execute-workflow-dist.yaml'
 
 permissions:
   contents: write
@@ -23,22 +24,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
-          cache: 'npm'
-          cache-dependency-path: execute-workflow/package-lock.json
+          node-version-file: '.nvmrc'
 
       - name: Install dependencies
-        working-directory: execute-workflow
-        run: npm ci
+        uses: ./pnpm-install
 
       - name: Rebuild dist
-        working-directory: execute-workflow
-        run: npm run build
+        run: pnpm --filter execute-workflow build
 
       - name: Commit and push if changed
-        uses: EndBug/add-and-commit@v9
+        uses: apify/actions/signed-commit@v1.0.0
         with:
-          author_name: github-actions[bot]
-          author_email: 41898282+github-actions[bot]@users.noreply.github.com
           message: "chore: rebuild execute-workflow dist [skip ci]"
           add: 'execute-workflow/dist/'
+          github-token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

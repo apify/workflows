@@ -1,0 +1,97 @@
+name: "pnpm install"
+description: "Run pnpm install with cache enabled"
+
+inputs:
+  working-directory:
+    description: "Directory containing pnpm-lock.yaml (defaults to repo root)"
+    required: false
+    default: "."
+  github-registry-token:
+    description: >-
+      Optional auth token for the GitHub npm registry (npm.pkg.github.com).
+      When set, configures //npm.pkg.github.com/:_authToken=<token> in the
+      user-global ~/.npmrc before installing, so private @<scope>/* packages
+      published to the GitHub registry resolve. Caller should pass a token
+      with read access to the relevant packages (e.g. a service-account PAT
+      from a repo secret). Leave unset for repos that install only from the
+      public npm registry.
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    # Skip on ARM64: pierotofy/set-swap-space@v1.0 unconditionally calls
+    # `swapoff $(swapon --show=NAME | tail -n 1)`, which on ARM64 GitHub
+    # runners (no pre-allocated swap) resolves to `swapoff <empty>` and
+    # exits non-zero with "swapoff: bad usage". x86_64 runners ship with
+    # an existing swap file, so the action works there.
+    - name: Set up swap space
+      if: runner.os == 'Linux' && runner.arch != 'ARM64'
+      uses: pierotofy/set-swap-space@v1.0
+      with:
+        swap-size-gb: 10
+
+    - uses: pnpm/action-setup@v6.0.8
+      name: Install pnpm
+      with:
+        run_install: false
+        package_json_file: ${{ inputs.working-directory }}/package.json
+
+    # Write a *template* (the literal string `${GITHUB_REGISTRY_TOKEN}`) into
+    # ~/.npmrc, NOT the expanded token. Using single quotes here is load-
+    # bearing — they prevent the shell from expanding the variable, so the
+    # actual token never lands on disk. pnpm/npm expand the template at
+    # registry-fetch time, reading the env var that we inject only for the
+    # install step below. Once that step finishes the env var is gone and
+    # ~/.npmrc holds an unusable template, so later steps in the same job
+    # cannot exfiltrate the token.
+    - name: Configure GitHub npm registry auth
+      if: inputs.github-registry-token != ''
+      shell: bash
+      run: |
+        pnpm config set '//npm.pkg.github.com/:_authToken=${GITHUB_REGISTRY_TOKEN}'
+
+    - name: Expose pnpm config(s) through "$GITHUB_OUTPUT"
+      id: pnpm-config
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+    - name: Cache rotation keys
+      id: cache-rotation
+      shell: bash
+      run: |
+        echo "YEAR_MONTH=$(/bin/date -u "+%Y%m")" >> $GITHUB_OUTPUT
+
+    # Pre-compute the lockfile hash and store it as a step output. `actions/cache@v4`
+    # re-evaluates `key:` in its post-step (cache-save) at job teardown, and on some
+    # self-hosted/k8s runners the workspace is wiped before that runs — calling
+    # `hashFiles('**/pnpm-lock.yaml')` from the post-step then fails the job after
+    # all real steps have already passed. Capturing the hash once here pins the
+    # value to a step output, which survives teardown.
+    - name: Compute pnpm-lock.yaml hash
+      id: pnpm-lock-hash
+      shell: bash
+      run: |
+        echo "HASH=${{ hashFiles('**/pnpm-lock.yaml') }}" >> $GITHUB_OUTPUT
+
+    - uses: actions/cache@v4
+      name: Setup pnpm cache
+      with:
+        path: ${{ steps.pnpm-config.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-cache-${{ steps.cache-rotation.outputs.YEAR_MONTH }}-${{ steps.pnpm-lock-hash.outputs.HASH }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-cache-${{ steps.cache-rotation.outputs.YEAR_MONTH }}-
+
+    # GITHUB_REGISTRY_TOKEN is exposed only for this step. The .npmrc
+    # template written above expands it at registry-fetch time, then it's
+    # gone — no plaintext token ends up on disk for later steps to read.
+    - name: Install dependencies
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        pnpm install --frozen-lockfile --prefer-offline --loglevel error
+      env:
+        HUSKY: "0"
+        GITHUB_REGISTRY_TOKEN: ${{ inputs.github-registry-token }}

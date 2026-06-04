@@ -122,13 +122,13 @@ jobs:
 
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        uses: slackapi/slack-github-action@v3.0.1
         with:
-          channel-id: ${{ inputs.slackChannelId }}
+          method: chat.postMessage
+          token: ${{ secrets.slackToken }}
           payload: |
             {
+              "channel": "${{ inputs.slackChannelId }}",
               "text": ":large_blue_circle: *${{ github.repository }} deploy of helmfile started*",
               "attachments": [
                 {
@@ -237,7 +237,7 @@ jobs:
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
 
       - name: Tailscale VPN
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v4
         if: inputs.enableVpn == 'true'
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -289,13 +289,13 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v1.26.0
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
+        uses: slackapi/slack-github-action@v3.0.1
         with:
-          channel-id: ${{ inputs.slackChannelId }}
+          method: chat.postMessage
+          token: ${{ secrets.slackToken }}
           payload: |
             {
+              "channel": "${{ inputs.slackChannelId }}",
               "text": ":${{ steps.helper.outputs.emoji }}: *${{ github.repository }} deploy of helmfile result: ${{ job.status }}*",
               "attachments": [
                 {
