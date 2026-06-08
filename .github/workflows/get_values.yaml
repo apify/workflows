@@ -44,8 +44,7 @@ jobs:
           if [ "${{ inputs.commitSha }}" != "" ]; then
               COMMIT_SHA=${{ inputs.commitSha }}
               BRANCH_NAME=${GITHUB_REF_NAME}
-          # pull_request_target carries the same head context as pull_request (GITHUB_HEAD_REF / head.sha);
-          # without this it falls through to the base branch below, breaking per-PR naming (e.g. env teardowns).
+          # pull_request_target exposes the same head ref/sha as pull_request; without this it falls through to the base branch.
           elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_target" ]; then
               COMMIT_SHA=${{ github.event.pull_request.head.sha }}
               BRANCH_NAME=${GITHUB_HEAD_REF}
