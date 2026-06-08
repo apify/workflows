@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.45.1](https://github.com/apify/workflows/compare/v0.45.0...v0.45.1) (2026-06-08)
+
+
+### Bug Fixes
+
+* **get_values:** use head ref/sha on pull_request_target ([#303](https://github.com/apify/workflows/issues/303)) ([f199e0f](https://github.com/apify/workflows/commit/f199e0f38c8c12676bc563fe5299bc72cc480f7e))
+
 ## [0.45.0](https://github.com/apify/workflows/compare/v0.44.0...v0.45.0) (2026-05-21)
 
 
