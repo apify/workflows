@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.0](https://github.com/apify/workflows/compare/v0.45.1...v0.46.0) (2026-06-10)
+
+
+### Features
+
+* update CFN lint ([#305](https://github.com/apify/workflows/issues/305)) ([a0adf5e](https://github.com/apify/workflows/commit/a0adf5ebe5f93d8d56f5fe930d89d600d0d05aea))
+
 ## [0.45.1](https://github.com/apify/workflows/compare/v0.45.0...v0.45.1) (2026-06-08)
 
 
