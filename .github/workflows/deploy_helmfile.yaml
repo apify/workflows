@@ -97,7 +97,7 @@ on:
         description: Tailscale ping target
         required: false
         type: string
-        # Production EKS cluster DNS nameto test the VPN connection
+        # Production EKS cluster DNS name to test the VPN connection
         default: BA6D21AB896DE795C7BF29050D03C3A8.gr7.us-east-1.eks.amazonaws.com
 
 
