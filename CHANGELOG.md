@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.47.0](https://github.com/apify/workflows/compare/v0.46.0...v0.47.0) (2026-07-16)
+
+
+### Features
+
+* add Tailscale version and ping inputs to Helmfile deployment wo… ([#307](https://github.com/apify/workflows/issues/307)) ([32e8c3c](https://github.com/apify/workflows/commit/32e8c3c03098b88bc49efc018a14b872876387cf))
+
 ## [0.46.0](https://github.com/apify/workflows/compare/v0.45.1...v0.46.0) (2026-06-10)
 
 
