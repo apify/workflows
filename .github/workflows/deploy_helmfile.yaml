@@ -88,6 +88,17 @@ on:
         required: false
         type: string
         default: v3.9.6
+      tailscaleVersion:
+        description: Tailscale version
+        required: false
+        type: string
+        default: 1.98.9
+      tailscalePing:
+        description: Tailscale ping target
+        required: false
+        type: string
+        # Production EKS cluster DNS nameto test the VPN connection
+        default: BA6D21AB896DE795C7BF29050D03C3A8.gr7.us-east-1.eks.amazonaws.com
 
 
     secrets:
@@ -243,20 +254,16 @@ jobs:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
           tags: tag:ci
-          version: 1.76.1
+          version: ${{ inputs.tailscaleVersion }}
+          ping: ${{ inputs.tailscalePing }}
 
-      # Bug https://github.com/tailscale/github-action/issues/107
-      #- name: Tailscale sleep workaround
-      #  run: |
-      #    sleep 10
-
-      - name: wait until Tailscale is ready
-        if: inputs.enableVpn == 'true'
-        run: |
-          for i in {1..20}; do
-            kubectl cluster-info --request-timeout 3 && break
-            echo "Waiting for Tailscale to be ready..."
-          done
+      # - name: wait until Tailscale is ready
+      #   if: inputs.enableVpn == 'true'
+      #   run: |
+      #     for i in {1..20}; do
+      #       kubectl cluster-info --request-timeout 3 && break
+      #       echo "Waiting for Tailscale to be ready..."
+      #     done
 
       - name: helmfile diff
         if: inputs.helmfileCommand != 'destroy'
