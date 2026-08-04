@@ -46,3 +46,37 @@ jobs:
       slackChannelId: <SLACK_CHANNEL_ID>
       actorOverride: ${{ needs.get_values.outputs.commit_author }}
 ```
+
+Proofread the public-facing copy changed in a pull request. The rules come from a skill in
+[`apify/agent-skills-internal`](https://github.com/apify/agent-skills-internal), so callers do not vendor a
+copy of them. The caller owns the trigger; label-driven keeps the review an explicit, re-requestable
+action instead of something that runs on every push.
+
+> NOTE: `agentSkillsToken` needs read access to `apify/agent-skills-internal`. `APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN` works.
+
+```yml
+name: copy proofread review
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  proofread:
+    if: github.event.label.name == 'copy-review'
+    uses: apify/workflows/.github/workflows/copy_proofread_review.yaml@main
+    secrets:
+      anthropicApiKey: ${{ secrets.ANTHROPIC_API_KEY }}
+      agentSkillsToken: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+    with:
+      paths: |
+        - `src/packages/intl/src/en/`
+        - `src/packages/errors/src/errors/`
+      # Optional — only for conventions the model cannot infer from the code itself.
+      repoInstructions: |
+        - errors `*.ts`: copy is ONLY the 2nd argument of `newMeteorishError(code, message, status)`.
+          The kebab-case error code and the numeric HTTP status are code.
+```
+
+Both secrets must be passed explicitly. `secrets: inherit` does not work here, because the names the workflow
+declares are its own, not the caller's.

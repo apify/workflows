@@ -1,0 +1,186 @@
+name: copy proofread review
+
+# Proofreads the public-facing copy changed in a pull request against Apify's style guide and posts
+# inline suggestions. The style rules come from the `apify-proofreader` skill in
+# apify/agent-skills-internal, checked out at run time, so the review always applies the current rules
+# instead of a copy vendored into the caller.
+#
+# The caller owns the trigger. The usual setup is `pull_request: types: [labeled]` plus an `if:` on the
+# label name, which makes the review an explicit, re-requestable action rather than something that runs
+# on every push. See the README for a full caller example.
+
+on:
+  workflow_call:
+    inputs:
+      paths:
+        description: Newline-separated list of paths (relative to the repo root) whose copy should be reviewed. Everything else in the diff is ignored.
+        required: true
+        type: string
+      repoInstructions:
+        description: >-
+          Repo-specific rules for telling copy apart from code, appended to the generic ones. Use it for
+          conventions the model cannot infer, e.g. which argument of a helper holds the human-readable message.
+        required: false
+        default: ''
+        type: string
+
+    secrets:
+      anthropicApiKey:
+        description: Anthropic API key used by the review agent.
+        required: true
+      agentSkillsToken:
+        description: GitHub token with read access to apify/agent-skills-internal.
+        required: true
+
+# One run per PR; a second label-add while a run is in flight cancels the stale one.
+concurrency:
+  group: copy-proofread-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  proofread:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write # remove the trigger label when done
+      pull-requests: write # post the review + inline comments
+      id-token: write
+    steps:
+      - name: Check the secrets are set
+        # `secrets: inherit` does not bind these — the names below are this workflow's, not the caller's —
+        # so without this the run fails later as an opaque 401 from Anthropic or a checkout auth error.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.anthropicApiKey }}
+          AGENT_SKILLS_TOKEN: ${{ secrets.agentSkillsToken }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${ANTHROPIC_API_KEY:-}" ]] || missing+=(anthropicApiKey)
+          [[ -n "${AGENT_SKILLS_TOKEN:-}" ]] || missing+=(agentSkillsToken)
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing secrets: ${missing[*]}. Pass them explicitly in the caller's \`secrets:\` block — \`secrets: inherit\` does not work here."
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # The diff comes from `gh pr diff` (API-backed) and files are read from the working tree.
+          fetch-depth: 1
+
+      - name: Check out the apify-proofreader skill
+        uses: actions/checkout@v6
+        with:
+          repository: apify/agent-skills-internal
+          token: ${{ secrets.agentSkillsToken }}
+          path: .agent-skills
+          sparse-checkout: skills/apify-proofreader
+          fetch-depth: 1
+
+      - name: Install the skill into .claude/skills
+        # Claude Code auto-loads skills from `.claude/skills/` in the working directory, so the checkout
+        # above is moved into place rather than referenced where it landed.
+        run: |
+          set -euo pipefail
+          mkdir -p .claude/skills
+          cp -R .agent-skills/skills/apify-proofreader .claude/skills/apify-proofreader
+          rm -rf .agent-skills
+
+      - name: Proofread public-facing copy
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          anthropic_api_key: ${{ secrets.anthropicApiKey }}
+          github_token: ${{ github.token }}
+          show_full_output: true
+          prompt: |
+            You are running inside a GitHub Actions workflow on pull request #${{ github.event.pull_request.number }}
+            in repository ${{ github.repository }}. Your
+            single job: proofread the **public-facing copy** changed in this PR against Apify's style guide and
+            post inline suggestions. You do NOT approve, request changes, or comment on anything else.
+
+            ## Authority: the apify-proofreader skill
+            Use the `apify-proofreader` skill (checked out to .claude/skills/apify-proofreader/SKILL.md by a
+            previous CI step) as the ONLY source of style rules. Read that SKILL.md first and apply exactly those
+            rules — sentence case, "Actor" capitalization, US spelling, no em/en dashes, AI-fluff removal, etc. Do
+            not invent rules beyond it. If the file is missing, post a single PR comment saying the skill is not
+            installed and stop.
+
+            ## Scope — ONLY these paths, and ONLY the copy within them
+            Consider ONLY changed hunks (lines beginning `+`) under:
+            ${{ inputs.paths }}
+            Ignore every other file in the diff.
+
+            ## Distinguish copy from code — comment ONLY on copy
+            You MUST tell code apart from human-facing copy and only flag the copy. Copy is natural language a
+            user reads. Everything else is code and must be reproduced byte-for-byte: identifiers, object keys,
+            placeholders and format syntax (`{count}`, `{actorCount, plural, ...}`, `{type, select, ...}`), markup
+            and JSX tags, imports, component and prop names, `className`, style objects, URLs, error codes, and
+            HTTP status codes. Proofread only the natural-language words around them.
+            If you are unsure whether something is copy or code, do NOT comment on it.
+            ${{ inputs.repoInstructions }}
+
+            ## How to post feedback — inline suggestions on changed lines only
+            For each real style violation on a `+` (added/changed) line:
+            - Use `mcp__github_inline_comment__create_inline_comment` to attach a comment to that exact line.
+            - Prefer a ready-to-apply suggestion. The comment body must be one short sentence naming the rule,
+              followed by a suggestion block that reproduces the WHOLE line with only the copy corrected and
+              all surrounding code/keys/placeholders/tags intact:
+
+              <the style rule in one sentence>
+              ```suggestion
+              <the full corrected line, code untouched>
+              ```
+            - If the fix is ambiguous (e.g. an ambiguous numeric date/number per the skill, an unlisted brand
+              name, or copy whose intended meaning is unclear), leave a comment WITHOUT a suggestion block and
+              ask the author to revise. NEVER pack several issues into one prose paragraph — format it as one
+              short lead sentence, then a bulleted list with ONE issue per bullet, each quoting the offending
+              text first:
+
+              <one sentence: what you need from the author and why there's no suggestion>
+
+              - `"<offending text>"` — <the problem and the fix, one clause> (Rule N)
+              - `"<offending text>"` — <the problem and the fix, one clause> (Rule N)
+            - Comment only on lines that are part of this PR's diff. One comment per issue; do not repeat the
+              same issue on many lines — cover the first and mention the pattern once. Post each finding
+              exactly once: if `create_inline_comment` returns an error, fix the arguments and retry, but never
+              post a second, reworded version of a comment that already landed.
+
+            ## Finish
+            - After adding inline comments, post ONE top-level PR comment via `gh pr comment` listing the files
+              reviewed and the themes found (e.g. "3 sentence-case fixes, 1 em dash"). Keep it to a few bullets.
+            - Do NOT narrate your own method or scope in that comment. Never write sentences about what you
+              left untouched or how you distinguished copy from code (e.g. "I checked the string values only,
+              leaving object keys, ICU syntax, placeholders, and markup tags untouched") — that's plumbing, not
+              feedback. Report findings only.
+            - End the comment with a line crediting the rule source, exactly:
+              `Rules: [apify-proofreader](https://github.com/apify/agent-skills-internal/blob/main/skills/apify-proofreader/SKILL.md)`
+            - If you found NO violations, post a single top-level comment: "✅ Copy proofread — no style
+              issues found in the changed copy." plus that same `Rules:` line. Do not add inline comments in
+              that case.
+            - NEVER approve or request changes. You are only leaving comments.
+          claude_args: |
+            --max-turns 25
+            --allowedTools "Read,Glob,Grep,Skill,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(cat:*),Bash(ls:*),Bash(grep:*),Bash(find:*)"
+
+      - name: Remove trigger label
+        # Removes whichever label triggered the caller, so the label reflects "not currently queued" and
+        # re-adding it re-runs the review — the deliberate re-request action. Runs regardless of the review
+        # outcome, and is skipped when the caller was triggered by something other than a label.
+        if: always() && github.event.label.name != ''
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: context.payload.label.name,
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
