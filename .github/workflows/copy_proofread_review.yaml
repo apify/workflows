@@ -1,13 +1,9 @@
 name: copy proofread review
 
 # Proofreads the public-facing copy changed in a pull request against Apify's style guide and posts
-# inline suggestions. The style rules come from the `apify-proofreader` skill in
-# apify/agent-skills-internal, checked out at run time, so the review always applies the current rules
-# instead of a copy vendored into the caller.
+# inline suggestions. Rules come from the `apify-proofreader` skill in apify/agent-skills-internal.
 #
-# The caller owns the trigger. The usual setup is `pull_request: types: [labeled]` plus an `if:` on the
-# label name, which makes the review an explicit, re-requestable action rather than something that runs
-# on every push. See the README for a full caller example.
+# The caller owns the trigger. See the README for a full caller example.
 
 on:
   workflow_call:
@@ -48,8 +44,7 @@ jobs:
       id-token: write
     steps:
       - name: Check the secrets are set
-        # `secrets: inherit` does not bind these — the names below are this workflow's, not the caller's —
-        # so without this the run fails later as an opaque 401 from Anthropic or a checkout auth error.
+        # `secrets: inherit` does not bind these — pass them explicitly in the caller.
         env:
           ANTHROPIC_API_KEY: ${{ secrets.anthropicApiKey }}
           AGENT_SKILLS_TOKEN: ${{ secrets.agentSkillsToken }}
@@ -70,6 +65,8 @@ jobs:
           fetch-depth: 1
 
       - name: Check out the apify-proofreader skill
+        # Checked out here rather than under `.claude/` — claude-code-action wipes and restores `.claude/`
+        # from the PR base branch before running Claude.
         uses: actions/checkout@v6
         with:
           repository: apify/agent-skills-internal
@@ -77,15 +74,6 @@ jobs:
           path: .agent-skills
           sparse-checkout: skills/apify-proofreader
           fetch-depth: 1
-
-      - name: Install the skill into .claude/skills
-        # Claude Code auto-loads skills from `.claude/skills/` in the working directory, so the checkout
-        # above is moved into place rather than referenced where it landed.
-        run: |
-          set -euo pipefail
-          mkdir -p .claude/skills
-          cp -R .agent-skills/skills/apify-proofreader .claude/skills/apify-proofreader
-          rm -rf .agent-skills
 
       - name: Proofread public-facing copy
         uses: anthropics/claude-code-action@v1
@@ -102,11 +90,11 @@ jobs:
             post inline suggestions. You do NOT approve, request changes, or comment on anything else.
 
             ## Authority: the apify-proofreader skill
-            Use the `apify-proofreader` skill (checked out to .claude/skills/apify-proofreader/SKILL.md by a
-            previous CI step) as the ONLY source of style rules. Read that SKILL.md first and apply exactly those
-            rules — sentence case, "Actor" capitalization, US spelling, no em/en dashes, AI-fluff removal, etc. Do
-            not invent rules beyond it. If the file is missing, post a single PR comment saying the skill is not
-            installed and stop.
+            Use the `apify-proofreader` skill (checked out to .agent-skills/skills/apify-proofreader/SKILL.md by
+            a previous CI step) as the ONLY source of style rules. Read that SKILL.md first and apply exactly
+            those rules — sentence case, "Actor" capitalization, US spelling, no em/en dashes, AI-fluff removal,
+            etc. Do not invent rules beyond it. If the file is missing, post a single PR comment saying the
+            skill is not installed and stop.
 
             ## Scope — ONLY these paths, and ONLY the copy within them
             Consider ONLY changed hunks (lines beginning `+`) under:
@@ -163,12 +151,10 @@ jobs:
             - NEVER approve or request changes. You are only leaving comments.
           claude_args: |
             --max-turns 25
-            --allowedTools "Read,Glob,Grep,Skill,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(cat:*),Bash(ls:*),Bash(grep:*),Bash(find:*)"
+            --allowedTools "Read,Glob,Grep,mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr comment:*),Bash(cat:*),Bash(ls:*),Bash(grep:*),Bash(find:*)"
 
       - name: Remove trigger label
-        # Removes whichever label triggered the caller, so the label reflects "not currently queued" and
-        # re-adding it re-runs the review — the deliberate re-request action. Runs regardless of the review
-        # outcome, and is skipped when the caller was triggered by something other than a label.
+        # Re-adding it re-runs the review.
         if: always() && github.event.label.name != ''
         uses: actions/github-script@v9
         with:
