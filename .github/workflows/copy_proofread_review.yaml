@@ -41,7 +41,6 @@ jobs:
       contents: read
       issues: write # remove the trigger label when done
       pull-requests: write # post the review + inline comments
-      id-token: write
     steps:
       - name: Check the secrets are set
         # `secrets: inherit` does not bind these — pass them explicitly in the caller.
