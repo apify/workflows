@@ -30,7 +30,7 @@ on:
 
 # One run per PR; a second label-add while a run is in flight cancels the stale one.
 concurrency:
-  group: copy-proofread-review-${{ github.event.pull_request.number }}
+  group: copy-proofread-review-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
 
 jobs:
