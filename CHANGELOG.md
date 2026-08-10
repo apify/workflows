@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.48.0](https://github.com/apify/workflows/compare/v0.47.0...v0.48.0) (2026-08-10)
+
+
+### Features
+
+* add copy proofread review workflow ([#309](https://github.com/apify/workflows/issues/309)) ([d8e7c26](https://github.com/apify/workflows/commit/d8e7c26a06fc3da38c8399f71b40d67fa5236394))
+
 ## [0.47.0](https://github.com/apify/workflows/compare/v0.46.0...v0.47.0) (2026-07-16)
 
 
