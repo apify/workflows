@@ -15,7 +15,7 @@ on:
         description: |
           Deprecated: the complete changelog as a string. Used only when the changelog artifact is missing,
           and unusable once the changelog grows over 128 KiB. Callers on
-          apify/actions/git-cliff-release v1.5.0 or newer should stop passing it.
+          apify/actions/git-cliff-release v1.4.1 or newer should stop passing it.
         required: false
         type: string
         default: ""
@@ -104,7 +104,7 @@ jobs:
           echo "::error::Neither the '${ARTIFACT_NAME}' artifact nor the 'changelog' input carries a changelog"
           exit 1
 
-      # Deprecated path for callers still on apify/actions/git-cliff-release older than v1.5.0, which does
+      # Deprecated path for callers still on apify/actions/git-cliff-release older than v1.4.1, which does
       # not upload the artifact. Drop it, together with the 'changelog' input, once every caller is bumped.
       - name: Update the changelog from the input
         if: ${{ steps.changelog_artifact.outcome != 'success' }}
