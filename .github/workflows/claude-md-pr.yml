@@ -79,17 +79,16 @@ jobs:
         with:
           # The head branch, not the merge ref, because we push back to it.
           ref: ${{ github.event.pull_request.head.ref }}
-          # Shallow. We only read the tip commit's author here. The base commit gets fetched
-          # later, in the step that needs it.
-          fetch-depth: 2
+          # Nothing here reads a parent commit: the gate checks the tip's author, and the only
+          # comparison left is the working tree against HEAD. claude-code-action fetches the base
+          # branch itself for its own config reset.
+          fetch-depth: 1
           token: ${{ github.token }}
 
       - name: Gate
         id: gate
+        # No token and no network: every decision below reads the checkout on disk.
         env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
@@ -145,14 +144,6 @@ jobs:
             exit 1
           fi
 
-          # Logged, not judged: nothing below decides anything from this list, so a truncated one
-          # costs a confusing log and nothing more. From the API rather than `gh pr diff` because
-          # gh parses the raw diff, which GitHub truncates on a big PR.
-          # `|| true`, so a transient API error costs a log line and not the run.
-          echo "Changed files:"
-          gh api "repos/$GH_REPO/pulls/$PR/files" --paginate --jq '.[].filename' \
-            | sed 's/^/  /' || true
-
           # Stop if we made the newest commit, or we'd react to our own commit and never stop.
           # Newest commit only, so an earlier doc commit doesn't disable this for later pushes.
           # %an is the author: our commits are made through the API, which sets the committer to
@@ -162,12 +153,11 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # There is deliberately no "a human edited the doc in this PR, so leave it alone" check
-          # here any more. It existed because the pre-agent reset meant the agent never saw an
-          # in-PR edit to CLAUDE.md, so committing its output silently reverted the author's work.
-          # AGENTS.md is not reset, so the agent now reads the author's edit and judges the file as
-          # it actually stands — editing on top of it is correct rather than destructive. Dropping
-          # the check also removes one API call per run plus one per commit in the PR.
+          # Deliberately nothing here that bails out because a human edited AGENTS.md in this PR.
+          # That check is only needed when the agent cannot see their edit, which is true of a file
+          # on claude-code-action's SENSITIVE_PATHS and false of AGENTS.md: the agent reads the edit
+          # and judges the file as it actually stands, so editing on top of it is correct rather
+          # than destructive. Add it back only alongside a doc that IS reset.
           #
           # Deliberately no path filtering, here or as a `paths:` trigger filter. Deciding relevance
           # from a filename fails silently — the run that should have fired doesn't, which looks
@@ -291,21 +281,20 @@ jobs:
             echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # `git status` is the entire comparison, because AGENTS.md is not one of
+          # `git status` is the entire comparison, and only because AGENTS.md is not one of
           # claude-code-action's SENSITIVE_PATHS: nothing reset it before the agent started, so what
           # the agent was handed is exactly what this branch has. A dirty file means the agent
-          # changed something; a clean one means it didn't.
+          # changed something. Move the doc onto a path that IS reset and this stops working — a
+          # dirty file would then mean either an agent edit or the reset undoing one of our own
+          # earlier commits, which takes a blob comparison against the base branch TIP (not
+          # `base.sha`, which is an event snapshot and goes stale) to tell apart.
           #
-          # This used to be forty lines of fetching the base branch and comparing blobs, because
-          # the doc lived in CLAUDE.md, which IS reset — so "differs from HEAD" could mean either an
-          # agent edit or the reset undoing one of our own earlier commits, and telling those apart
-          # needed the base tip. Moving the doc to AGENTS.md deleted the whole problem. If the doc
-          # ever moves back, that comparison has to come back with it.
-          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ]; then
-            # The agent is told to delete stale claims, not the file. Committing this would remove
-            # the repo's AGENTS.md under a "docs: update" message.
-            echo "::error::AGENTS.md is missing or no longer a regular file after the agent ran."
-            echo "::error::Not committing that."
+          # The agent is told to delete stale claims, not the file, and its tools can't unlink one
+          # anyway — but an empty or vanished file would be committed as a "docs: update" that wipes
+          # the repo's doc, so it is worth one cheap line to refuse.
+          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
+            echo "::error::AGENTS.md is missing, empty, or no longer a regular file after the agent"
+            echo "::error::ran. Not committing that."
             echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
