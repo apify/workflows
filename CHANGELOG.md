@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.48.1](https://github.com/apify/workflows/compare/v0.48.0...v0.48.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* read the changelog from an artifact in the Python release workflow ([#312](https://github.com/apify/workflows/issues/312)) ([92607e6](https://github.com/apify/workflows/commit/92607e6915ea46ac229ab4745dfe8b975d5eddff))
+
 ## [0.48.0](https://github.com/apify/workflows/compare/v0.47.0...v0.48.0) (2026-08-10)
 
 
