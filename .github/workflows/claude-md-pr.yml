@@ -122,8 +122,13 @@ jobs:
           # one unchanging line, so resetting it is a no-op — and Claude Code follows the `@` import,
           # so the agent still gets the doc as its own instructions.
           layout_ok=true
-          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ]; then
-            echo "::error::AGENTS.md must be a regular file in the repo root, holding the doc itself."
+          # -s as well as -f: an empty AGENTS.md is a broken layout, not a doc with nothing in it
+          # yet. The agent is forbidden to create the file, so it would have no claims to check and
+          # nothing to correct, and the run would report "nothing to do" on a repo that has no doc
+          # at all — a silence that means the opposite of what it looks like. Same predicate as the
+          # post-agent guard below, which refuses to commit a file the agent emptied.
+          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
+            echo "::error::AGENTS.md must be a regular, non-empty file in the repo root, holding the doc."
             layout_ok=false
           elif git check-ignore -q AGENTS.md; then
             # check-ignore consults the index, so a tracked AGENTS.md that is also listed in
