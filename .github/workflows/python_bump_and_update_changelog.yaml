@@ -12,9 +12,23 @@ on:
         required: true
         type: string
       changelog:
-        description: The complete changelog
-        required: true
+        description: |
+          Deprecated: the complete changelog as a string. Used only when the changelog artifact is missing,
+          and unusable once the changelog grows over 128 KiB. Callers on
+          apify/actions/git-cliff-release v1.5.0 or newer should stop passing it.
+        required: false
         type: string
+        default: ""
+      changelog_artifact_name:
+        description: Name of the artifact holding the changelog, as uploaded by apify/actions/git-cliff-release
+        required: false
+        type: string
+        default: git-cliff-changelog
+      changelog_path:
+        description: Path to the changelog file within the repository
+        required: false
+        type: string
+        default: CHANGELOG.md
     secrets:
       APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN:
         required: true
@@ -52,10 +66,51 @@ jobs:
           echo "Updating version in pyproject.toml to ${new_version}"
           uv version "${new_version}"
 
-      - name: Update CHANGELOG.md
+      # The changelog is handed over as an artifact instead of a string input, because an action input is
+      # passed to the action as an environment variable and Linux caps a single environment variable at
+      # 128 KiB - past that the step fails to start with "Argument list too long".
+      - name: Download changelog artifact
+        id: changelog_artifact
+        uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: ${{ inputs.changelog_artifact_name }}
+          path: ${{ runner.temp }}/changelog
+
+      - name: Update the changelog
+        if: ${{ steps.changelog_artifact.outcome == 'success' }}
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+          DOWNLOADED_CHANGELOG: ${{ runner.temp }}/changelog/CHANGELOG.md
+        run: |
+          set -euo pipefail
+
+          if [[ ! -s "${DOWNLOADED_CHANGELOG}" ]]; then
+            echo "::error::Artifact '${ARTIFACT_NAME}' holds no non-empty CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "Writing $(wc -c < "${DOWNLOADED_CHANGELOG}") bytes to ${CHANGELOG_PATH}"
+          mv "${DOWNLOADED_CHANGELOG}" "${CHANGELOG_PATH}"
+
+      - name: Fail on a missing changelog
+        if: ${{ steps.changelog_artifact.outcome != 'success' && inputs.changelog == '' }}
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
+        run: |
+          echo "::error::Neither the '${ARTIFACT_NAME}' artifact nor the 'changelog' input carries a changelog"
+          exit 1
+
+      # Deprecated path for callers still on apify/actions/git-cliff-release older than v1.5.0, which does
+      # not upload the artifact. Drop it, together with the 'changelog' input, once every caller is bumped.
+      - name: Update the changelog from the input
+        if: ${{ steps.changelog_artifact.outcome != 'success' }}
         uses: DamianReeves/write-file-action@v1.3
         with:
-          path: CHANGELOG.md
+          path: ${{ inputs.changelog_path }}
           write-mode: overwrite
           contents: ${{ inputs.changelog }}
 
