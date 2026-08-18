@@ -110,7 +110,10 @@ jobs:
           # A red check is noticed and fixed once, during migration or onboarding, and then never
           # fires again. This is also why the gate doesn't try to repair the layout itself: moving a
           # repo's instruction file is a reviewable decision, not something to smuggle into an
-          # unrelated PR.
+          # unrelated PR — and the repair is not even always the same command. Repos in the wild have
+          # CLAUDE.md as a symlink to AGENTS.md, AGENTS.md as a symlink to CLAUDE.md, both paths as
+          # real files that have diverged, or neither present. A writer that guessed wrong here would
+          # truncate the doc through a symlink instead of moving it.
           #
           # Why the doc lives in AGENTS.md and not CLAUDE.md: before the agent starts,
           # claude-code-action deletes its SENSITIVE_PATHS and checks them out again from the base
@@ -144,8 +147,15 @@ jobs:
             layout_ok=false
           fi
           if [ "$layout_ok" != true ]; then
-            echo "::error::Move the doc into AGENTS.md if it isn't there already, then run:"
-            echo "::error::  printf '@AGENTS.md\\n' > CLAUDE.md && git add AGENTS.md CLAUDE.md"
+            echo "::error::Required layout: AGENTS.md a regular file holding the doc, and CLAUDE.md a"
+            echo "::error::regular file whose first line is exactly '@AGENTS.md'."
+            echo "::error::With the doc still in CLAUDE.md and neither path a symlink:"
+            echo "::error::  git mv CLAUDE.md AGENTS.md && printf '@AGENTS.md\\n' > CLAUDE.md"
+            echo "::error::If either path IS a symlink, delete it before writing its replacement."
+            echo "::error::Redirecting into a symlink writes through to the file at the other end and"
+            echo "::error::truncates it, so the one command above would destroy the doc it is moving."
+            echo "::error::If both paths are real files they have diverged: merge them into AGENTS.md"
+            echo "::error::by hand first, because every shortcut here silently drops one of the two."
             exit 1
           fi
 
