@@ -22,7 +22,7 @@ name: Keep AGENTS.md accurate (reusable)
 #
 #   jobs:
 #     update-agents-md:
-#       uses: apify/workflows/.github/workflows/claude-md-pr.yml@main
+#       uses: apify/workflows/.github/workflows/agents-md-maintenance.yml@main
 #       secrets:
 #         ANTHROPIC_API_KEY: ${{ secrets.YOUR_ANTHROPIC_API_KEY }}
 #
@@ -30,10 +30,13 @@ name: Keep AGENTS.md accurate (reusable)
 # CLAUDE.md is a regular file whose first line is `@AGENTS.md`. A repo that doesn't FAILS the run,
 # with the fix in the error message — see the Gate step for why a failure and not a skip.
 #
-# The filename still says claude-md because every onboarded caller stub pins
-# `claude-md-pr.yml@main`, so renaming it would break all of them at once. Same reason this is a
-# separate file from claude-md-maintenance.yml, which callers trigger on push to main and which
-# opens its own PR.
+# Do not rename this file once repos are onboarded: every caller stub pins
+# `agents-md-maintenance.yml@main` by path, so a rename breaks all of them at once and the failure
+# surfaces as a red check on somebody else's unrelated PR.
+#
+# It is a separate file from claude-md-maintenance.yml, which it supersedes. That one runs on push to
+# main and opens a standalone PR nobody merges; this one corrects the doc inside the PR that made it
+# wrong. Onboarding deletes the old file in the same commit, so no repo runs both.
 
 on:
   workflow_call:
@@ -69,7 +72,7 @@ jobs:
     # On the job, not the workflow. A workflow-level group is claimed before the `if` above is
     # evaluated, so a run we are about to skip still cancels the run examining the newest commit.
     concurrency:
-      group: claude-md-${{ github.event.pull_request.number }}
+      group: agents-md-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
     timeout-minutes: 15
