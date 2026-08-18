@@ -6,14 +6,14 @@ name: Keep AGENTS.md accurate (reusable)
 # Order: shell gate -> agent edits the file -> commit -> comment. The agent only reads and
 # writes files, so when something breaks you know which step did it.
 #
-# The caller must trigger this on `pull_request` and must grant `contents: write` and
+# The caller must trigger this on `pull_request` and grant `contents: write` and
 # `pull-requests: write` — a reusable workflow can only narrow the caller's permissions, never
-# widen them, so with the default read-only token every run fails at the commit step:
+# widen them, so a read-only token fails every run at the commit step:
 #
 #   on:
 #     pull_request:
-#       # ready_for_review matters: this workflow skips drafts, and no later event arrives
-#       # when a draft is marked ready.
+#       # ready_for_review matters: this skips drafts, and no later event arrives when a draft
+#       # is marked ready.
 #       types: [opened, synchronize, reopened, ready_for_review]
 #
 #   permissions:
@@ -26,17 +26,12 @@ name: Keep AGENTS.md accurate (reusable)
 #       secrets:
 #         ANTHROPIC_API_KEY: ${{ secrets.YOUR_ANTHROPIC_API_KEY }}
 #
-# The repo must also use the standard layout: AGENTS.md is the real file holding the doc, and
-# CLAUDE.md is a regular file whose first line is `@AGENTS.md`. A repo that doesn't FAILS the run,
-# with the fix in the error message — see the Gate step for why a failure and not a skip.
+# The repo must also use the standard layout: AGENTS.md holds the doc, CLAUDE.md is a regular file
+# whose first line is `@AGENTS.md`. Anything else FAILS the run — see the Gate step for why.
 #
-# Do not rename this file once repos are onboarded: every caller stub pins
-# `agents-md-maintenance.yml@main` by path, so a rename breaks all of them at once and the failure
-# surfaces as a red check on somebody else's unrelated PR.
-#
-# It is a separate file from claude-md-maintenance.yml, which it supersedes. That one runs on push to
-# main and opens a standalone PR nobody merges; this one corrects the doc inside the PR that made it
-# wrong. Onboarding deletes the old file in the same commit, so no repo runs both.
+# Do not rename this file once repos are onboarded: every caller stub pins it by path, so a rename
+# breaks all of them at once, as a red check on somebody else's unrelated PR. It supersedes
+# claude-md-maintenance.yml, which onboarding deletes from each repo in the same commit.
 
 on:
   workflow_call:
@@ -51,17 +46,14 @@ permissions:
 jobs:
   update:
     name: Update AGENTS.md
-    # Skipped before a runner starts: callers wired to the wrong event, drafts, forks (we can't
-    # push to their branch), PRs opened by any bot, and runs our own commit started. That last one
-    # is the cheapest loop breaker there is, and it is also load-bearing: claude-code-action
-    # refuses to run at all when a bot started the workflow ("Workflow initiated by non-human
-    # actor"), so without it an approved run over our own commit fails the job.
+    # Skipped before a runner starts: wrong caller event, drafts, forks (we can't push to their
+    # branch), PRs opened by any bot, and runs our own commit started. That last is the cheapest
+    # loop breaker there is, and load-bearing: claude-code-action refuses to run at all when a bot
+    # started the workflow ("Workflow initiated by non-human actor").
     #
-    # The event check is first because `github.event` here is the *caller's* event. It is not
-    # aimed at push or workflow_dispatch — those carry no pull_request payload, so the fork check
-    # below already fails them closed. It is aimed at the events that DO populate
-    # github.event.pull_request: pull_request_target and pull_request_review*, each of which
-    # satisfies every other clause. Note also that on a payload-less event the draft check alone
+    # The event check is first because `github.event` here is the *caller's*. It targets the events
+    # that DO populate github.event.pull_request — pull_request_target, pull_request_review* —
+    # each of which satisfies every other clause. On a payload-less event the draft check alone
     # would pass, since `'' == false` compares equal in GitHub expressions.
     if: >-
       github.event_name == 'pull_request' &&
@@ -82,9 +74,8 @@ jobs:
         with:
           # The head branch, not the merge ref, because we push back to it.
           ref: ${{ github.event.pull_request.head.ref }}
-          # Nothing here reads a parent commit: the gate checks the tip's author, and the only
-          # comparison left is the working tree against HEAD. claude-code-action fetches the base
-          # branch itself for its own config reset.
+          # Nothing reads a parent commit: the gate checks the tip's author, and the only other
+          # comparison is the working tree against HEAD.
           fetch-depth: 1
           token: ${{ github.token }}
 
@@ -96,50 +87,41 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The checkout is by branch name, so the tip can already be newer than the commit this run
-          # was started for. Judging it would measure code the event never described, and that push
-          # has a run of its own.
+          # Checkout is by branch name, so the tip may already be newer than the commit this run
+          # was started for — judging it measures code the event never described, and that push has
+          # a run of its own.
           if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
             echo "Branch moved on since this run started -> leaving it to the newer run."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # The required layout: AGENTS.md is the real file holding the doc, CLAUDE.md is a regular
-          # file whose first line is `@AGENTS.md`. Anything else fails the run.
-          #
-          # A failure, not a skip, and deliberately so. A skipped run is indistinguishable from a
-          # run that found nothing to fix, so a repo with the wrong layout would quietly never be
-          # maintained — which is the exact failure mode of the post-merge workflow this replaces.
-          # A red check is noticed and fixed once, during migration or onboarding, and then never
-          # fires again. This is also why the gate doesn't try to repair the layout itself: moving a
+          # A failure, not a skip, deliberately: a skipped run is indistinguishable from one that
+          # found nothing to fix, so a wrongly laid-out repo would quietly never be maintained —
+          # the exact failure mode of the post-merge workflow this replaces. A red check is fixed
+          # once, at onboarding, and never fires again. It doesn't self-repair either: moving a
           # repo's instruction file is a reviewable decision, not something to smuggle into an
-          # unrelated PR — and the repair is not even always the same command. Repos in the wild have
-          # CLAUDE.md as a symlink to AGENTS.md, AGENTS.md as a symlink to CLAUDE.md, both paths as
-          # real files that have diverged, or neither present. A writer that guessed wrong here would
-          # truncate the doc through a symlink instead of moving it.
+          # unrelated PR, and the fix isn't even one command. Repos in the wild have CLAUDE.md
+          # symlinked to AGENTS.md, the reverse, both as diverged real files, or neither — a writer
+          # that guessed wrong would truncate the doc through a symlink instead of moving it.
           #
           # Why the doc lives in AGENTS.md and not CLAUDE.md: before the agent starts,
-          # claude-code-action deletes its SENSITIVE_PATHS and checks them out again from the base
-          # branch (src/github/operations/restore-config.ts). CLAUDE.md is on that list; AGENTS.md is
-          # not. So with the doc in AGENTS.md the agent reads the branch's own version of the file it
-          # is judging, and a human's in-PR edits to it survive. With the doc in CLAUDE.md every run
-          # was instead handed the base version, which is what the base-branch blob comparison this
-          # file used to carry existed to work around. The CLAUDE.md pointer is reset too, but it is
-          # one unchanging line, so resetting it is a no-op — and Claude Code follows the `@` import,
-          # so the agent still gets the doc as its own instructions.
+          # claude-code-action deletes its SENSITIVE_PATHS and restores them from the base branch
+          # (src/github/operations/restore-config.ts). CLAUDE.md is on that list, AGENTS.md is not,
+          # so the agent reads the branch's own version of the file it is judging and a human's
+          # in-PR edits survive. The pointer is reset too, but it is one unchanging line, and Claude
+          # Code follows the `@` import, so the agent still gets the doc as its instructions.
           layout_ok=true
-          # -s as well as -f: an empty AGENTS.md is a broken layout, not a doc with nothing in it
-          # yet. The agent is forbidden to create the file, so it would have no claims to check and
-          # nothing to correct, and the run would report "nothing to do" on a repo that has no doc
-          # at all — a silence that means the opposite of what it looks like. Same predicate as the
-          # post-agent guard below, which refuses to commit a file the agent emptied.
+          # -s as well as -f: an empty AGENTS.md is a broken layout, not a doc not written yet. The
+          # agent may not create the file, so the run would report "nothing to do" on a repo with no
+          # doc at all — a silence meaning the opposite of what it looks like. Same predicate as the
+          # post-agent guard below.
           if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
             echo "::error::AGENTS.md must be a regular, non-empty file in the repo root, holding the doc."
             layout_ok=false
           elif git check-ignore -q AGENTS.md; then
-            # check-ignore consults the index, so a tracked AGENTS.md that is also listed in
-            # .gitignore correctly reports as not ignored. This only catches the untracked case,
-            # where the file is absent from the checkout and could never be committed.
+            # check-ignore consults the index, so a tracked-but-gitignored AGENTS.md correctly
+            # reports as not ignored. This only catches the untracked case, where the file is
+            # absent from the checkout and could never be committed.
             echo "::error::AGENTS.md is listed in .gitignore, so it could never be committed."
             layout_ok=false
           fi
@@ -162,29 +144,24 @@ jobs:
             exit 1
           fi
 
-          # Stop if we made the newest commit, or we'd react to our own commit and never stop.
-          # Newest commit only, so an earlier doc commit doesn't disable this for later pushes.
-          # %an is the author: our commits are made through the API, which sets the committer to
-          # GitHub, so %cn would never match.
+          # Stop if we made the newest commit, or we'd react to our own and never stop. Newest only,
+          # so an earlier doc commit doesn't disable this for later pushes. %an, not %cn: our commits
+          # go through the API, which sets the committer to GitHub.
           if [ "$(git log -1 --format='%an')" = "github-actions[bot]" ]; then
             echo "Head commit is our own doc commit -> nothing to do."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # Deliberately nothing here that bails out because a human edited AGENTS.md in this PR.
-          # That check is only needed when the agent cannot see their edit, which is true of a file
-          # on claude-code-action's SENSITIVE_PATHS and false of AGENTS.md: the agent reads the edit
-          # and judges the file as it actually stands, so editing on top of it is correct rather
-          # than destructive. Add it back only alongside a doc that IS reset.
+          # Deliberately nothing that bails out because a human edited AGENTS.md in this PR. That
+          # check is only needed when the agent cannot see their edit — true of a reset
+          # SENSITIVE_PATHS file, false of AGENTS.md. Add it back only alongside a doc that IS reset.
           #
-          # Deliberately no path filtering, here or as a `paths:` trigger filter. Deciding relevance
-          # from a filename fails silently — the run that should have fired doesn't, which looks
-          # exactly like one that found nothing. An earlier blocklist here skipped tests, lockfiles
-          # and boilerplate to save agent calls, and it hid real staleness: a new top-level `tests/`
-          # directory belongs in Repository structure, and a `.prettierrc` can contradict a
-          # documented convention. The agent's "NOT stale" rules do the job instead, and keep it
-          # affordable. If the spend ever bites, lockfiles alone is the one filter worth re-adding —
-          # a real dependency change always touches a manifest too.
+          # Deliberately no path filtering, here or as a `paths:` trigger. Deciding relevance from a
+          # filename fails silently: the run that should have fired doesn't, which looks exactly
+          # like one that found nothing. An earlier blocklist here hid real staleness — a new
+          # top-level `tests/` belongs in Repository structure, and a `.prettierrc` can contradict a
+          # documented convention. The agent's "NOT stale" rules do the job instead. If the spend
+          # ever bites, lockfiles alone is the one filter worth re-adding.
           echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Update AGENTS.md if this PR made it wrong
@@ -285,8 +262,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # The agent's reasoning goes to the run summary either way, so a run that changed nothing
-          # can still be checked.
           {
             echo "## AGENTS.md"
             echo
@@ -300,16 +275,14 @@ jobs:
           fi
 
           # `git status` is the entire comparison, and only because AGENTS.md is not one of
-          # claude-code-action's SENSITIVE_PATHS: nothing reset it before the agent started, so what
-          # the agent was handed is exactly what this branch has. A dirty file means the agent
-          # changed something. Move the doc onto a path that IS reset and this stops working — a
-          # dirty file would then mean either an agent edit or the reset undoing one of our own
-          # earlier commits, which takes a blob comparison against the base branch TIP (not
-          # `base.sha`, which is an event snapshot and goes stale) to tell apart.
+          # claude-code-action's SENSITIVE_PATHS: nothing reset it, so what the agent was handed is
+          # what this branch has, and a dirty file means the agent changed something. Move the doc
+          # onto a path that IS reset and this stops working — telling an agent edit from the reset
+          # undoing an earlier commit of ours then needs a blob comparison against the base branch
+          # TIP (not `base.sha`, an event snapshot that goes stale).
           #
-          # The agent is told to delete stale claims, not the file, and its tools can't unlink one
-          # anyway — but an empty or vanished file would be committed as a "docs: update" that wipes
-          # the repo's doc, so it is worth one cheap line to refuse.
+          # The agent is told to delete stale claims, not the file, but an empty or vanished
+          # AGENTS.md would commit as a "docs: update" that wipes the repo's doc.
           if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
             echo "::error::AGENTS.md is missing, empty, or no longer a regular file after the agent"
             echo "::error::ran. Not committing that."
