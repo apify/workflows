@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: mark release
-        uses: frankie567/grafana-annotation-action@v1.0.3
+        uses: frankie567/grafana-annotation-action@36ec3b43d55fdebbec9dbff9ce1578f4b2f3ad45 # v1.0.3
         with:
           apiHost: https://grafana.apify.dev
           apiToken: ${{ secrets.grafanaApiToken}}
@@ -71,11 +71,11 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: mark deploy - frontend
         if: inputs.sentryEnvironmentFrontend != ''
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3.7.0
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
           SENTRY_ORG: ${{ inputs.sentryOrg }}
@@ -85,7 +85,7 @@ jobs:
 
       - name: mark deploy - backend
         if: inputs.sentryEnvironmentBackend != ''
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3.7.0
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.sentryAuthToken }}
           SENTRY_ORG: ${{ inputs.sentryOrg }}
