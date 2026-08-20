@@ -1,19 +1,12 @@
 name: Keep AGENTS.md accurate (reusable)
 
-# Keeps AGENTS.md up to date. If a PR makes it wrong, the bot commits the fix to that PR's
-# branch and comments what it changed.
+# If a PR makes AGENTS.md stale, the bot commits the fix to that PR's branch and comments what
+# it changed. Order: shell gate -> agent edits the file -> commit -> comment.
 #
-# Order: shell gate -> agent edits the file -> commit -> comment. The agent only reads and
-# writes files, so when something breaks you know which step did it.
-#
-# The caller must trigger this on `pull_request` and grant `contents: write` and
-# `pull-requests: write` — a reusable workflow can only narrow the caller's permissions, never
-# widen them, so a read-only token fails every run at the commit step:
+# This is a recommended way to use it
 #
 #   on:
 #     pull_request:
-#       # ready_for_review matters: this skips drafts, and no later event arrives when a draft
-#       # is marked ready.
 #       types: [opened, synchronize, reopened, ready_for_review]
 #
 #   permissions:
@@ -26,12 +19,8 @@ name: Keep AGENTS.md accurate (reusable)
 #       secrets:
 #         ANTHROPIC_API_KEY: ${{ secrets.YOUR_ANTHROPIC_API_KEY }}
 #
-# The repo must also use the standard layout: AGENTS.md holds the doc, CLAUDE.md is a regular file
-# whose first line is `@AGENTS.md`. Anything else FAILS the run — see the Gate step for why.
-#
-# Do not rename this file once repos are onboarded: every caller stub pins it by path, so a rename
-# breaks all of them at once, as a red check on somebody else's unrelated PR. It supersedes
-# claude-md-maintenance.yml, which onboarding deletes from each repo in the same commit.
+# The repo must keep the doc in AGENTS.md, with CLAUDE.md a regular file whose first line is
+# `@AGENTS.md`. Anything else fails the run — see the Gate step.
 
 on:
   workflow_call:
@@ -46,23 +35,15 @@ permissions:
 jobs:
   update:
     name: Update AGENTS.md
-    # Skipped before a runner starts: wrong caller event, drafts, forks (we can't push to their
-    # branch), PRs opened by any bot, and runs our own commit started. That last is the cheapest
-    # loop breaker there is, and load-bearing: claude-code-action refuses to run at all when a bot
-    # started the workflow ("Workflow initiated by non-human actor").
-    #
-    # The event check is first because `github.event` here is the *caller's*. It targets the events
-    # that DO populate github.event.pull_request — pull_request_target, pull_request_review* —
-    # each of which satisfies every other clause. On a payload-less event the draft check alone
-    # would pass, since `'' == false` compares equal in GitHub expressions.
+    # Skip drafts, forks, bot PRs, and our own commits (otherwise we'd loop).
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       !endsWith(github.event.pull_request.user.login, '[bot]') &&
       github.actor != 'github-actions[bot]'
-    # On the job, not the workflow. A workflow-level group is claimed before the `if` above is
-    # evaluated, so a run we are about to skip still cancels the run examining the newest commit.
+    # Must stay job-level: at workflow level the group is claimed before `if` is evaluated, so a
+    # run that ends up skipped would cancel a live one.
     concurrency:
       group: agents-md-${{ github.event.pull_request.number }}
       cancel-in-progress: true
@@ -72,60 +53,29 @@ jobs:
       - name: Checkout the PR branch
         uses: actions/checkout@v6
         with:
-          # The head branch, not the merge ref, because we push back to it.
           ref: ${{ github.event.pull_request.head.ref }}
-          # Nothing reads a parent commit: the gate checks the tip's author, and the only other
-          # comparison is the working tree against HEAD.
           fetch-depth: 1
           token: ${{ github.token }}
 
       - name: Gate
         id: gate
-        # No token and no network: every decision below reads the checkout on disk.
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
 
-          # Checkout is by branch name, so the tip may already be newer than the commit this run
-          # was started for — judging it measures code the event never described, and that push has
-          # a run of its own.
+          # The branch may have moved since this run started — the newer push has its own run.
           if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
             echo "Branch moved on since this run started -> leaving it to the newer run."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # A failure, not a skip, deliberately: a skipped run is indistinguishable from one that
-          # found nothing to fix, so a wrongly laid-out repo would quietly never be maintained —
-          # the exact failure mode of the post-merge workflow this replaces. A red check is fixed
-          # once, at onboarding, and never fires again. It doesn't self-repair either: moving a
-          # repo's instruction file is a reviewable decision, not something to smuggle into an
-          # unrelated PR, and the fix isn't even one command. Repos in the wild have CLAUDE.md
-          # symlinked to AGENTS.md, the reverse, both as diverged real files, or neither — a writer
-          # that guessed wrong would truncate the doc through a symlink instead of moving it.
-          #
-          # Why the doc lives in AGENTS.md and not CLAUDE.md: before the agent starts,
-          # claude-code-action deletes its SENSITIVE_PATHS and restores them from the base branch
-          # (src/github/operations/restore-config.ts). CLAUDE.md is on that list, AGENTS.md is not,
-          # so the agent reads the branch's own version of the file it is judging and a human's
-          # in-PR edits survive. The pointer is reset too, but it is one unchanging line, and Claude
-          # Code follows the `@` import, so the agent still gets the doc as its instructions.
+          # checks the correct layout
           layout_ok=true
-          # -s as well as -f: an empty AGENTS.md is a broken layout, not a doc not written yet. The
-          # agent may not create the file, so the run would report "nothing to do" on a repo with no
-          # doc at all — a silence meaning the opposite of what it looks like. Same predicate as the
-          # post-agent guard below.
           if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
             echo "::error::AGENTS.md must be a regular, non-empty file in the repo root, holding the doc."
             layout_ok=false
-          elif git check-ignore -q AGENTS.md; then
-            # check-ignore consults the index, so a tracked-but-gitignored AGENTS.md correctly
-            # reports as not ignored. This only catches the untracked case, where the file is
-            # absent from the checkout and could never be committed.
-            echo "::error::AGENTS.md is listed in .gitignore, so it could never be committed."
-            layout_ok=false
           fi
-          # tr -d '\r', or a CRLF checkout fails this on an invisible difference.
           if [ ! -f CLAUDE.md ] || [ -L CLAUDE.md ] \
              || [ "$(head -n 1 CLAUDE.md | tr -d '\r')" != "@AGENTS.md" ]; then
             echo "::error::CLAUDE.md must be a regular file whose first line is exactly '@AGENTS.md'."
@@ -134,34 +84,15 @@ jobs:
           if [ "$layout_ok" != true ]; then
             echo "::error::Required layout: AGENTS.md a regular file holding the doc, and CLAUDE.md a"
             echo "::error::regular file whose first line is exactly '@AGENTS.md'."
-            echo "::error::With the doc still in CLAUDE.md and neither path a symlink:"
-            echo "::error::  git mv CLAUDE.md AGENTS.md && printf '@AGENTS.md\\n' > CLAUDE.md"
-            echo "::error::If either path IS a symlink, delete it before writing its replacement."
-            echo "::error::Redirecting into a symlink writes through to the file at the other end and"
-            echo "::error::truncates it, so the one command above would destroy the doc it is moving."
-            echo "::error::If both paths are real files they have diverged: merge them into AGENTS.md"
-            echo "::error::by hand first, because every shortcut here silently drops one of the two."
             exit 1
           fi
 
-          # Stop if we made the newest commit, or we'd react to our own and never stop. Newest only,
-          # so an earlier doc commit doesn't disable this for later pushes. %an, not %cn: our commits
-          # go through the API, which sets the committer to GitHub.
+          # Stop if the newest commit is from the bot. Otherwise the bot reacts to itself forever.
           if [ "$(git log -1 --format='%an')" = "github-actions[bot]" ]; then
             echo "Head commit is our own doc commit -> nothing to do."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # Deliberately nothing that bails out because a human edited AGENTS.md in this PR. That
-          # check is only needed when the agent cannot see their edit — true of a reset
-          # SENSITIVE_PATHS file, false of AGENTS.md. Add it back only alongside a doc that IS reset.
-          #
-          # Deliberately no path filtering, here or as a `paths:` trigger. Deciding relevance from a
-          # filename fails silently: the run that should have fired doesn't, which looks exactly
-          # like one that found nothing. An earlier blocklist here hid real staleness — a new
-          # top-level `tests/` belongs in Repository structure, and a `.prettierrc` can contradict a
-          # documented convention. The agent's "NOT stale" rules do the job instead. If the spend
-          # ever bites, lockfiles alone is the one filter worth re-adding.
           echo "run=true" >> "$GITHUB_OUTPUT"
 
       - name: Update AGENTS.md if this PR made it wrong
@@ -194,8 +125,8 @@ jobs:
             3. Decide whether, once this PR merges, `AGENTS.md` states something **wrong, missing, or
                misleading** for someone working in this repo.
             4. If yes, edit `AGENTS.md`. If no, edit nothing.
-            5. **Always** write `/tmp/summary.md` explaining your conclusion, either way. Silence with no
-               record is not acceptable: someone must be able to audit a "nothing to do" afterwards.
+            5. **Always** write `/tmp/summary.md`, either way, in the format below. If you edited nothing,
+               that file is the only record of it — someone must be able to audit the decision.
 
             ## Stale means a concrete factual mismatch
             - a documented command, script, or path that no longer exists or was renamed
@@ -228,34 +159,36 @@ jobs:
             - Touch `AGENTS.md` and `/tmp/summary.md` only. Not `CLAUDE.md`, not any other file.
 
             ## /tmp/summary.md
-            Markdown bullets, max 5. Put paths and commands in backticks; never wrap a whole bullet in
-            backticks.
+            Write it like a note to a colleague: plain and short, no preamble. Markdown bullets, each one
+            line and under 20 words. Paths and commands in backticks, never a whole bullet in backticks.
 
-            Describe **what you changed**, not the state you left behind. "Removed the appendix" is a
-            disclosure; "the appendix is absent" reads as though it was never there and hides your own edit.
-            If your edit deletes more than it adds, say so in the first bullet and say why.
+            **If you edited the file** — one bullet per correction, and nothing else. No list of what you
+            checked, no "left alone", no near-misses you decided against, no unrelated observations. One
+            correction usually means one bullet:
 
-            If you edited the file, one bullet per correction, each naming the claim that broke and the change
-            that broke it:
+            - `pnpm build` no longer exists — `scripts/build.sh` is now `scripts/compile.sh`
+            - added the new `src/api/` entry point to Repository structure
 
-            - `pnpm build` no longer exists — `scripts/build.sh` was renamed to `scripts/compile.sh`
-            - new `src/api/` entry point was missing from Repository structure
+            Say what you changed, not the state you left behind: "removed the appendix" discloses your edit,
+            "the appendix is absent" hides it. If you deleted more than you added, say why in the first
+            bullet.
 
-            If you edited nothing, say what you checked and why each documented claim still holds. Name the
-            claims — "nothing was stale" alone is not auditable:
+            **If you edited nothing** — one to three bullets naming the claims you checked that still hold,
+            so the "nothing to do" is auditable:
 
-            - `src/index.js` as the only entry point still holds; this PR adds no new entry point
-            - `scripts/build.sh` untouched, so the Build section is still correct
-            - the only near-miss: `.github/workflows/` is described as plural and there is now one file —
-              a rewording, not a correction, so left alone
+            - `src/index.js` is still the only entry point; this PR adds none
+            - `scripts/build.sh` untouched, so the Build section holds
+
+            Never report `CLAUDE.md` showing as modified in the working tree. The workflow resets it before
+            you start — that is expected, and not yours to mention.
           claude_args: |
-            --max-turns 30
-            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --max-turns 50
+            --allowedTools "Read,Glob,Grep,Edit,Write,WebFetch,WebSearch,Bash(gh pr diff:*),Bash(gh pr view:*)"
 
       - name: Decide whether there is anything to commit
         id: prep
-        # always(), so a failed or cancelled agent still gets its reasoning into the run summary.
-        # The step bails below without committing.
+        # always(), so a failed or cancelled agent still gets its reasoning into the run summary;
+        # the step bails below without committing.
         if: always() && steps.gate.outputs.run == 'true'
         env:
           AGENT_OUTCOME: ${{ steps.agent.outcome }}
@@ -274,15 +207,6 @@ jobs:
             echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
-          # `git status` is the entire comparison, and only because AGENTS.md is not one of
-          # claude-code-action's SENSITIVE_PATHS: nothing reset it, so what the agent was handed is
-          # what this branch has, and a dirty file means the agent changed something. Move the doc
-          # onto a path that IS reset and this stops working — telling an agent edit from the reset
-          # undoing an earlier commit of ours then needs a blob comparison against the base branch
-          # TIP (not `base.sha`, an event snapshot that goes stale).
-          #
-          # The agent is told to delete stale claims, not the file, but an empty or vanished
-          # AGENTS.md would commit as a "docs: update" that wipes the repo's doc.
           if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
             echo "::error::AGENTS.md is missing, empty, or no longer a regular file after the agent"
             echo "::error::ran. Not committing that."
@@ -301,19 +225,13 @@ jobs:
       - name: Commit AGENTS.md
         id: signed
         if: steps.prep.outputs.commit == 'true'
-        # Commits through the GraphQL API, so GitHub signs it and sets the author from the token.
-        # The gate trusts that author name, and on an ordinary commit anyone with push access can
-        # set it to whatever they like.
         uses: apify/actions/signed-commit@v1.4.0
         with:
           github-token: ${{ github.token }}
-          message: 'docs: update AGENTS.md for this PR'
-          # Only this path. claude-code-action leaves CLAUDE.md reset to the base version and
-          # unstaged in the working tree, so `add: .` would commit that revert alongside our edit.
+          message: "docs: update AGENTS.md for this PR"
           add: AGENTS.md
 
       - name: Comment on the PR
-        # The action's own `committed` output, so the comment can't claim a commit that isn't there.
         if: steps.signed.outputs.committed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -325,7 +243,6 @@ jobs:
             echo
             if [ -f /tmp/summary.md ]; then cat /tmp/summary.md; else echo "See the commit for what changed."; fi
             echo
-            echo "Committed to this branch, so it merges with your code. Review it like any other commit —"
-            echo "if it's wrong, edit or drop it."
+            echo "Committed to this PR. Review it like any other commit. Feel free to edit it."
           } > /tmp/body.md
           gh pr comment "$PR" --body-file /tmp/body.md
