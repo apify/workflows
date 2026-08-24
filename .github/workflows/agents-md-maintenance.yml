@@ -1,0 +1,248 @@
+name: Keep AGENTS.md accurate (reusable)
+
+# If a PR makes AGENTS.md stale, the bot commits the fix to that PR's branch and comments what
+# it changed. Order: shell gate -> agent edits the file -> commit -> comment.
+#
+# This is a recommended way to use it
+#
+#   on:
+#     pull_request:
+#       types: [opened, synchronize, reopened, ready_for_review]
+#
+#   permissions:
+#     contents: write
+#     pull-requests: write
+#
+#   jobs:
+#     update-agents-md:
+#       uses: apify/workflows/.github/workflows/agents-md-maintenance.yml@main
+#       secrets:
+#         ANTHROPIC_API_KEY: ${{ secrets.YOUR_ANTHROPIC_API_KEY }}
+#
+# The repo must keep the doc in AGENTS.md, with CLAUDE.md a regular file whose first line is
+# `@AGENTS.md`. Anything else fails the run — see the Gate step.
+
+on:
+  workflow_call:
+    secrets:
+      ANTHROPIC_API_KEY:
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    name: Update AGENTS.md
+    # Skip drafts, forks, bot PRs, and our own commits (otherwise we'd loop).
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !endsWith(github.event.pull_request.user.login, '[bot]') &&
+      github.actor != 'github-actions[bot]'
+    # Must stay job-level: at workflow level the group is claimed before `if` is evaluated, so a
+    # run that ends up skipped would cancel a live one.
+    concurrency:
+      group: agents-md-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout the PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 1
+          token: ${{ github.token }}
+
+      - name: Gate
+        id: gate
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # The branch may have moved since this run started — the newer push has its own run.
+          if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
+            echo "Branch moved on since this run started -> leaving it to the newer run."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          # checks the correct layout
+          layout_ok=true
+          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
+            echo "::error::AGENTS.md must be a regular, non-empty file in the repo root, holding the doc."
+            layout_ok=false
+          fi
+          if [ ! -f CLAUDE.md ] || [ -L CLAUDE.md ] \
+             || [ "$(head -n 1 CLAUDE.md | tr -d '\r')" != "@AGENTS.md" ]; then
+            echo "::error::CLAUDE.md must be a regular file whose first line is exactly '@AGENTS.md'."
+            layout_ok=false
+          fi
+          if [ "$layout_ok" != true ]; then
+            echo "::error::Required layout: AGENTS.md a regular file holding the doc, and CLAUDE.md a"
+            echo "::error::regular file whose first line is exactly '@AGENTS.md'."
+            exit 1
+          fi
+
+          # Stop if the newest commit is from the bot. Otherwise the bot reacts to itself forever.
+          if [ "$(git log -1 --format='%an')" = "github-actions[bot]" ]; then
+            echo "Head commit is our own doc commit -> nothing to do."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          echo "run=true" >> "$GITHUB_OUTPUT"
+
+      - name: Update AGENTS.md if this PR made it wrong
+        id: agent
+        if: steps.gate.outputs.run == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          show_full_output: true
+          prompt: |
+            You are in a GitHub Actions workflow on pull request #${{ github.event.pull_request.number }} in
+            ${{ github.repository }}. Your job: if this PR makes `AGENTS.md` inaccurate, fix `AGENTS.md` on
+            disk. You do NOT commit, push, or comment — later steps do that. Editing nothing is a valid and
+            common outcome.
+
+            `AGENTS.md` in the repo root is the real instruction file. `CLAUDE.md` is a one-line
+            `@AGENTS.md` pointer at it and must be left exactly as it is.
+
+            ## Steps
+            1. Read `AGENTS.md` in the repo root.
+            2. Read the diff: `gh pr diff ${{ github.event.pull_request.number }}`. Where the diff is
+               ambiguous, read the changed files themselves. Never infer from filenames.
+               The diff is cumulative for the whole PR, and it may already contain an earlier
+               `docs: update AGENTS.md` commit of your own, or an edit the PR author made by hand.
+               Judge the file **as it is on disk now** against the code **as it is now** — an earlier
+               pass having fixed something does not mean a later push didn't break it again.
+            3. Decide whether, once this PR merges, `AGENTS.md` states something **wrong, missing, or
+               misleading** for someone working in this repo.
+            4. If yes, edit `AGENTS.md`. If no, edit nothing.
+            5. **Always** write `/tmp/summary.md`, either way, in the format below. If you edited nothing,
+               that file is the only record of it — someone must be able to audit the decision.
+
+            ## Stale means a concrete factual mismatch
+            - a documented command, script, or path that no longer exists or was renamed
+            - a new entry point, top-level directory, or dependency that changes how the project is built or run
+            - a convention this PR establishes or abandons that `AGENTS.md` contradicts
+            - a documented feature this PR removes
+
+            ## NOT stale — be strict, because you are editing someone's branch uninvited
+            - pure refactors, internal renames, formatting
+            - new tests, fixtures, or CI tweaks that don't change how a developer works
+            - additions `AGENTS.md` already covers at the right level of abstraction
+            - anything where you would be rewording rather than correcting
+
+            If you cannot name the specific line in `AGENTS.md` that becomes wrong, it is not stale: change
+            nothing, and say so in the summary file.
+
+            ## Editing rules
+            - **Surgical.** Change only what this PR made wrong. Leave every accurate section byte-for-byte
+              alone. Do not reformat, reorder, or reword for taste.
+            - **Deleting is editing too.** If this PR removes a documented command, path, or feature, remove
+              the claim. Do not leave a corrected-but-still-wrong sentence behind, and do not describe
+              something as removed — just stop describing it.
+            - **Keep it under 200 lines by not adding bulk — never by deleting content this PR did not make
+              wrong.** If the file is already over the limit, note that in the summary and leave it. Trimming a
+              bloated `AGENTS.md` is a deliberate, reviewable cleanup of its own; smuggling it into an
+              unrelated PR is how a one-line rename turns into a 186-line deletion nobody asked for.
+            - Never document something you have not read.
+            - **Never create `AGENTS.md`.** It is guaranteed to exist — the workflow fails the run before
+              reaching you if it doesn't. If you cannot read it, stop and say so in the summary.
+            - Touch `AGENTS.md` and `/tmp/summary.md` only. Not `CLAUDE.md`, not any other file.
+
+            ## /tmp/summary.md
+            Write it like a note to a colleague: plain and short, no preamble. Markdown bullets, each one
+            line and under 20 words. Paths and commands in backticks, never a whole bullet in backticks.
+
+            **If you edited the file** — one bullet per correction, and nothing else. No list of what you
+            checked, no "left alone", no near-misses you decided against, no unrelated observations. One
+            correction usually means one bullet:
+
+            - `pnpm build` no longer exists — `scripts/build.sh` is now `scripts/compile.sh`
+            - added the new `src/api/` entry point to Repository structure
+
+            Say what you changed, not the state you left behind: "removed the appendix" discloses your edit,
+            "the appendix is absent" hides it. If you deleted more than you added, say why in the first
+            bullet.
+
+            **If you edited nothing** — one to three bullets naming the claims you checked that still hold,
+            so the "nothing to do" is auditable:
+
+            - `src/index.js` is still the only entry point; this PR adds none
+            - `scripts/build.sh` untouched, so the Build section holds
+
+            Never report `CLAUDE.md` showing as modified in the working tree. The workflow resets it before
+            you start — that is expected, and not yours to mention.
+          claude_args: |
+            --max-turns 50
+            --allowedTools "Read,Glob,Grep,Edit,Write,WebFetch,WebSearch,Bash(gh pr diff:*),Bash(gh pr view:*)"
+
+      - name: Decide whether there is anything to commit
+        id: prep
+        # always(), so a failed or cancelled agent still gets its reasoning into the run summary;
+        # the step bails below without committing.
+        if: always() && steps.gate.outputs.run == 'true'
+        env:
+          AGENT_OUTCOME: ${{ steps.agent.outcome }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## AGENTS.md"
+            echo
+            cat /tmp/summary.md 2>/dev/null || echo "_The agent left no summary. Treat its silence with suspicion._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$AGENT_OUTCOME" != "success" ]; then
+            echo "::warning::The agent step ended as '$AGENT_OUTCOME'. Whatever is on disk may be"
+            echo "::warning::half-written, so there is nothing safe to commit."
+            echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          if [ ! -f AGENTS.md ] || [ -L AGENTS.md ] || [ ! -s AGENTS.md ]; then
+            echo "::error::AGENTS.md is missing, empty, or no longer a regular file after the agent"
+            echo "::error::ran. Not committing that."
+            echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          if [ -z "$(git status --porcelain -- AGENTS.md)" ]; then
+            echo "The agent left AGENTS.md unchanged -> nothing to commit."
+            echo "Reasoning is in the run summary."
+            echo "commit=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          git diff --stat -- AGENTS.md
+          echo "commit=true" >> "$GITHUB_OUTPUT"
+
+      - name: Commit AGENTS.md
+        id: signed
+        if: steps.prep.outputs.commit == 'true'
+        uses: apify/actions/signed-commit@v1.4.0
+        with:
+          github-token: ${{ github.token }}
+          message: "docs: update AGENTS.md for this PR"
+          add: AGENTS.md
+
+      - name: Comment on the PR
+        if: steps.signed.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          {
+            echo "### AGENTS.md updated"
+            echo
+            if [ -f /tmp/summary.md ]; then cat /tmp/summary.md; else echo "See the commit for what changed."; fi
+            echo
+            echo "Committed to this PR. Review it like any other commit. Feel free to edit it."
+          } > /tmp/body.md
+          gh pr comment "$PR" --body-file /tmp/body.md
