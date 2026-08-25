@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       awsRoleArn:
-        description: AWS IAM role ARN
+        description: AWS IAM role ARN to chain-assume after the OIDC role. Empty means no chaining.
         required: false
         type: string
       useOIDC:
@@ -188,7 +188,7 @@ jobs:
 
       # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
       - name: assume Deployer role
-        if: inputs.useOIDC == true
+        if: inputs.useOIDC == true && inputs.awsRoleArn != ''
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           aws-region: ${{ inputs.awsRegion }}
