@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.49.0](https://github.com/apify/workflows/compare/v0.48.1...v0.49.0) (2026-08-25)
+
+
+### Features
+
+* add reusable workflow that keeps AGENTS.md accurate in the PR that changed it ([#311](https://github.com/apify/workflows/issues/311)) ([a333e4d](https://github.com/apify/workflows/commit/a333e4dc26846f52de0e863401c91d2d17256297))
+* skip role chaining when awsRoleArn is empty ([#318](https://github.com/apify/workflows/issues/318)) ([d62affa](https://github.com/apify/workflows/commit/d62affa272832c38204e7adaf6932e980e873b16))
+
 ## [0.48.1](https://github.com/apify/workflows/compare/v0.48.0...v0.48.1) (2026-08-17)
 
 
