@@ -4,12 +4,12 @@
         "actions:test": "vitest --run ."
     },
     "devDependencies": {
-        "@actions/core": "^3.0.0",
-        "@apify/tsconfig": "^0.1.1",
+        "@actions/core": "^3.0.1",
+        "@apify/tsconfig": "^0.1.2",
         "@octokit/rest": "^22.0.1",
-        "@types/node": "^25.5.0",
-        "typescript": "^6.0.2",
-        "vitest": "^4.1.2"
+        "@types/node": "^25.9.5",
+        "typescript": "^6.0.3",
+        "vitest": "^4.1.11"
     },
     "packageManager": "pnpm@10.33.4",
     "devEngines": {
