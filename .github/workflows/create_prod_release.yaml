@@ -1,0 +1,128 @@
+#
+# Reusable workflow for creation of a new release branch that is the first step for deployment to staging and production.
+#
+name: create prod release
+
+on:
+  workflow_call:
+    inputs:
+      releaseBranchPrefix:
+        description: Prefix used for release branch names
+        required: false
+        type: string
+        default: release
+      baseBranch:
+        description: Branch treated as production base (patch releases cut from here)
+        required: false
+        type: string
+        default: master
+    secrets:
+      serviceAccountGithubToken:
+        description: Token used to create the release branch
+        required: true
+
+env:
+  RELEASE_BRANCH_PREFIX: ${{ inputs.releaseBranchPrefix }}
+  BASE_BRANCH: ${{ inputs.baseBranch }}
+  CURRENT_BRANCH: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  validate_branch:
+    name: Validate branch
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Ensure workflow runs on develop or master
+        if: ${{ env.CURRENT_BRANCH != 'develop' && env.CURRENT_BRANCH != 'master' }}
+        run: |
+          echo "::error::This workflow must be run from 'develop' (standard release) or 'master' (hotfix release). Got '${{ env.CURRENT_BRANCH }}'."
+          exit 1
+
+  check_no_pending_releases:
+    name: Check if there are no pending releases
+    needs: validate_branch
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Get pending release PR
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            const releasePRs = pullRequests.filter(pr => pr.head.ref.startsWith(process.env.RELEASE_BRANCH_PREFIX));
+
+            if (releasePRs.length > 0) {
+              core.setFailed(`There is already a pending release PR: ${releasePRs[0].title} (${releasePRs[0].html_url}). Please finish the existing release first.`);
+            }
+
+  check_base_synced:
+    name: Check if develop is in sync with master
+    needs: check_no_pending_releases
+    if: ${{ github.ref_name == 'develop' }}
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Check if develop is in sync with master
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const baseBranch = '${{ env.BASE_BRANCH }}';
+            const currentBranch = '${{ env.CURRENT_BRANCH }}';
+
+            const { data: { behind_by } } = await github.rest.repos.compareCommitsWithBasehead({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              basehead: `${baseBranch}...${currentBranch}`,
+            });
+
+            core.info(`develop is ${behind_by} commits behind master`);
+
+            if (behind_by > 0) {
+              core.setFailed(`${currentBranch} is not in sync with ${baseBranch}. Please merge the changes into ${currentBranch} first (do not squash!).`);
+            }
+
+  create_release_branch:
+    name: Create release branch
+    needs: [check_no_pending_releases, check_base_synced]
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Install Octokit
+        run: npm install @octokit/rest@v19
+
+      - name: Create release branch
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const { Octokit } = require('@octokit/rest');
+
+            function bumpReleaseName(currentReleaseName, mode) {
+              const [_, major, minor, patch] = currentReleaseName.match(/v(\d+)\.(\d+)\.(\d+)/);
+              if (mode === 'minor') return `v${major}.${parseInt(minor) + 1}.0`;
+              if (mode === 'patch') return `v${major}.${minor}.${parseInt(patch) + 1}`;
+              throw new Error(`Unknown bump mode ${mode}`);
+            }
+
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const { name: currentVersionName } = releases.data[0];
+            core.info(`Current release: ${currentVersionName}`);
+
+            const bumpMode = '${{ env.CURRENT_BRANCH }}' === 'master' ? 'patch' : 'minor';
+            const nextVersionName = bumpReleaseName(currentVersionName, bumpMode);
+            const releaseBranchName = `${process.env.RELEASE_BRANCH_PREFIX}/${nextVersionName}`;
+
+            core.info(`Creating release branch: ${releaseBranchName} (${bumpMode} bump)`);
+            const octokitServiceAcc = new Octokit({ auth: '${{ secrets.serviceAccountGithubToken }}' });
+            await octokitServiceAcc.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${releaseBranchName}`,
+              sha: '${{ github.sha }}',
+            });
+
+            core.info(`Release branch ${releaseBranchName} created. The release PR will be created automatically.`);
