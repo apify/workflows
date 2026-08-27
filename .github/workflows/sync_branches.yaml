@@ -75,11 +75,26 @@ jobs:
 
             const pullRequestNumber = createResp.data.number;
 
+            // Octokit defaults pulls.merge() to a real merge commit, which 405s on a
+            // repository configured to disallow merge commits. Pick the first method
+            // the repo actually allows, preferring a merge commit when it is allowed
+            // so existing callers keep their current behavior.
+            const repoResp = await serviceAccountOctokit.rest.repos.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+            });
+            const mergeMethod = repoResp.data.allow_merge_commit
+                ? 'merge'
+                : repoResp.data.allow_squash_merge
+                    ? 'squash'
+                    : 'rebase';
+
             // Merge pull request
             await serviceAccountOctokit.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pullRequestNumber,
+                merge_method: mergeMethod,
             });
 
       - name: report failure to slack
