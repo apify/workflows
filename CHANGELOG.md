@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.50.0](https://github.com/apify/workflows/compare/v0.49.0...v0.50.0) (2026-08-31)
+
+
+### Features
+
+* New `create prod release` workflow ([#320](https://github.com/apify/workflows/issues/320)) ([82047f1](https://github.com/apify/workflows/commit/82047f18f32b8eec21d3342263b92e5834591292))
+
 ## [0.49.0](https://github.com/apify/workflows/compare/v0.48.1...v0.49.0) (2026-08-25)
 
 
