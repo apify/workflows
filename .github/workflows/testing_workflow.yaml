@@ -1,0 +1,16 @@
+name: Testing workflow
+
+on:
+  pull_request:
+
+  push:
+
+
+jobs:
+  testing:
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Print event
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Action: ${{ github.event.action }}"
