@@ -18,6 +18,5 @@ jobs:
       - name: run pull-request-toolkit action
         uses: apify/pull-request-toolkit-action@main
         with:
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          org-token: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_GITHUB_TOKEN }}
-          zenhub-token: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_ZENHUB_TOKEN }}
+          org-github-token: ${{ secrets.PULL_REQUEST_TOOLKIT_ACTION_GITHUB_TOKEN }}
+          apify-api-token: ${{ secrets.ACTOR_GITHUB_CONTROLLER_APIFY_API_TOKEN }}
