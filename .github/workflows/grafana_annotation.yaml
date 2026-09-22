@@ -28,7 +28,7 @@ on:
 
 jobs:
   grafana:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-arm64
     outputs:
       annotation_id: ${{ steps.grafana.outputs.annotation-id }}
     steps:
