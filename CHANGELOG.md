@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-09-22)
+
+
+### Performance Improvements
+
+* **python_unit_tests:** use the runner's local disk for temp files on Windows ([#323](https://github.com/apify/workflows/issues/323)) ([c643cf7](https://github.com/apify/workflows/commit/c643cf7cdf987281b7cb7b790ed318bf6df6f435))
+
 ## [0.50.0](https://github.com/apify/workflows/compare/v0.49.0...v0.50.0) (2026-08-31)
 
 
