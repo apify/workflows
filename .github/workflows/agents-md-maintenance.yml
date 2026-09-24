@@ -19,11 +19,29 @@ name: Keep AGENTS.md accurate (reusable)
 #       secrets:
 #         ANTHROPIC_API_KEY: ${{ secrets.YOUR_ANTHROPIC_API_KEY }}
 #
+# It runs on topic branches only. A release or back-merge PR only moves commits that were already
+# reviewed on the trunk, so there is nothing new to document, and a commit pushed to a release
+# branch would ship without review. Those branches are skipped, as are automation accounts whose
+# name doesn't end in `[bot]`. Both lists are inputs, below.
+#
 # The repo must keep the doc in AGENTS.md, with CLAUDE.md a regular file whose first line is
 # `@AGENTS.md`. Anything else fails the run — see the Gate step.
 
 on:
   workflow_call:
+    inputs:
+      skip_head_ref_prefixes:
+        description: >-
+          Don't run on a pull request whose branch name starts with one of these.
+          Separate them with spaces or commas.
+        type: string
+        default: 'release/ hotfix/ sync-'
+      skip_authors:
+        description: >-
+          Don't run on a pull request opened by one of these users. Separate them with spaces or
+          commas. Accounts ending in `[bot]` are always skipped, whatever this is set to.
+        type: string
+        default: 'apify-service-account'
     secrets:
       ANTHROPIC_API_KEY:
         required: true
@@ -61,12 +79,28 @@ jobs:
         id: gate
         env:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          SKIP_PREFIXES: ${{ inputs.skip_head_ref_prefixes }}
+          SKIP_AUTHORS: ${{ inputs.skip_authors }}
         run: |
           set -euo pipefail
 
           # The branch may have moved since this run started — the newer push has its own run.
           if [ "$(git rev-parse HEAD)" != "$HEAD_SHA" ]; then
             echo "Branch moved on since this run started -> leaving it to the newer run."
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+
+          # Before the layout check, so a PR we skip can't fail on a layout it didn't break.
+          for p in ${SKIP_PREFIXES//,/ }; do
+            case "$HEAD_REF" in "$p"*) skip="branch $HEAD_REF" ;; esac
+          done
+          for a in ${SKIP_AUTHORS//,/ }; do
+            case "$PR_AUTHOR" in "$a") skip="author $PR_AUTHOR" ;; esac
+          done
+          if [ -n "${skip-}" ]; then
+            echo "Skipping: $skip is on the skip list."
             echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
           fi
 
