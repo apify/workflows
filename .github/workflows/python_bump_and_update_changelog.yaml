@@ -114,6 +114,15 @@ jobs:
           write-mode: overwrite
           contents: ${{ inputs.changelog }}
 
+      # The 'changelog' input travels through a $GITHUB_OUTPUT heredoc, which strips the trailing
+      # newline, so the input path above writes the file without one. Normalize here so the committed
+      # changelog always ends with a newline, whichever path wrote it.
+      - name: Ensure the changelog ends with a newline
+        shell: bash
+        env:
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+        run: sed -i -e '$a\' "${CHANGELOG_PATH}"
+
       - name: Commit changes
         id: commit
         uses: apify/actions/signed-commit@v1.0.0
