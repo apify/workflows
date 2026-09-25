@@ -1,0 +1,153 @@
+name: Bump version and update changelog
+
+on:
+  workflow_call:
+    inputs:
+      ecosystem:
+        description: |
+          Where the package version lives - "python" (pyproject.toml, bumped by uv), "node" (package.json) or
+          "none" to update the changelog only.
+        required: true
+        type: string
+      python_version:
+        description: Python version to set up uv with. Used only by the "python" ecosystem.
+        required: false
+        type: string
+        default: "3.14" # The newest Python version.
+      version_number:
+        description: Version number of the new release (no leading "v")
+        required: true
+        type: string
+      changelog:
+        description: |
+          Deprecated: the complete changelog as a string. Used only when the changelog artifact is missing,
+          and unusable once the changelog grows over 128 KiB. Callers on
+          apify/actions/git-cliff-release v1.4.1 or newer should stop passing it.
+        required: false
+        type: string
+        default: ""
+      changelog_artifact_name:
+        description: Name of the artifact holding the changelog, as uploaded by apify/actions/git-cliff-release
+        required: false
+        type: string
+        default: git-cliff-changelog
+      changelog_path:
+        description: Path to the changelog file within the repository
+        required: false
+        type: string
+        default: CHANGELOG.md
+    secrets:
+      APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN:
+        required: true
+    outputs:
+      changelog_commitish:
+        description: Git HEAD after the commit and push
+        value: ${{ jobs.bump_and_update_changelog.outputs.changelog_commitish }}
+
+jobs:
+  bump_and_update_changelog:
+    runs-on: ubuntu-latest
+    outputs:
+      changelog_commitish: ${{ steps.commit.outputs.commit_long_sha }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+
+      - name: Validate the ecosystem
+        if: ${{ !contains(fromJSON('["python", "node", "none"]'), inputs.ecosystem) }}
+        shell: bash
+        env:
+          ECOSYSTEM: ${{ inputs.ecosystem }}
+        run: |
+          echo "::error::Unknown ecosystem '${ECOSYSTEM}', expected one of python, node, none"
+          exit 1
+
+      - name: Set up Python
+        if: ${{ inputs.ecosystem == 'python' }}
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Set up uv package manager
+        if: ${{ inputs.ecosystem == 'python' }}
+        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Update package version in pyproject.toml
+        if: ${{ inputs.ecosystem == 'python' }}
+        shell: bash
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
+        run: |
+          echo "Updating version in pyproject.toml to ${VERSION_NUMBER}"
+          uv version "${VERSION_NUMBER}"
+
+      # Also updates package-lock.json when there is one. Scripts are skipped, the dependencies are not installed.
+      - name: Update package version in package.json
+        if: ${{ inputs.ecosystem == 'node' }}
+        shell: bash
+        env:
+          VERSION_NUMBER: ${{ inputs.version_number }}
+        run: |
+          echo "Updating version in package.json to ${VERSION_NUMBER}"
+          npm version "${VERSION_NUMBER}" --no-git-tag-version --allow-same-version --ignore-scripts
+
+      # The changelog is handed over as an artifact instead of a string input, because an action input is
+      # passed to the action as an environment variable and Linux caps a single environment variable at
+      # 128 KiB - past that the step fails to start with "Argument list too long".
+      - name: Download changelog artifact
+        id: changelog_artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        continue-on-error: true
+        with:
+          name: ${{ inputs.changelog_artifact_name }}
+          path: ${{ runner.temp }}/changelog
+
+      - name: Update the changelog
+        if: ${{ steps.changelog_artifact.outcome == 'success' }}
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
+          CHANGELOG_PATH: ${{ inputs.changelog_path }}
+          DOWNLOADED_CHANGELOG: ${{ runner.temp }}/changelog/CHANGELOG.md
+        run: |
+          set -euo pipefail
+
+          if [[ ! -s "${DOWNLOADED_CHANGELOG}" ]]; then
+            echo "::error::Artifact '${ARTIFACT_NAME}' holds no non-empty CHANGELOG.md"
+            exit 1
+          fi
+
+          echo "Writing $(wc -c < "${DOWNLOADED_CHANGELOG}") bytes to ${CHANGELOG_PATH}"
+          mv "${DOWNLOADED_CHANGELOG}" "${CHANGELOG_PATH}"
+
+      - name: Fail on a missing changelog
+        if: ${{ steps.changelog_artifact.outcome != 'success' && inputs.changelog == '' }}
+        shell: bash
+        env:
+          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
+        run: |
+          echo "::error::Neither the '${ARTIFACT_NAME}' artifact nor the 'changelog' input carries a changelog"
+          exit 1
+
+      # Deprecated path for callers still on apify/actions/git-cliff-release older than v1.4.1, which does
+      # not upload the artifact. Drop it, together with the 'changelog' input, once every caller is bumped.
+      - name: Update the changelog from the input
+        if: ${{ steps.changelog_artifact.outcome != 'success' }}
+        uses: DamianReeves/write-file-action@6929a9a6d1807689191dcc8bbe62b54d70a32b42 # v1.3
+        with:
+          path: ${{ inputs.changelog_path }}
+          write-mode: overwrite
+          contents: ${{ inputs.changelog }}
+
+      - name: Commit changes
+        id: commit
+        uses: apify/actions/signed-commit@v1.0.0
+        with:
+          message: "${{ inputs.ecosystem == 'none' && 'chore(release): Update changelog [skip ci]' || 'chore(release): Update changelog and package version [skip ci]' }}"
+          pull: '--rebase --autostash'
+          github-token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}

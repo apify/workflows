@@ -1,5 +1,6 @@
-name: Bump version and update changelog
+name: Bump version and update changelog (Python)
 
+# Kept for existing callers - the ecosystem-agnostic bump_and_update_changelog.yaml does the work.
 on:
   workflow_call:
     inputs:
@@ -39,85 +40,13 @@ on:
 
 jobs:
   bump_and_update_changelog:
-    runs-on: ubuntu-latest
-    outputs:
-      changelog_commitish: ${{ steps.commit.outputs.commit_long_sha }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
-        with:
-          token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
-        with:
-          python-version: ${{ inputs.python_version }}
-
-      - name: Set up uv package manager
-        uses: astral-sh/setup-uv@cec208311dfd045dd5311c1add060b2062131d57 # v8.0.0
-        with:
-          python-version: ${{ inputs.python_version }}
-
-      - name: Update package version in pyproject.toml
-        shell: bash
-        run: |
-          new_version="${{ inputs.version_number }}"
-          echo "Updating version in pyproject.toml to ${new_version}"
-          uv version "${new_version}"
-
-      # The changelog is handed over as an artifact instead of a string input, because an action input is
-      # passed to the action as an environment variable and Linux caps a single environment variable at
-      # 128 KiB - past that the step fails to start with "Argument list too long".
-      - name: Download changelog artifact
-        id: changelog_artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        continue-on-error: true
-        with:
-          name: ${{ inputs.changelog_artifact_name }}
-          path: ${{ runner.temp }}/changelog
-
-      - name: Update the changelog
-        if: ${{ steps.changelog_artifact.outcome == 'success' }}
-        shell: bash
-        env:
-          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
-          CHANGELOG_PATH: ${{ inputs.changelog_path }}
-          DOWNLOADED_CHANGELOG: ${{ runner.temp }}/changelog/CHANGELOG.md
-        run: |
-          set -euo pipefail
-
-          if [[ ! -s "${DOWNLOADED_CHANGELOG}" ]]; then
-            echo "::error::Artifact '${ARTIFACT_NAME}' holds no non-empty CHANGELOG.md"
-            exit 1
-          fi
-
-          echo "Writing $(wc -c < "${DOWNLOADED_CHANGELOG}") bytes to ${CHANGELOG_PATH}"
-          mv "${DOWNLOADED_CHANGELOG}" "${CHANGELOG_PATH}"
-
-      - name: Fail on a missing changelog
-        if: ${{ steps.changelog_artifact.outcome != 'success' && inputs.changelog == '' }}
-        shell: bash
-        env:
-          ARTIFACT_NAME: ${{ inputs.changelog_artifact_name }}
-        run: |
-          echo "::error::Neither the '${ARTIFACT_NAME}' artifact nor the 'changelog' input carries a changelog"
-          exit 1
-
-      # Deprecated path for callers still on apify/actions/git-cliff-release older than v1.4.1, which does
-      # not upload the artifact. Drop it, together with the 'changelog' input, once every caller is bumped.
-      - name: Update the changelog from the input
-        if: ${{ steps.changelog_artifact.outcome != 'success' }}
-        uses: DamianReeves/write-file-action@6929a9a6d1807689191dcc8bbe62b54d70a32b42 # v1.3
-        with:
-          path: ${{ inputs.changelog_path }}
-          write-mode: overwrite
-          contents: ${{ inputs.changelog }}
-
-      - name: Commit changes
-        id: commit
-        uses: apify/actions/signed-commit@v1.0.0
-        with:
-          message: "chore(release): Update changelog and package version [skip ci]"
-          pull: '--rebase --autostash'
-          github-token: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+    uses: ./.github/workflows/bump_and_update_changelog.yaml
+    with:
+      ecosystem: python
+      python_version: ${{ inputs.python_version }}
+      version_number: ${{ inputs.version_number }}
+      changelog: ${{ inputs.changelog }}
+      changelog_artifact_name: ${{ inputs.changelog_artifact_name }}
+      changelog_path: ${{ inputs.changelog_path }}
+    secrets:
+      APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
