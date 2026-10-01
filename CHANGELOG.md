@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **agents-md:** skip release, hotfix and back-merge PRs ([#327](https://github.com/apify/workflows/issues/327)) ([98b927a](https://github.com/apify/workflows/commit/98b927afd3a258ba4462d90dd3b0990b01746d26))
+
+
+### Performance Improvements
+
+* **python_unit_tests:** use the runner's local disk for temp files on Windows ([#323](https://github.com/apify/workflows/issues/323)) ([c643cf7](https://github.com/apify/workflows/commit/c643cf7cdf987281b7cb7b790ed318bf6df6f435))
+
 ## [0.50.0](https://github.com/apify/workflows/compare/v0.49.0...v0.50.0) (2026-08-31)
 
 
