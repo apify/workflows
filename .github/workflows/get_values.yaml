@@ -22,7 +22,7 @@ on:
         description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 35
         value: ${{ jobs.get_values.outputs.clean_branch_name }}
       clean_branch_name_with_suffix:
-        description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 28 concatenated with the first 6 hex chars of its SHA-1
+        description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 24 concatenated with the first 6 hex chars of its SHA-1
         value: ${{ jobs.get_values.outputs.clean_branch_name_with_suffix }}
       commit_author:
         description: Author of last commit
@@ -56,7 +56,8 @@ jobs:
           _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
           _BRANCH_NAME=$(echo "${_BRANCH_NAME}" | tr '[:upper:]' '[:lower:]')
           CLEAN_BRANCH_NAME=$(echo ${_BRANCH_NAME} | cut -c 1-35)
-          CLEAN_BRANCH_NAME_WITH_SUFFIX=$(echo ${_BRANCH_NAME} | cut -c 1-28)-$(echo ${_BRANCH_NAME} | shasum -a 1 | cut -c 1-6)
+          # Used as a name prefix for Helm releases, whose names are capped at 53 chars, so keep it short.
+          CLEAN_BRANCH_NAME_WITH_SUFFIX=$(echo ${_BRANCH_NAME} | cut -c 1-24)-$(echo ${_BRANCH_NAME} | shasum -a 1 | cut -c 1-6)
 
           echo "SHORT_COMMIT_SHA=${COMMIT_SHA::10}" >> $GITHUB_ENV
           echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
