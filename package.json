@@ -7,7 +7,7 @@
         "@actions/core": "^3.0.1",
         "@apify/tsconfig": "^0.1.2",
         "@octokit/rest": "^22.0.1",
-        "@types/node": "^25.9.5",
+        "@types/node": "^25.9.9",
         "typescript": "^6.0.3",
         "vitest": "^4.1.11"
     },
