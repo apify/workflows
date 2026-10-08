@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/apify/workflows/compare/v0.50.1...v1.0.0) (2026-10-08)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331))
+
+### Code Refactoring
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331)) ([def9644](https://github.com/apify/workflows/commit/def964461a7b9223e81168ee2976090f991c5ec7))
+
 ## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-10-06)
 
 
