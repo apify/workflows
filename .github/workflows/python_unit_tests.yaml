@@ -43,6 +43,11 @@ on:
         required: false
         type: string
         default: auto
+      timeout_minutes:
+        description: Maximum minutes a single matrix job may run before it is cancelled, so a hung test fails fast.
+        required: false
+        type: number
+        default: 60
 
 jobs:
   unit_tests:
@@ -53,6 +58,7 @@ jobs:
         os: ${{ fromJSON(inputs.operating_systems) }}
         python-version: ${{ fromJSON(inputs.python_versions) }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ inputs.timeout_minutes }}
     env:
       HTTPBIN_URL: ${{ secrets.APIFY_HTTPBIN_TOKEN && format('https://httpbin.apify.actor?token={0}', secrets.APIFY_HTTPBIN_TOKEN) || 'https://httpbin.org' }}
       TESTS_CONCURRENCY: ${{ inputs.tests_concurrency }}
