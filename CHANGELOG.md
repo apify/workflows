@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.0.0](https://github.com/apify/workflows/compare/v0.50.1...v1.0.0) (2026-10-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331))
+
+### Features
+
+* add the apify-factory review workflow ([#335](https://github.com/apify/workflows/issues/335)) ([2f71e9d](https://github.com/apify/workflows/commit/2f71e9d4989f78cc669040855b66318e3572d0ad))
+
+
+### Code Refactoring
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331)) ([def9644](https://github.com/apify/workflows/commit/def964461a7b9223e81168ee2976090f991c5ec7))
+
 ## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-10-06)
 
 
