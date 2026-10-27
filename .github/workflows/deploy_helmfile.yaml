@@ -129,11 +129,11 @@ jobs:
     runs-on: ${{ inputs.runner }}
     steps:
       - name: clone repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
           method: chat.postMessage
           token: ${{ secrets.slackToken }}
@@ -208,7 +208,7 @@ jobs:
 
       - name: assume IAM role
         if: inputs.useOIDC == false
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           aws-access-key-id: ${{ secrets.awsAccessKeyId }}
           aws-secret-access-key: ${{ secrets.awsSecretAccessKey }}
@@ -223,7 +223,7 @@ jobs:
       # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
       - name: assume GithubOIDCRole
         if: inputs.useOIDC == true
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           aws-region: ${{ inputs.awsRegion }}
           role-to-assume: ${{ inputs.githubOIDCRoleArn }}
@@ -236,7 +236,7 @@ jobs:
       # Then assume Deployer role, which can be assumed by GithubOIDCRole and has all the permissions needed to deploy cloudformation stacks.
       - name: assume Deployer role
         if: inputs.useOIDC == true
-        uses: aws-actions/configure-aws-credentials@v6
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           aws-region: ${{ inputs.awsRegion }}
           role-to-assume: ${{ inputs.awsRoleArn }}
@@ -248,7 +248,7 @@ jobs:
         run: aws eks update-kubeconfig --name ${{ inputs.eksClusterName }} $OPTIONAL_PARAMS
 
       - name: Tailscale VPN
-        uses: tailscale/github-action@v4
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
         if: inputs.enableVpn == 'true'
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -296,7 +296,7 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
           method: chat.postMessage
           token: ${{ secrets.slackToken }}

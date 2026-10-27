@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* **agents-md:** skip release, hotfix and back-merge PRs ([#327](https://github.com/apify/workflows/issues/327)) ([98b927a](https://github.com/apify/workflows/commit/98b927afd3a258ba4462d90dd3b0990b01746d26))
+* shorter clean branch name ([#329](https://github.com/apify/workflows/issues/329)) ([ca18414](https://github.com/apify/workflows/commit/ca1841451c8ca56fcb8f2a926a65b1a351f237ca))
+
+
+### Performance Improvements
+
+* **python_unit_tests:** use the runner's local disk for temp files on Windows ([#323](https://github.com/apify/workflows/issues/323)) ([c643cf7](https://github.com/apify/workflows/commit/c643cf7cdf987281b7cb7b790ed318bf6df6f435))
+
+## [0.50.0](https://github.com/apify/workflows/compare/v0.49.0...v0.50.0) (2026-08-31)
+
+
+### Features
+
+* New `create prod release` workflow ([#320](https://github.com/apify/workflows/issues/320)) ([82047f1](https://github.com/apify/workflows/commit/82047f18f32b8eec21d3342263b92e5834591292))
+
+## [0.49.0](https://github.com/apify/workflows/compare/v0.48.1...v0.49.0) (2026-08-25)
+
+
+### Features
+
+* add reusable workflow that keeps AGENTS.md accurate in the PR that changed it ([#311](https://github.com/apify/workflows/issues/311)) ([a333e4d](https://github.com/apify/workflows/commit/a333e4dc26846f52de0e863401c91d2d17256297))
+* skip role chaining when awsRoleArn is empty ([#318](https://github.com/apify/workflows/issues/318)) ([d62affa](https://github.com/apify/workflows/commit/d62affa272832c38204e7adaf6932e980e873b16))
+
 ## [0.48.1](https://github.com/apify/workflows/compare/v0.48.0...v0.48.1) (2026-08-17)
 
 

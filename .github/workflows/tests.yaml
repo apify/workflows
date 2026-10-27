@@ -71,7 +71,7 @@ jobs:
     steps:
       - name: Send notification to slack
         if: inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
           method: chat.postMessage
           token: ${{ secrets.slackToken }}
@@ -110,11 +110,11 @@ jobs:
             }
 
       - name: clone local repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       # TODO: turn on caching
       - name: setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ${{ inputs.nodeVersionFile }}
           registry-url: ${{ inputs.npmRegistryUrl }}
@@ -152,7 +152,7 @@ jobs:
 
       - name: send result to slack
         if: always() && inputs.slackChannelId != ''
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
           method: chat.postMessage
           token: ${{ secrets.slackToken }}

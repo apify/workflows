@@ -39,7 +39,7 @@ jobs:
         run: npm i @octokit/rest@release-19.x
 
       - name: open and merge pull request
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           GIT_HUB_TOKEN: ${{ secrets.githubToken }}
         with:
@@ -84,7 +84,7 @@ jobs:
 
       - name: report failure to slack
         if: ${{ failure() }}
-        uses: slackapi/slack-github-action@v3.0.1
+        uses: slackapi/slack-github-action@af78098f536edbc4de71162a307590698245be95 # v3.0.1
         with:
           method: chat.postMessage
           token: ${{ secrets.slackToken }}

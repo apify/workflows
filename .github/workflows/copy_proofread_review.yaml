@@ -58,7 +58,7 @@ jobs:
           fi
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           # The diff comes from `gh pr diff` (API-backed) and files are read from the working tree.
           fetch-depth: 1
@@ -66,7 +66,7 @@ jobs:
       - name: Check out the apify-proofreader skill
         # Checked out here rather than under `.claude/` — claude-code-action wipes and restores `.claude/`
         # from the PR base branch before running Claude.
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           repository: apify/agent-skills-internal
           token: ${{ secrets.agentSkillsRepoGithubToken }}
@@ -75,7 +75,7 @@ jobs:
           fetch-depth: 1
 
       - name: Proofread public-facing copy
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@5ee796a55f92566ecd7e39d70dd613abcbea0d7c # v1.0.197
         env:
           GH_TOKEN: ${{ github.token }}
         with:
@@ -155,7 +155,7 @@ jobs:
       - name: Remove trigger label
         # Re-adding it re-runs the review.
         if: always() && github.event.label.name != ''
-        uses: actions/github-script@v9
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ github.token }}
           script: |
