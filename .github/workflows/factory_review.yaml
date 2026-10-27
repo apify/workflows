@@ -1,0 +1,123 @@
+name: apify-factory review (AI review, and auto-approval)
+
+# The review and auto-approval pipeline of apify/ai-developer, called from a short
+# `factory_review.yaml` stub in each repository that opts in. The stub must live in the repository
+# itself: only a workflow GitHub runs there receives every push, and a push that changes the code
+# has to withdraw the bot's approval.
+#
+# The pipeline lives in apify/ai-developer, which is internal, and a public repository cannot call
+# an internal workflow or action. So this public workflow holds only the job wiring: its review job
+# checks ai-developer out with the bot's token and runs the action from that checkout.
+#
+# It runs when @apify-factory is requested as a reviewer, and also when the request is withdrawn,
+# the PR goes back to draft, or a push changes the code, to withdraw the approval with it. Only
+# apify-factory's own approvals are ever withdrawn.
+#
+# Submitting a review clears the review request, so on a push the payload alone cannot say whether
+# there is an approval at stake. The lookup job answers that in one API call, so the review job —
+# which checks out, installs and can call two models — starts only when it has something to do.
+
+on:
+  workflow_call:
+    inputs:
+      policy:
+        description: Optional JSON policy overrides for the calling repository (see the ai-developer auto-approve README).
+        type: string
+        required: false
+        default: ""
+      runs-on:
+        description: Runner label for the review job.
+        type: string
+        required: false
+        default: ubuntu-latest
+      ai-developer-ref:
+        description: Ref of apify/ai-developer to run the pipeline from.
+        type: string
+        required: false
+        default: main
+    secrets:
+      APIFY_FACTORY_GITHUB_TOKEN:
+        required: true
+      ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW:
+        required: true
+
+jobs:
+  # Runs on every push to every pull request, by design: it is the only way to tell whether
+  # apify-factory has an approval that this push would invalidate, and it costs one API read. It is
+  # skipped when the payload already answers the question — the bot is a pending reviewer, or the
+  # event is the request itself.
+  approval-lookup:
+    name: Look up an existing approval
+    if: >-
+      github.event.action != 'review_requested'
+      && github.event.action != 'review_request_removed'
+      && !contains(github.event.pull_request.requested_reviewers.*.login, 'apify-factory')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: read
+    outputs:
+      approved: ${{ steps.check.outputs.approved }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # A dismissed approval is state DISMISSED, so it stops counting on its own.
+          ids=$(gh api --paginate "repos/$REPO/pulls/$PR_NUMBER/reviews" \
+            --jq '.[] | select(.user.login == "apify-factory" and .state == "APPROVED") | .id')
+          echo "approved=$([ -n "$ids" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+  review:
+    name: AI review
+    needs: approval-lookup
+    # A review request names one reviewer, so a request for anybody else is not this pipeline's
+    # business. On the other events, anything but a confident "no approval" runs the job: a lookup
+    # skipped means the bot is already pending, and a failed one must not be the reason a stale
+    # approval survives a push.
+    if: >-
+      !cancelled() && (
+        github.event.requested_reviewer.login == 'apify-factory'
+        || (
+          github.event.action != 'review_requested'
+          && github.event.action != 'review_request_removed'
+          && (
+            contains(github.event.pull_request.requested_reviewers.*.login, 'apify-factory')
+            || needs.approval-lookup.outputs.approved != 'false'
+          )
+        )
+      )
+    runs-on: ${{ inputs.runs-on }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      pull-requests: write
+    # Queue rather than cancel: the action posts nothing from a cancelled run, so cancelling one mid
+    # review would leave the request pending with no review and no event left to re-trigger it.
+    concurrency:
+      group: factory-review-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out apify/ai-developer
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          repository: apify/ai-developer
+          ref: ${{ inputs.ai-developer-ref }}
+          token: ${{ secrets.APIFY_FACTORY_GITHUB_TOKEN }}
+          path: .ai-developer
+          persist-credentials: false
+
+      # The action checks the repository under review out itself, at its base branch.
+      - name: Review, and approve when nothing needs a human
+        uses: ./.ai-developer/actions/auto-approve
+        with:
+          pr-number: ${{ github.event.pull_request.number }}
+          trigger: ${{ github.event.action }}
+          actor: ${{ github.actor }}
+          github-token: ${{ github.token }}
+          factory-github-token: ${{ secrets.APIFY_FACTORY_GITHUB_TOKEN }}
+          anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW }}
+          policy: ${{ inputs.policy }}
