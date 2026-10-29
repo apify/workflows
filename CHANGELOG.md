@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.0](https://github.com/apify/workflows/compare/v0.50.1...v1.0.0) (2026-10-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331))
+
+### Features
+
+* add a job timeout to the Python unit tests workflow ([#333](https://github.com/apify/workflows/issues/333)) ([c204e60](https://github.com/apify/workflows/commit/c204e60373e947b684d09b2a2d8cdefb62c02163))
+* add the apify-factory review workflow ([#335](https://github.com/apify/workflows/issues/335)) ([2f71e9d](https://github.com/apify/workflows/commit/2f71e9d4989f78cc669040855b66318e3572d0ad))
+
+
+### Bug Fixes
+
+* ensure the committed changelog ends with a trailing newline ([#314](https://github.com/apify/workflows/issues/314)) ([ad24b89](https://github.com/apify/workflows/commit/ad24b890850b41fc953320dcdb48110e8ec8f2fe))
+
+
+### Code Refactoring
+
+* Remove reusable actions that were migrated to apify/actions ([#331](https://github.com/apify/workflows/issues/331)) ([def9644](https://github.com/apify/workflows/commit/def964461a7b9223e81168ee2976090f991c5ec7))
+
 ## [0.50.1](https://github.com/apify/workflows/compare/v0.50.0...v0.50.1) (2026-10-06)
 
 
