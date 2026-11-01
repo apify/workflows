@@ -40,6 +40,9 @@ on:
         required: true
       ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW:
         required: true
+      APIFY_FACTORY_CALLBACK_TOKEN:
+        description: Apify token that reaches the factory's core Actor. With the organization variable FACTORY_PUBLIC_URL, each review becomes a run on the factory dashboard.
+        required: false
 
 jobs:
   # Runs on every push to every pull request, by design: it is the only way to tell whether
@@ -121,3 +124,5 @@ jobs:
           factory-github-token: ${{ secrets.APIFY_FACTORY_GITHUB_TOKEN }}
           anthropic-api-key: ${{ secrets.ANTHROPIC_API_KEY_APIFY_FACTORY_REVIEW }}
           policy: ${{ inputs.policy }}
+          callback-token: ${{ secrets.APIFY_FACTORY_CALLBACK_TOKEN }}
+          factory-public-url: ${{ vars.FACTORY_PUBLIC_URL }}
