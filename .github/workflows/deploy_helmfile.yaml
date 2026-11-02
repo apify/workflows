@@ -92,7 +92,7 @@ on:
         description: Tailscale version
         required: false
         type: string
-        default: 1.98.9
+        default: 1.104.4
       tailscalePing:
         description: Tailscale ping target
         required: false
