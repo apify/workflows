@@ -16,8 +16,9 @@ name: apify-factory review (AI review, and auto-approval)
 # approvals are ever withdrawn.
 #
 # Submitting a review clears the review request, so on a push the payload alone cannot say whether
-# there is an approval at stake. The lookup job answers that in one API call, so the review job —
-# which checks out, installs and can call two models — starts only when it has something to do.
+# there is an approval at stake. The lookup job answers that with three cheap API reads, so the
+# review job — which checks out, installs and can call two models — starts only when it has
+# something to do.
 
 on:
   workflow_call:
@@ -52,7 +53,7 @@ jobs:
   # on its own, and it costs three API reads. It reads the requested reviewers live rather than from
   # the payload, which is stale when this run took the place of a newer event's waiting run.
   approval-lookup:
-    name: Look up an existing approval
+    name: Look up the review state
     if: >-
       github.event.action != 'review_requested'
       && github.event.action != 'review_request_removed'
@@ -82,14 +83,15 @@ jobs:
           # The repository's factory_auto_review custom property: review every ready pull request.
           auto=$(gh api "repos/$REPO/properties/values" \
             --jq '[.[] | select(.property_name == "factory_auto_review") | .value][0] == "true"' \
-            || echo false)
+            2>/dev/null) || auto=false
           echo "auto_review=$auto" >> "$GITHUB_OUTPUT"
 
   review:
     name: AI review
     needs: approval-lookup
     # A review request names one reviewer, so a request for anybody else is not this pipeline's
-    # business. On the other events the job runs when the bot is still requested, when an approval
+    # business. On the other events the job runs when the bot is still requested (except on
+    # `opened`, whose own review_requested event reviews it), when an approval
     # is at stake, or when the repository reviews every ready pull request on its own. A failed
     # lookup answers neither "false", so it runs the job: it must not be the reason a stale
     # approval survives a push.
@@ -100,7 +102,7 @@ jobs:
           github.event.action != 'review_requested'
           && github.event.action != 'review_request_removed'
           && (
-            needs.approval-lookup.outputs.requested != 'false'
+            (needs.approval-lookup.outputs.requested != 'false' && github.event.action != 'opened')
             || needs.approval-lookup.outputs.approved != 'false'
             || (
               needs.approval-lookup.outputs.auto-review == 'true'
@@ -115,12 +117,11 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      # Proves to the factory's core Actor that this run hands a review to a sandbox.
-      id-token: write
-    # Queue rather than cancel: the action posts nothing from a cancelled run, so cancelling one mid
-    # review would leave the request pending with no review and no event left to re-trigger it.
+    # Never cancel a running review: the action posts nothing from a cancelled run, which would leave
+    # the request pending with no review. GitHub keeps one waiting run per group and replaces it with
+    # a newer one. The group differs from the stub's own, which would otherwise wait on this job.
     concurrency:
-      group: factory-review-${{ github.event.pull_request.number }}
+      group: factory-review-job-${{ github.event.pull_request.number }}
       cancel-in-progress: false
     steps:
       - name: Check out apify/ai-developer
