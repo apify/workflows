@@ -197,9 +197,8 @@ jobs:
           version: latest
           ping: ${{ inputs.tailscalePing }}
 
-      # BuildKit must use the runner network so Dockerfile RUN steps and registry
-      # pulls can reach the tailnet. Host networking changes what the build can
-      # see, so it is only set when the VPN is enabled.
+      # Attaches the BuildKit daemon to the runner network so image pulls can
+      # use the tailnet. RUN steps do not inherit this; the build step sets that.
       - name: setup Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
         with:
@@ -248,6 +247,10 @@ jobs:
         with:
           context: ${{ inputs.dockerContext }}
           file: ${{ inputs.dockerFilePath }}
+          # Sandbox RUN steps replace systemd-resolved (127.0.0.53) with 8.8.8.8,
+          # so mongodb+srv returns public Atlas hosts. Host network keeps the
+          # runner resolver, which Tailscale configures as split DNS.
+          network: ${{ inputs.enableVpn == 'true' && 'host' || '' }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
           secret-files: SECRET_ENV_VARS=build-secret-env-vars.txt
