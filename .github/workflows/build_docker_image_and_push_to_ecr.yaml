@@ -78,6 +78,17 @@ on:
         required: false
         type: string
         default: ubuntu-22.04
+      enableVpn:
+        description: Enable VPN connection
+        required: false
+        default: 'false'
+        type: string
+      tailscalePing:
+        description: Tailscale ping target
+        required: false
+        type: string
+        # Production EKS cluster DNS name to test the VPN connection
+        default: BA6D21AB896DE795C7BF29050D03C3A8.gr7.us-east-1.eks.amazonaws.com
 
     secrets:
       awsAccessKeyId:
@@ -96,6 +107,12 @@ on:
         description: |
           Secrets passed to build as secret file.
           See https://docs.docker.com/engine/reference/commandline/buildx_build/#secret
+        required: false
+      ts_oauth_client_id:
+        description: Tailscale OAuth Client ID
+        required: false
+      ts_oauth_secret:
+        description: Tailscale OAuth Client Secret
         required: false
 
 env:
@@ -170,8 +187,23 @@ jobs:
       # - name: Set up QEMU
       #   uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
 
+      - name: Tailscale VPN
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+        if: inputs.enableVpn == 'true'
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+          version: latest
+          ping: ${{ inputs.tailscalePing }}
+
+      # BuildKit must use the runner network so Dockerfile RUN steps and registry
+      # pulls can reach the tailnet. Host networking changes what the build can
+      # see, so it is only set when the VPN is enabled.
       - name: setup Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        with:
+          driver-opts: ${{ inputs.enableVpn == 'true' && 'network=host' || '' }}
 
       # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
       - name: assume GithubOIDCRole
