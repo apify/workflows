@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/apify/workflows/compare/v1.1.0...v1.1.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* resolve MongoDB through the runner DNS during VPN builds ([#342](https://github.com/apify/workflows/issues/342)) ([a068348](https://github.com/apify/workflows/commit/a068348c01678dafdc808f802ed55173f5258851))
+
 ## [1.1.0](https://github.com/apify/workflows/compare/v1.0.0...v1.1.0) (2026-11-16)
 
 
