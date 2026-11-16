@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/apify/workflows/compare/v1.0.0...v1.1.0) (2026-11-16)
+
+
+### Features
+
+* add VPN support to Docker build workflow ([#341](https://github.com/apify/workflows/issues/341)) ([be55887](https://github.com/apify/workflows/commit/be55887c13a010c12fe4cf74c085426ecfab06d4))
+* **factory-review:** run automatic reviews from the reusable workflow ([#339](https://github.com/apify/workflows/issues/339)) ([dd2da11](https://github.com/apify/workflows/commit/dd2da111435fb0a8b90a1300cc812dcb9d9faedd))
+
 ## [1.0.0](https://github.com/apify/workflows/compare/v0.50.1...v1.0.0) (2026-11-02)
 
 
