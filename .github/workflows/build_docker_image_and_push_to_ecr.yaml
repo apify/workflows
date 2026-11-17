@@ -193,16 +193,29 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
-          tags: tag:ci
+          tags: tag:ci-mongodb-only
           version: latest
           ping: ${{ inputs.tailscalePing }}
 
-      # Attaches the BuildKit daemon to the runner network so image pulls can
-      # use the tailnet. RUN steps do not inherit this; the build step sets that.
+      # 100.100.100.100 is Tailscale's resolver on the runner. Host network makes
+      # that address reachable from RUN. Without an explicit nameserver, BuildKit
+      # copies systemd-resolved's upstream file, which on GitHub runners is Azure
+      # DNS (168.63.129.16) and returns public Atlas addresses.
+      - name: BuildKit DNS config
+        if: inputs.enableVpn == 'true'
+        run: |
+          cat > "${RUNNER_TEMP}/buildkitd-vpn.toml" <<'EOF'
+          [dns]
+            nameservers=["100.100.100.100"]
+          EOF
+
+      # driver-opts attaches the BuildKit daemon to the runner network so image
+      # pulls can use the tailnet. RUN steps do not inherit it; the build step sets that.
       - name: setup Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
         with:
           driver-opts: ${{ inputs.enableVpn == 'true' && 'network=host' || '' }}
+          buildkitd-config: ${{ inputs.enableVpn == 'true' && format('{0}/buildkitd-vpn.toml', runner.temp) || '' }}
 
       # First assume GithubOIDCRole role, the trust relationship between GitHub and AWS is defined in IAM GithubOIDCRole in the organization account. This role has permissions to assume Deployer roles only.
       - name: assume GithubOIDCRole
@@ -247,9 +260,7 @@ jobs:
         with:
           context: ${{ inputs.dockerContext }}
           file: ${{ inputs.dockerFilePath }}
-          # Sandbox RUN steps replace systemd-resolved (127.0.0.53) with 8.8.8.8,
-          # so mongodb+srv returns public Atlas hosts. Host network keeps the
-          # runner resolver, which Tailscale configures as split DNS.
+          # Host network so RUN can reach 100.100.100.100. The nameserver is set above.
           network: ${{ inputs.enableVpn == 'true' && 'host' || '' }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
