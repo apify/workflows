@@ -23,10 +23,14 @@ on:
         # envVariables: >
         #   FOO=bar
         #   BAR=foo
+      helmfileVersion:
+        description: Helmfile version
+        required: false
+        type: string
+        default: v0.171.0
 
 env:
-  # renovate: datasource=github-releases depName=helmfile/helmfile
-  HELMFILE_VERSION: v0.171.0
+  HELMFILE_VERSION: ${{ inputs.helmfileVersion }}
 
 jobs:
   lint:
