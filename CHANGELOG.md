@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/apify/workflows/compare/v1.1.2...v1.2.0) (2026-11-17)
+
+
+### Features
+
+* add helmfileVersion input to lint helmfile workflow ([#346](https://github.com/apify/workflows/issues/346)) ([ec80098](https://github.com/apify/workflows/commit/ec80098e33c84d43a4eb55e9b02ca2cf52c33730))
+
 ## [1.1.2](https://github.com/apify/workflows/compare/v1.1.1...v1.1.2) (2026-11-17)
 
 
