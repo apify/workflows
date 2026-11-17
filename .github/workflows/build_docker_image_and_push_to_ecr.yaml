@@ -197,6 +197,66 @@ jobs:
           version: latest
           ping: ${{ inputs.tailscalePing }}
 
+      # Same hostnames on the public and peered paths. The A record shows which
+      # resolver answered. Prints the host only, never the connection string.
+      - name: Show Mongo DNS on the runner
+        if: inputs.enableVpn == 'true'
+        run: |
+          python3 - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+
+          def show(title, args):
+              print(f"=== {title} ===", flush=True)
+              try:
+                  completed = subprocess.run(args, check=False, text=True, capture_output=True)
+              except FileNotFoundError:
+                  print(f"missing {args[0]}")
+                  return ""
+              print(completed.stdout, end="" if completed.stdout.endswith("\n") or not completed.stdout else "\n")
+              if completed.stderr:
+                  print(completed.stderr, end="" if completed.stderr.endswith("\n") else "\n")
+              return completed.stdout
+
+          show("/etc/resolv.conf", ["cat", "/etc/resolv.conf"])
+          show("resolvectl dns", ["resolvectl", "dns"])
+          show("resolvectl domain", ["resolvectl", "domain"])
+
+          secret = pathlib.Path("build-secret-env-vars.txt")
+          host = ""
+          if not secret.exists():
+              print("No build secret file; skipping Mongo lookup")
+          else:
+              try:
+                  for line in secret.read_text().splitlines():
+                      if not line.startswith("MONGO_URL="):
+                          continue
+                      url = line.split("=", 1)[1].strip().strip('"').strip("'")
+                      rest = re.sub(r"^mongodb(\+srv)?://", "", url)
+                      if "@" in rest:
+                          rest = rest.rsplit("@", 1)[1]
+                      host = rest.split("/")[0].split("?")[0].split(",")[0].split(":")[0]
+                      break
+              except Exception as exc:
+                  print(f"mongo host parse failed: {type(exc).__name__}")
+          if not host:
+              raise SystemExit(0)
+
+          show(f"resolvectl query {host}", ["resolvectl", "query", host])
+          srv = show(
+              f"resolvectl query SRV _mongodb._tcp.{host}",
+              ["resolvectl", "query", "--type=SRV", f"_mongodb._tcp.{host}"],
+          )
+          targets = sorted({
+              name.rstrip(".")
+              for name in re.findall(r"(?<![A-Za-z0-9._-])([A-Za-z0-9.-]+\.mongodb\.net)\.?", srv)
+              if "_" not in name and name.rstrip(".") != host
+          })
+          for name in targets:
+              show(f"resolvectl query {name}", ["resolvectl", "query", name])
+          PY
+
       # Attaches the BuildKit daemon to the runner network so image pulls can
       # use the tailnet. RUN steps do not inherit this; the build step sets that.
       - name: setup Docker Buildx
