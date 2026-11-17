@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/apify/workflows/compare/v1.1.1...v1.1.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* send VPN image builds through Tailscale DNS ([#345](https://github.com/apify/workflows/issues/345)) ([2069af7](https://github.com/apify/workflows/commit/2069af7122a8fedd31ed4777fa1042562b45623b))
+
 ## [1.1.1](https://github.com/apify/workflows/compare/v1.1.0...v1.1.1) (2026-11-16)
 
 
