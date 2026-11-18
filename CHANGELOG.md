@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/apify/workflows/compare/v1.3.0...v1.4.0) (2026-11-18)
+
+
+### Features
+
+* write build files to the runner temp directory ([#353](https://github.com/apify/workflows/issues/353)) ([839dc00](https://github.com/apify/workflows/commit/839dc00b924df7679c2d7357d5d1a706dc4ec8fa))
+
 ## [1.3.0](https://github.com/apify/workflows/compare/v1.2.0...v1.3.0) (2026-11-18)
 
 
