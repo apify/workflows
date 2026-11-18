@@ -72,6 +72,11 @@ on:
         required: false
         type: string
         default: ubuntu-22.04-arm64
+      environment:
+        description: GitHub environment the job runs in. Its name becomes part of the OIDC token subject.
+        required: false
+        type: string
+        default: ''
 
     outputs:
       stackOutputs:
@@ -95,6 +100,7 @@ on:
 jobs:
   deploy:
     runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
     outputs:
       stackOutputs: ${{ steps.deploy.outputs.stackOutputs }}
     steps:

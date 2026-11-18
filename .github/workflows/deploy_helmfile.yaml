@@ -99,6 +99,11 @@ on:
         type: string
         # Production EKS cluster DNS name to test the VPN connection
         default: BA6D21AB896DE795C7BF29050D03C3A8.gr7.us-east-1.eks.amazonaws.com
+      environment:
+        description: GitHub environment the job runs in. Its name becomes part of the OIDC token subject.
+        required: false
+        type: string
+        default: ''
 
 
     secrets:
@@ -127,6 +132,7 @@ env:
 jobs:
   deploy:
     runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
     steps:
       - name: clone repository
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
