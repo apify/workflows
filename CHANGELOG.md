@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/apify/workflows/compare/v1.2.0...v1.3.0) (2026-11-18)
+
+
+### Features
+
+* add environment input to AWS workflows ([#350](https://github.com/apify/workflows/issues/350)) ([64bd8da](https://github.com/apify/workflows/commit/64bd8da2f2e56ae8675efbe67fc7adcc15372488))
+
 ## [1.2.0](https://github.com/apify/workflows/compare/v1.1.2...v1.2.0) (2026-11-17)
 
 
