@@ -64,8 +64,9 @@ jobs:
         env:
           NEW_VERSION: ${{ inputs.version_number }}
         run: |
-          if [[ ! "${NEW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*$ ]]; then
-            echo "::error title=Invalid version number::Expected a version such as 1.2.3, optionally with a pre-release or build suffix"
+          # PyPI does not accept local versions, so a `+` suffix is rejected here.
+          if [[ ! "${NEW_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.-]*$ ]]; then
+            echo "::error title=Invalid version number::Expected a version such as 1.2.3 or 1.2.3rc1, got ${NEW_VERSION@Q}"
             exit 1
           fi
           echo "Updating version in pyproject.toml to ${NEW_VERSION}"
