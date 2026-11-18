@@ -1,14 +1,18 @@
-import { assertDefined } from './common.js';
+import { assertDefined, getCurrentRepo } from './common.js';
 
 /**
  * https://docs.github.com/en/enterprise-cloud@latest/admin/managing-iam/iam-configuration-reference/username-considerations-for-external-authentication#about-username-normalization
  * Usernames for user accounts on GitHub can only contain alphanumeric characters and dashes (-).
  */
+/** Locations where GitHub looks for CODEOWNERS, in order of precedence. */
+const CODEOWNERS_PATHS = ['.github/CODEOWNERS', 'CODEOWNERS', 'docs/CODEOWNERS'];
+
 const GITHUB_LOGIN_REGEX = /@([\w-_]+)/g;
 
 /**
- * Fetches the CODEOWNERS file from `apify/apify-core` repository from the current PR
+ * Fetches the CODEOWNERS file of the current repository from the current PR
  * and parses out and returns the logins of the users defined in CODEOWNERS.
+ * The file is looked up in the locations supported by GitHub, in the same order of precedence.
  *
  * @param {{
  *      githubToken: string,
@@ -23,20 +27,32 @@ export async function fetchCodeOwnerLogins(opts) {
 
     const { githubToken, pullNumber } = opts;
 
-    const response = await fetch(
-        `https://raw.githubusercontent.com/apify/apify-core/refs/pull/${pullNumber}/head/CODEOWNERS`,
-        {
-            headers: {
-                Authorization: `Bearer ${githubToken}`,
-            },
-        },
-    );
+    const { owner, name } = getCurrentRepo();
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch CODEOWNERS file: ${JSON.stringify(await response.text())}`);
+    let codeownersFile;
+    let lastError = 'no location tried';
+
+    for (const path of CODEOWNERS_PATHS) {
+        const response = await fetch(
+            `https://raw.githubusercontent.com/${owner}/${name}/refs/pull/${pullNumber}/head/${path}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${githubToken}`,
+                },
+            },
+        );
+
+        if (response.ok) {
+            codeownersFile = await response.text();
+            break;
+        }
+
+        lastError = `${path}: ${JSON.stringify(await response.text())}`;
     }
 
-    let codeownersFile = await response.text();
+    if (codeownersFile === undefined) {
+        throw new Error(`Failed to fetch CODEOWNERS file (last error - ${lastError})`);
+    }
 
     // ignore usernames mentioned in commented-out lines
     codeownersFile = codeownersFile

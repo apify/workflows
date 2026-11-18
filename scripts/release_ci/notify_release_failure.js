@@ -1,4 +1,4 @@
-import { assertDefined } from './common.js';
+import { assertDefined, getSlackThreadRecordKey } from './common.js';
 import { fetchPagerDutyScheduleUser } from './fetch_pagerduty_schedule.js';
 import { fetchSlackReleaseThreadId } from './fetch_slack_thread_id.js';
 import { sendSlackMessage } from './notify_pending_reviewers_in_release_prs.js';
@@ -19,6 +19,7 @@ import { sendSlackMessage } from './notify_pending_reviewers_in_release_prs.js';
  *      workflowRunUrl?: string,
  *      failureType?: string,
  *      actionMessage?: string,
+ *      slackThreadRecordKeyPrefix?: string,
  * }} opts
  */
 export async function notifyReleaseFailure(opts) {
@@ -45,6 +46,7 @@ export async function notifyReleaseFailure(opts) {
         workflowRunUrl,
         failureType = 'Release workflow step',
         actionMessage = 'Please check the workflow and resolve the failure.',
+        slackThreadRecordKeyPrefix,
     } = opts;
 
     const [deployDuty, slackThreadId] = await Promise.all([
@@ -58,7 +60,7 @@ export async function notifyReleaseFailure(opts) {
         fetchSlackReleaseThreadId({
             apifyApiToken,
             apifyStoreId: slackThreadsStoreId,
-            apifyRecordKey: String(pullNumber),
+            apifyRecordKey: getSlackThreadRecordKey(pullNumber, slackThreadRecordKeyPrefix),
         }),
     ]);
 

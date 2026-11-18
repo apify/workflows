@@ -1,13 +1,20 @@
-export const QA_SLACK_GROUP_ID = 'S06U4RX8K4N';
+/**
+ * A single deploy or test step of the staging release, displayed in the Slack messages.
+ *
+ * `jobPrefix` identifies the job in the list of workflow jobs fetched from GitHub API: the job is matched when its
+ * name is equal to the prefix, or starts with `<prefix> /` (which is how jobs of called reusable workflows are named).
+ *
+ * @typedef {{
+ *      label: string,
+ *      result?: string,
+ *      jobPrefix: string,
+ *      extraLink?: { label: string, url: string },
+ * }} ReleaseCheck
+ */
 
-const CURRENTS_PLAYWRIGHT_STAGING_RUNS_URL = 'https://app.currents.dev/projects/T3im2d';
-
-const MEZMO_STAGING_ALL_ERRORS_VIEW = 'https://app.mezmo.com/521d8cd6fa/logs/view/d56474f17f';
-const MEZMO_STAGING_ALL_VIEW = 'https://app.mezmo.com/521d8cd6fa/logs/view/d420cbaaee';
-const GRAFANA_STAGING_DASHBOARD_API =
-    'https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-api';
-const GRAFANA_STAGING_DASHBOARD_CONSOLE =
-    'https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-app-ui-backend';
+/**
+ * @typedef {{ label: string, url: string }} ReleaseLink
+ */
 
 /**
  * @typedef {{ slackId?: string; email?: string; login?: string }} ChangelogAuthor
@@ -20,13 +27,8 @@ const GRAFANA_STAGING_DASHBOARD_CONSOLE =
  * Tip: Use Slack Block Kit Builder to visualize messages at https://app.slack.com/block-kit-builder/.
  *
  * @param {{
- *      revision: string,
- *      buildResult: string,
- *      deployResult: string,
- *      deployEventDrivenDaemonsResult: string,
- *      integrationTestsResult: string,
- *      playwrightTestsResult: string,
- *      eventDrivenDaemonsTestsResult?: string,
+ *      deployChecks: ReleaseCheck[],
+ *      testChecks?: ReleaseCheck[],
  *      slackThreadId?: string,
  *      prTitle: string,
  *      prUrl: string,
@@ -35,19 +37,21 @@ const GRAFANA_STAGING_DASHBOARD_CONSOLE =
  *      deployDutySlackId?: string,
  *      onCallDutySlackId?: string,
  *      qaDutySlackId?: string,
- *      currentsRunUrl?: string,
+ *      qaSlackGroupId?: string,
+ *      contextLinks?: ReleaseLink[],
+ *      buttons?: ReleaseLink[],
  *      doRickRoll?: boolean,
  * }} opts
+ *
+ * - `deployChecks` decide whether the deploy succeeded (all must be `success`); they are listed in the failure message.
+ * - `testChecks` are only listed once the release is deployed.
+ * - `contextLinks` are appended to the context line of the success message, `buttons` to its action buttons.
  *
  * @returns {{shouldStoreThreadId: boolean, message: string}}
  */
 export function createSlackUpdate({
-    buildResult,
-    deployResult,
-    deployEventDrivenDaemonsResult,
-    integrationTestsResult,
-    playwrightTestsResult,
-    eventDrivenDaemonsTestsResult,
+    deployChecks,
+    testChecks = [],
     slackThreadId,
     prTitle,
     prUrl,
@@ -56,11 +60,16 @@ export function createSlackUpdate({
     deployDutySlackId,
     onCallDutySlackId,
     qaDutySlackId,
-    currentsRunUrl,
+    qaSlackGroupId,
+    contextLinks = [],
+    buttons = [],
     doRickRoll = true,
 }) {
-    const isDeploySuccessful =
-        buildResult === 'success' && deployResult === 'success' && deployEventDrivenDaemonsResult === 'success';
+    const isDeploySuccessful = deployChecks.every((check) => check.result === 'success');
+
+    // Escapes a value to be embedded into a JSON string literal built by the templates below.
+    /** @param {string} value */
+    const esc = (value) => JSON.stringify(value).slice(1, -1);
 
     // Finding the job URL is tricky. For example, there is no "build" job as building is a nested workflow which
     // results in a bunch of jobs returned, such as "build / get_values / get_values". We'll find the matching job by
@@ -69,7 +78,9 @@ export function createSlackUpdate({
      * @param {string} workflowPrefix
      */
     function findJobUrl(workflowPrefix) {
-        const matchingJobs = jobs.jobs.filter((job) => job.name.startsWith(workflowPrefix));
+        const matchingJobs = jobs.jobs.filter(
+            (job) => job.name === workflowPrefix || job.name.startsWith(`${workflowPrefix} /`),
+        );
 
         if (doRickRoll && (matchingJobs.length === 0 || Math.random() < 0.02)) {
             return 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
@@ -94,16 +105,15 @@ export function createSlackUpdate({
         }
     }
 
-    const buildStatusLink = `${getStatusIcon(buildResult)} <${findJobUrl('build')}|Build>`;
-    const deployStatusLink = `${getStatusIcon(deployResult)} <${findJobUrl('deploy')}|Deploy>`;
-    const deployEventDrivenDaemonsStatusLink = `${getStatusIcon(deployEventDrivenDaemonsResult)} <${findJobUrl('deploy_event_driven_daemons')}|Deploy event-driven daemons>`;
-    const integrationTestsStatusLink = `${getStatusIcon(integrationTestsResult)} <${findJobUrl('integration_tests')}|Integration tests>`;
-    // Prefer the Playwright link scoped to this release (Currents resolves the exact run by build
-    // ID), falling back to the project dashboard.
-    const currentsRunLink = currentsRunUrl || CURRENTS_PLAYWRIGHT_STAGING_RUNS_URL;
-    const currentsRunLabel = currentsRunUrl ? 'run' : 'runs';
-    const playwrightTestsStatusLink = `${getStatusIcon(playwrightTestsResult)} <${findJobUrl('playwright_tests')}|Playwright tests> (<${currentsRunLink}|${currentsRunLabel}>)`;
-    const eventDrivenDaemonsTestsStatusLink = `${getStatusIcon(eventDrivenDaemonsTestsResult)} <${findJobUrl('test_staging_event_driven_daemons')}|Event-driven daemons tests>`;
+    /** @param {ReleaseCheck} check */
+    function getCheckLink(check) {
+        const extraLink = check.extraLink ? ` (<${check.extraLink.url}|${check.extraLink.label}>)` : '';
+
+        return `${getStatusIcon(check.result)} <${findJobUrl(check.jobPrefix)}|${check.label}>${extraLink}`;
+    }
+
+    const deployCheckLinks = deployChecks.map(getCheckLink);
+    const testCheckLinks = testChecks.map(getCheckLink);
 
     const deployDutyTag = deployDutySlackId
         ? `<@${deployDutySlackId}> is on deploy duty :crossed_fingers:`
@@ -119,13 +129,12 @@ export function createSlackUpdate({
         // QA duty is only relevant once the release is up for QA, so it is added to the success message only.
         const successDutyTags = [deployDutyTag, onCallDutyTag, qaDutyTag].filter(Boolean).join('\\n');
 
-        const logsLinks = `<${MEZMO_STAGING_ALL_VIEW}|Logs> (<${MEZMO_STAGING_ALL_ERRORS_VIEW}|errors only>)`;
-        const dashboardLinks = `<${GRAFANA_STAGING_DASHBOARD_API}|API error rate> | <${GRAFANA_STAGING_DASHBOARD_CONSOLE}|Console backend error rate>`;
+        const extraContextLinks = contextLinks.map((link) => `<${link.url}|${link.label}>`);
 
         // The prTitle needs to be properly escaped, and as JSON.stringify wraps the whole string in "", we need to
         // escape the whole context string.
         const context = JSON.stringify(
-            `${prTitle} | ${integrationTestsStatusLink} | ${playwrightTestsStatusLink} | ${eventDrivenDaemonsTestsStatusLink} | ${logsLinks} | ${dashboardLinks}`,
+            [prTitle, ...testCheckLinks, ...extraContextLinks].join(' | '),
         );
 
         const { usersToTag, unmappedAuthors } = changelogAuthors.reduce(
@@ -150,6 +159,25 @@ export function createSlackUpdate({
         );
 
         const taggedUsers = usersToTag.map((slackId) => `<@${slackId}>`).join(' ');
+
+        // The QA team is tagged only if its Slack group is configured.
+        const reviewersMention = [taggedUsers, qaSlackGroupId ? `<!subteam^${qaSlackGroupId}>` : '', ':eyes:']
+            .filter(Boolean)
+            .join(' ');
+
+        const extraButtons = buttons
+            .map(
+                (button) => `,
+                        {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": ${JSON.stringify(button.label)}
+                            },
+                            "url": ${JSON.stringify(button.url)}
+                        }`,
+            )
+            .join('');
 
         // Contributors we could not map to an org member (e.g. they have no org email on their GitHub
         // account). Listed by email in a separate section so a human can reach out to them manually.
@@ -200,7 +228,7 @@ export function createSlackUpdate({
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": "${taggedUsers} <!subteam^${QA_SLACK_GROUP_ID}> :eyes:"
+                        "text": "${esc(reviewersMention)}"
                     }
                 }${unmappedAuthorsSection},
                 {
@@ -220,15 +248,7 @@ export function createSlackUpdate({
                                 "text": "Open release PR"
                             },
                             "url": "${prUrl}"
-                        },
-                        {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Open staging Console"
-                            },
-                            "url": "https://console-securitybyobscurity.apify.com"
-                        }
+                        }${extraButtons}
                     ]
                 }
             ]
@@ -263,7 +283,7 @@ export function createSlackUpdate({
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": " *Status*: \\n\\n ${[buildStatusLink, deployStatusLink, deployEventDrivenDaemonsStatusLink].join('\\n')}"
+                        "text": " *Status*: \\n\\n ${esc(deployCheckLinks.join('\n'))}"
                     }
                 },
                 {
@@ -307,30 +327,14 @@ export function createSlackUpdate({
                 {
                     "type": "section",
                     "fields": [
-                        {
+${[...deployCheckLinks, ...testCheckLinks]
+    .map(
+        (link) => `                        {
                             "type": "mrkdwn",
-                            "text": "${buildStatusLink}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "${deployStatusLink}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "${deployEventDrivenDaemonsStatusLink}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "${integrationTestsStatusLink}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "${playwrightTestsStatusLink}"
-                        },
-                        {
-                            "type": "mrkdwn",
-                            "text": "${eventDrivenDaemonsTestsStatusLink}"
-                        }
+                            "text": "${esc(link)}"
+                        }`,
+    )
+    .join(',\n')}
                     ]
                 }
             ]

@@ -1,4 +1,4 @@
-import { assertDefined } from './common.js';
+import { assertDefined, getSlackThreadRecordKey } from './common.js';
 import { fetchPagerDutyScheduleUser } from './fetch_pagerduty_schedule.js';
 import { fetchSlackReleaseThreadId } from './fetch_slack_thread_id.js';
 import { fetchPendingReviewers, sendSlackMessage } from './notify_pending_reviewers_in_release_prs.js';
@@ -17,6 +17,7 @@ import { fetchPendingReviewers, sendSlackMessage } from './notify_pending_review
  *      slackChannelId: string,
  *      repo?: string,
  *      repoOwner?: string,
+ *      slackThreadRecordKeyPrefix?: string,
  * }} opts
  */
 export async function notifyWhenReadyToMerge(opts) {
@@ -44,6 +45,7 @@ export async function notifyWhenReadyToMerge(opts) {
         slackChannelId,
         repo,
         repoOwner,
+        slackThreadRecordKeyPrefix,
     } = opts;
 
     const { users, teams } = await fetchPendingReviewers({
@@ -72,7 +74,7 @@ export async function notifyWhenReadyToMerge(opts) {
         fetchSlackReleaseThreadId({
             apifyApiToken,
             apifyStoreId: slackThreadsStoreId,
-            apifyRecordKey: String(pullNumber),
+            apifyRecordKey: getSlackThreadRecordKey(pullNumber, slackThreadRecordKeyPrefix),
         }),
     ]);
 

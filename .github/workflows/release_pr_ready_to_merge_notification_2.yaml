@@ -1,4 +1,4 @@
-name: Check the merge readiness of release PR
+name: Check the merge readiness of release PR 2
 
 # If all of the reviewers (people with commit in the release) have approved the changes,
 # this workflow will send a message to the #engineering-releases channel (a reply to the release thread)
@@ -6,13 +6,62 @@ name: Check the merge readiness of release PR
 # 1) fetchPendingReviews -> if there are some, exit
 # 2) fetch deploy duty and the release Slack thread id
 # 3) send a message to Slack, tagging the current deploy duty
+#
+# Reusable workflow, based on the one of apify-core. The caller runs it on the `pull_request_review` (submitted) event.
 
 on:
-  workflow_dispatch:
-
-  pull_request_review:
-    types:
-      - submitted
+  workflow_call:
+    inputs:
+      slackChannelId:
+        description: Slack channel with the release threads (default is #engineering-releases)
+        required: false
+        type: string
+        default: C0AGAN0JM39
+      slackThreadsStoreId:
+        description: Apify key-value store remembering the Slack threads of the release PRs, see release_pr_notify_2
+        required: false
+        type: string
+        default: 3EfC58GUAEGruKLoY
+      slackThreadRecordKeyPrefix:
+        description: Prefix of the keys in the key-value store, has to be the same as in release_pr_notify_2
+        required: false
+        type: string
+        default: ''
+      baseBranch:
+        description: Branch the release PRs are opened to
+        required: false
+        type: string
+        default: master
+      releaseBranchPrefix:
+        description: Prefix used for release branch names
+        required: false
+        type: string
+        default: release
+      workflowsRef:
+        description: >
+          Branch or tag of apify/workflows the helper scripts are checked out from. It should be the same ref as the
+          one the workflow is referenced with (`uses: apify/workflows/...@<ref>`).
+        required: false
+        type: string
+        default: main
+      deployDutyScheduleId:
+        description: PagerDuty schedule of the deploy duty, who is tagged in the message
+        required: false
+        type: string
+        default: P92FHSJ
+    secrets:
+      slackToken:
+        description: Slack bot token
+        required: true
+      apifyApiToken:
+        description: Apify API token with access to the key-value store of the Slack threads
+        required: true
+      serviceAccountGithubToken:
+        description: GitHub token with access to the organization members, to look up their emails
+        required: true
+      pagerDutyApiKey:
+        description: PagerDuty API key to look up the deploy duty
+        required: true
 
 jobs:
   notify_when_ready_to_merge:
@@ -20,36 +69,34 @@ jobs:
     # as in `pull_request`.
     #   -> We have to check if the job should run here (if the PR is a release PR).
     if: |
-      github.event.pull_request.base.ref == 'master' &&
-        startsWith(github.event.pull_request.head.ref, 'release/')
+      github.event.pull_request.base.ref == inputs.baseBranch &&
+        startsWith(github.event.pull_request.head.ref, format('{0}/', inputs.releaseBranchPrefix))
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: checkout-repo
         uses: actions/checkout@v4
         with:
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
           # Make the checkout a small bit faster by only checking out the scripts directory.
           sparse-checkout: 'scripts'
-          sparse-checkout-cone-mode: false # Excludes files from project root
 
       - name: Send notification if all reviewers submitted their review
         uses: actions/github-script@v8.0.0
         env:
-          # THIS IS A COPY FROM `release_staging.yaml`
-          #
-          # Key-value store that we use to remember started Slack threads for pending releases. This allows us to avoid double
-          # posting. The store is under the apify-platform account.
-          # Tip: To quickly erase the thread ID from the store during testing, you can use the following command:
-          # curl -X DELETE "https://api.apify.com/v2/key-value-stores/3EfC58GUAEGruKLoY/records/<PR_NUMBER>?token=${APIFY_TOKEN}"
-          SLACK_THREADS_STORE_ID: '3EfC58GUAEGruKLoY'
-          SLACK_CHANNEL_ID: 'C0AGAN0JM39' #engineering-releases
-          APIFY_API_TOKEN: ${{ secrets.APIFY_PLATFORM_SCOPED_API_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-          SLACK_API_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
-          PAGERDUTY_API_KEY: ${{ secrets.PAGERDUTY_API_KEY }}
-          SCHEDULE_ID: P92FHSJ
+          # Key-value store remembering the Slack threads of the pending releases, see release_pr_notify_2.yaml.
+          SLACK_THREADS_STORE_ID: ${{ inputs.slackThreadsStoreId }}
+          SLACK_THREAD_RECORD_KEY_PREFIX: ${{ inputs.slackThreadRecordKeyPrefix }}
+          SLACK_CHANNEL_ID: ${{ inputs.slackChannelId }}
+          APIFY_API_TOKEN: ${{ secrets.apifyApiToken }}
+          GITHUB_TOKEN: ${{ secrets.serviceAccountGithubToken }}
+          SLACK_API_TOKEN: ${{ secrets.slackToken }}
+          PAGERDUTY_API_KEY: ${{ secrets.pagerDutyApiKey }}
+          SCHEDULE_ID: ${{ inputs.deployDutyScheduleId }}
         with:
           script: |
-            const { notifyWhenReadyToMerge } = require('./scripts/release_ci/index.js');
+            const { notifyWhenReadyToMerge } = require('./.workflows/scripts/release_ci/index.js');
             const {
                 SLACK_THREADS_STORE_ID,
                 SLACK_CHANNEL_ID,
@@ -58,6 +105,7 @@ jobs:
                 SLACK_API_TOKEN,
                 PAGERDUTY_API_KEY,
                 SCHEDULE_ID,
+                SLACK_THREAD_RECORD_KEY_PREFIX,
             } = process.env;
 
             await notifyWhenReadyToMerge({
@@ -73,5 +121,6 @@ jobs:
                 slackChannelId: SLACK_CHANNEL_ID,
                 repo: context.repo.repo,
                 repoOwner: context.repo.owner,
+                slackThreadRecordKeyPrefix: SLACK_THREAD_RECORD_KEY_PREFIX,
             });
 

@@ -1,6 +1,5 @@
-import { assertDefined, fetchSlackIdByEmail, fetchGithubOrgUsers } from './common.js';
+import { assertDefined, fetchSlackIdByEmail, fetchGithubOrgUsers, getCurrentRepo, getSlackThreadRecordKey } from './common.js';
 import { fetchSlackReleaseThreadId } from './fetch_slack_thread_id.js';
-import { QA_SLACK_GROUP_ID } from './pending_release_slack_updates.js';
 
 const REVIEW_STATE_APPROVED = 'APPROVED';
 
@@ -18,7 +17,7 @@ export async function fetchPendingReviewers(opts) {
     assertDefined(opts, 'github');
     assertDefined(opts, 'pullNumber');
 
-    const { github: octokit, pullNumber, repo = 'apify-core', repoOwner = 'apify' } = opts;
+    const { github: octokit, pullNumber, repo = getCurrentRepo().name, repoOwner = getCurrentRepo().owner } = opts;
 
     const prFilter = {
         repo,
@@ -77,6 +76,8 @@ export async function fetchPendingReviewers(opts) {
  *      pullNumber: number,
  *      repo?: string,
  *      repoOwner?: string,
+ *      qaTeamSlug?: string,
+ *      qaSlackGroupId?: string,
  * }} opts
  *
  * @return {Promise<{ users: string[], teams: string[] }>}
@@ -95,8 +96,10 @@ async function fetchPendingReviewersSlackIds(opts) {
         privilegedGithubToken,
         slackApiToken,
         pullNumber,
-        repo = 'apify-core',
-        repoOwner = 'apify',
+        repo = getCurrentRepo().name,
+        repoOwner = getCurrentRepo().owner,
+        qaTeamSlug = 'qa',
+        qaSlackGroupId,
     } = opts;
 
     const { users: pendingLogins, teams } = await fetchPendingReviewers({
@@ -151,8 +154,8 @@ async function fetchPendingReviewersSlackIds(opts) {
     const teamIds = [];
 
     // 5. Also tag the QA team, if there is still a pending review.
-    if (teams.includes('qa')) {
-        teamIds.push(QA_SLACK_GROUP_ID);
+    if (qaSlackGroupId && teams.includes(qaTeamSlug)) {
+        teamIds.push(qaSlackGroupId);
     }
 
     return { users: slackUserIds, teams: teamIds };
@@ -213,6 +216,11 @@ export async function sendSlackMessage(opts) {
  *      apifyStoreId: string,
  *      repoOwner?: string,
  *      repo?: string,
+ *      baseBranch?: string,
+ *      releaseBranchPrefix?: string,
+ *      qaTeamSlug?: string,
+ *      qaSlackGroupId?: string,
+ *      slackThreadRecordKeyPrefix?: string,
  * }} opts
  */
 export async function notifyPendingReviewersInReleasePRs(opts) {
@@ -233,8 +241,13 @@ export async function notifyPendingReviewersInReleasePRs(opts) {
         slackChannelId,
         apifyApiToken,
         apifyStoreId,
-        repoOwner = 'apify',
-        repo = 'apify-core',
+        repoOwner = getCurrentRepo().owner,
+        repo = getCurrentRepo().name,
+        baseBranch = 'master',
+        releaseBranchPrefix = 'release',
+        qaTeamSlug,
+        qaSlackGroupId,
+        slackThreadRecordKeyPrefix,
     } = opts;
 
     // Search for currently opened release PRs.
@@ -242,7 +255,7 @@ export async function notifyPendingReviewersInReleasePRs(opts) {
         owner: repoOwner,
         repo,
         state: 'open', // only those, that are currently open
-        base: 'master', // PRs to `master` branch
+        base: baseBranch, // PRs to the base (production) branch, `master` by default
     });
 
     // Expect the branch name for releases to follow the format of:
@@ -250,7 +263,7 @@ export async function notifyPendingReviewersInReleasePRs(opts) {
     const releasePRs = releasePRCandidates.filter((pr) => {
         const targetBranchPrefix = pr.head.ref.split('/').at(0);
 
-        return targetBranchPrefix === 'release';
+        return targetBranchPrefix === releaseBranchPrefix;
     });
 
     if (releasePRs.length === 0) {
@@ -268,6 +281,8 @@ export async function notifyPendingReviewersInReleasePRs(opts) {
             privilegedGithubToken,
             slackApiToken,
             pullNumber: release.number,
+            qaTeamSlug,
+            qaSlackGroupId,
         });
 
         core.info(`Slack IDs of users reviewers of PR "${release.title}": [${users.join(',')}]`);
@@ -280,7 +295,7 @@ export async function notifyPendingReviewersInReleasePRs(opts) {
         const threadId = await fetchSlackReleaseThreadId({
             apifyApiToken,
             apifyStoreId,
-            apifyRecordKey: String(release.number),
+            apifyRecordKey: getSlackThreadRecordKey(release.number, slackThreadRecordKeyPrefix),
         });
 
         if (!threadId) {

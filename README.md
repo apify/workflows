@@ -46,3 +46,23 @@ jobs:
       slackChannelId: <SLACK_CHANNEL_ID>
       actorOverride: ${{ needs.get_values.outputs.commit_author }}
 ```
+
+## Release automation 2 (work in progress)
+
+Workflows with the `_2` suffix are the successor of `create_prod_release.yaml`. They are copied from the release
+automation of `apify-core` and made configurable. The release flow is split into building blocks that a repository
+combines as needed (`apify-core` can use only some of them, or add its own steps):
+
+| Workflow | Purpose | Caller trigger |
+| --- | --- | --- |
+| `create_prod_release_2.yaml` | Creates the release branch; for scheduled runs it skips days with no release (Fri, weekends, Czech holidays, Christmas), and warns in Slack when the release cannot be created. | `workflow_dispatch` + `schedule` |
+| `release_pr_notify_2.yaml` | Waits for the staging release of the release PR, requests reviews from the commit authors, deploy duty and QA, and sends the "release ready" message that starts the Slack thread. | `pull_request` to the base branch (`opened`, `reopened`, `synchronize`) on `release/v**` |
+| `release_pr_periodic_notifications_2.yaml` | Reminds the pending reviewers in the Slack thread. | `schedule` |
+| `release_pr_ready_to_merge_notification_2.yaml` | Tags the deploy duty in the thread when all reviews are in. | `pull_request_review` (`submitted`) |
+
+They use scripts from the `scripts` directory, which the workflows check out from this repository. Pass
+`workflowsRef` with the same ref that the workflow is referenced with (`@<ref>`), otherwise the scripts come from `main`.
+
+Examples of callers: https://github.com/apify/actor-standby-controller/tree/create-prod-release-2/.github/workflows
+
+Tests of the scripts: `cd scripts && npm install && npm test`.

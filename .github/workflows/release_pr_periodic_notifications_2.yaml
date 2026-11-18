@@ -1,4 +1,4 @@
-name: Notify about release PR changes
+name: Notify about release PR changes 2
 
 # This job finds the current release PR (or PRs) and notifies
 # the users, which have not yet submitted their review.
@@ -12,16 +12,66 @@ name: Notify about release PR changes
 #   3) lookup their emails via the Github API -> with that lookup their Slack ID,
 #   4) find the thread ID of the Slack release message and reply with a message tagging the users from previous step.
 #
-# This job is run periodically (on schedule), this should ease the job of the current deploy duty,
-# since he does not have to manually tag the unresponsive developers to approve the changes to release.
+# Reusable workflow, based on the one of apify-core. The caller runs it periodically (on schedule), this should ease the
+# job of the current deploy duty, since they do not have to manually tag the unresponsive developers to approve the
+# changes to release. The reminders are meant for working days, e.g. cron '0 11,13,15,16 * * MON-FRI' in Europe/Prague
+# time zone. After 13:00 UTC the message also asks to consider reverting the changes.
 
 on:
-  workflow_dispatch:
-
-  schedule:
-    # Every working day at 11:00, 13:00, 15:00, 16:00 Prague time (CET/CEST).
-    - cron: '0 11,13,15,16 * * MON-FRI'
-      timezone: 'Europe/Prague'
+  workflow_call:
+    inputs:
+      slackChannelId:
+        description: Slack channel with the release threads (default is #engineering-releases)
+        required: false
+        type: string
+        default: C0AGAN0JM39
+      slackThreadsStoreId:
+        description: Apify key-value store remembering the Slack threads of the release PRs, see release_pr_notify_2
+        required: false
+        type: string
+        default: 3EfC58GUAEGruKLoY
+      slackThreadRecordKeyPrefix:
+        description: Prefix of the keys in the key-value store, has to be the same as in release_pr_notify_2
+        required: false
+        type: string
+        default: ''
+      baseBranch:
+        description: Branch the release PRs are opened to
+        required: false
+        type: string
+        default: master
+      releaseBranchPrefix:
+        description: Prefix used for release branch names
+        required: false
+        type: string
+        default: release
+      workflowsRef:
+        description: >
+          Branch or tag of apify/workflows the helper scripts are checked out from. It should be the same ref as the
+          one the workflow is referenced with (`uses: apify/workflows/...@<ref>`).
+        required: false
+        type: string
+        default: main
+      qaTeamSlug:
+        description: GitHub team of QA, a pending review of the team is reminded by the QA Slack group
+        required: false
+        type: string
+        default: qa
+      qaSlackGroupId:
+        description: Slack group of QA tagged in the messages. Empty to disable.
+        required: false
+        type: string
+        default: S06U4RX8K4N
+    secrets:
+      slackToken:
+        description: Slack bot token
+        required: true
+      apifyApiToken:
+        description: Apify API token with access to the key-value store of the Slack threads
+        required: true
+      serviceAccountGithubToken:
+        description: GitHub token with access to the organization members, to look up their emails
+        required: true
 
 jobs:
   notify:
@@ -30,33 +80,40 @@ jobs:
       - name: checkout-repo
         uses: actions/checkout@v4
         with:
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
           # Make the checkout a small bit faster by only checking out the scripts directory.
           sparse-checkout: 'scripts'
-          sparse-checkout-cone-mode: false # Excludes files from project root
 
       - name: Tag pending reviewers on Slack
         uses: actions/github-script@v8.0.0
         env:
-          # THIS IS A COPY FROM `release_staging.yaml`
-          #
-          # Key-value store that we use to remember started Slack threads for pending releases. This allows us to avoid double
-          # posting. The store is under the apify-platform account.
-          # Tip: To quickly erase the thread ID from the store during testing, you can use the following command:
-          # curl -X DELETE "https://api.apify.com/v2/key-value-stores/3EfC58GUAEGruKLoY/records/<PR_NUMBER>?token=${APIFY_TOKEN}"
-          SLACK_THREADS_STORE_ID: '3EfC58GUAEGruKLoY'
-          SLACK_CHANNEL_ID: 'C0AGAN0JM39' #engineering-releases
-          APIFY_API_TOKEN: ${{ secrets.APIFY_PLATFORM_SCOPED_API_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
-          SLACK_API_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          # Key-value store remembering the Slack threads of the pending releases, see release_pr_notify_2.yaml.
+          SLACK_THREADS_STORE_ID: ${{ inputs.slackThreadsStoreId }}
+          SLACK_THREAD_RECORD_KEY_PREFIX: ${{ inputs.slackThreadRecordKeyPrefix }}
+          SLACK_CHANNEL_ID: ${{ inputs.slackChannelId }}
+          BASE_BRANCH: ${{ inputs.baseBranch }}
+          RELEASE_BRANCH_PREFIX: ${{ inputs.releaseBranchPrefix }}
+          QA_TEAM_SLUG: ${{ inputs.qaTeamSlug }}
+          QA_SLACK_GROUP_ID: ${{ inputs.qaSlackGroupId }}
+          APIFY_API_TOKEN: ${{ secrets.apifyApiToken }}
+          GITHUB_TOKEN: ${{ secrets.serviceAccountGithubToken }}
+          SLACK_API_TOKEN: ${{ secrets.slackToken }}
         with:
           script: |
-            const { notifyPendingReviewersInReleasePRs } = require('./scripts/release_ci/index.js');
+            const { notifyPendingReviewersInReleasePRs } = require('./.workflows/scripts/release_ci/index.js');
             const {
                 SLACK_THREADS_STORE_ID,
                 SLACK_CHANNEL_ID,
                 APIFY_API_TOKEN,
                 GITHUB_TOKEN,
                 SLACK_API_TOKEN,
+                SLACK_THREAD_RECORD_KEY_PREFIX,
+                BASE_BRANCH,
+                RELEASE_BRANCH_PREFIX,
+                QA_TEAM_SLUG,
+                QA_SLACK_GROUP_ID,
             } = process.env;
 
             await notifyPendingReviewersInReleasePRs({
@@ -69,4 +126,9 @@ jobs:
                 apifyStoreId: SLACK_THREADS_STORE_ID,
                 repoOwner: context.repo.owner,
                 repo: context.repo.repo,
+                baseBranch: BASE_BRANCH,
+                releaseBranchPrefix: RELEASE_BRANCH_PREFIX,
+                qaTeamSlug: QA_TEAM_SLUG || undefined,
+                qaSlackGroupId: QA_SLACK_GROUP_ID || undefined,
+                slackThreadRecordKeyPrefix: SLACK_THREAD_RECORD_KEY_PREFIX,
             });

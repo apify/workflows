@@ -35,24 +35,59 @@ const TEST_GH_JOBS = {
     ],
 };
 
+const CURRENTS_RUN_URL = 'https://app.currents.dev/run/abc123';
+
+/**
+ * The checks of apify-core's staging release, used to verify the configurable message.
+ *
+ * @param {Record<string, string>} [results] results by job prefix, `success` by default
+ */
+const createChecks = (results = {}) => {
+    /** @param {string} jobPrefix */
+    const result = (jobPrefix) => results[jobPrefix] ?? 'success';
+
+    return {
+        deployChecks: [
+            { label: 'Build', jobPrefix: 'build', result: result('build') },
+            { label: 'Deploy', jobPrefix: 'deploy', result: result('deploy') },
+            {
+                label: 'Deploy event-driven daemons',
+                jobPrefix: 'deploy_event_driven_daemons',
+                result: result('deploy_event_driven_daemons'),
+            },
+        ],
+        testChecks: [
+            { label: 'Integration tests', jobPrefix: 'integration_tests', result: result('integration_tests') },
+            {
+                label: 'Playwright tests',
+                jobPrefix: 'playwright_tests',
+                result: result('playwright_tests'),
+                extraLink: { label: 'run', url: CURRENTS_RUN_URL },
+            },
+            {
+                label: 'Event-driven daemons tests',
+                jobPrefix: 'test_staging_event_driven_daemons',
+                result: result('test_staging_event_driven_daemons'),
+            },
+        ],
+    };
+};
+
 /**
  * Base options for a successful release run; tests override only the fields they exercise.
  *
  * @param {Partial<Parameters<typeof createSlackUpdate>[0]>} [overrides]
  */
 const createOpts = (overrides) => ({
-    revision: '1234',
-    buildResult: 'success',
-    deployResult: 'success',
-    deployEventDrivenDaemonsResult: 'success',
-    integrationTestsResult: 'success',
-    playwrightTestsResult: 'success',
-    eventDrivenDaemonsTestsResult: 'success',
+    ...createChecks(),
     prTitle: '#17873 "Release" v0.1183.0',
     prUrl: 'https://github.com/apify/apify-core/pull/17873',
     changelogAuthors: [],
     jobs: TEST_GH_JOBS,
     doRickRoll: false,
+    qaSlackGroupId: 'S06U4RX8K4N',
+    contextLinks: [{ label: 'Logs', url: 'https://example.com/logs' }],
+    buttons: [{ label: 'Open staging Console', url: 'https://console-securitybyobscurity.apify.com' }],
     ...overrides,
 });
 
@@ -71,7 +106,6 @@ describe('createSlackUpdate', () => {
                         },
                     ],
                     qaDutySlackId: 'U0QA1DUTY2',
-                    currentsRunUrl: 'https://app.currents.dev/run/abc123',
                 }),
             );
 
@@ -80,8 +114,11 @@ describe('createSlackUpdate', () => {
             expect(message).toContain('jane.honda@apify.com');
             expect(message).toContain('<@U0QA1DUTY2> is on QA duty');
             expect(message).toContain('https://app.currents.dev/run/abc123');
-            // Resolved deep link labels the Playwright link as a single run.
+            // The extra link of a check is rendered next to it.
             expect(message).toContain('<https://app.currents.dev/run/abc123|run>');
+            expect(message).toContain('<https://example.com/logs|Logs>');
+            expect(message).toContain('<!subteam^S06U4RX8K4N>');
+            expect(message).toContain('Open staging Console');
             expect(JSON.parse(message)).toBeDefined();
 
             expect(shouldStoreThreadId).toBe(true);
@@ -114,12 +151,11 @@ describe('createSlackUpdate', () => {
             expect(JSON.parse(message)).toBeDefined();
         });
 
-        it('falls back to the project dashboards when no run link is provided', () => {
-            const { message } = createSlackUpdate(createOpts());
+        it('does not tag the QA team when its Slack group is not configured', () => {
+            const { message } = createSlackUpdate(createOpts({ qaSlackGroupId: undefined, buttons: [] }));
 
-            expect(message).toContain('https://app.currents.dev/projects/T3im2d');
-            // Fallback to the project run list labels the Playwright link as runs.
-            expect(message).toContain('<https://app.currents.dev/projects/T3im2d|runs>');
+            expect(message).not.toContain('subteam');
+            expect(message).not.toContain('Open staging Console');
             expect(JSON.parse(message)).toBeDefined();
         });
 
@@ -133,11 +169,7 @@ describe('createSlackUpdate', () => {
 
         it('creates a failure message', () => {
             const { message, shouldStoreThreadId } = createSlackUpdate(
-                createOpts({
-                    deployResult: 'false',
-                    integrationTestsResult: '',
-                    playwrightTestsResult: '',
-                }),
+                createOpts(createChecks({ deploy: 'failure', integration_tests: '', playwright_tests: '' })),
             );
 
             expect(message).toContain('Deploy to staging failed');
@@ -154,7 +186,7 @@ describe('createSlackUpdate', () => {
             );
 
             expect(message).toContain('Deploy to staging finished');
-            // Suppress link previews so the Currents link doesn't unfurl in the thread.
+            // Suppress link previews so the links don't unfurl in the thread.
             expect(JSON.parse(message).unfurl_links).toBe(false);
             expect(JSON.parse(message).unfurl_media).toBe(false);
 

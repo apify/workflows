@@ -1,56 +1,232 @@
 name: notify release PR
 
+#
+# Reusable workflow that takes care of the release PR, based on the `notify_committers` job of apify-core's
+# release_staging.yaml. Call it from a `pull_request` workflow (opened, reopened, synchronize) on the release PRs.
+#
+# Because it is a separate workflow, it first waits for the staging release workflow of the PR (see `stagingWorkflowFile`)
+# to finish, and takes the results of the deploy and tests from its jobs. Then it:
+#  - requests reviews from the changelog authors (and the deploy duty and the QA team), and removes the CODEOWNERS,
+#  - sends an update to Slack: "release ready for testing" tagging all commit authors, a warning when the deploy
+#    failed, or an update of the existing thread. The thread is remembered in an Apify key-value store.
+#
+# Use a `concurrency` group with `cancel-in-progress` in the caller, so that a new commit in the release PR cancels the
+# waiting for the previous one.
+#
+name: notify release PR 2
+
+on:
+  workflow_call:
+    inputs:
+      stagingWorkflowFile:
+        description: File name of the workflow that deploys the release PR to staging, e.g. release_staging.yaml
+        required: true
+        type: string
+      stagingChecks:
+        description: >
+          JSON array of the steps of the staging release to report in Slack. Each item has a `label`, a `jobPrefix`
+          (name of the job in the staging workflow, nested workflow jobs are matched by the `<jobPrefix> /` prefix)
+          and a `kind`: `deploy` (the release is considered deployed when all of them succeed) or `test`.
+        required: false
+        type: string
+        default: >-
+          [
+            {"label": "Build", "jobPrefix": "build", "kind": "deploy"},
+            {"label": "Deploy", "jobPrefix": "deploy", "kind": "deploy"},
+            {"label": "Integration tests", "jobPrefix": "integration_tests", "kind": "test"}
+          ]
+      stagingTimeoutMinutes:
+        description: How long to wait for the staging workflow to finish
+        required: false
+        type: number
+        default: 90
+      changelogScopes:
+        description: Scopes of the changelog, in the same format as in the open_pull_request workflow
+        required: true
+        type: string
+      slackChannelId:
+        description: Slack channel for the release updates (default is #engineering-releases)
+        required: false
+        type: string
+        default: C0AGAN0JM39
+      slackContextLinks:
+        description: 'JSON array of extra links (`{"label": "...", "url": "..."}`) in the "release ready" Slack message'
+        required: false
+        type: string
+        default: '[]'
+      slackButtons:
+        description: 'JSON array of extra buttons (`{"label": "...", "url": "..."}`) in the "release ready" Slack message'
+        required: false
+        type: string
+        default: '[]'
+      slackThreadsStoreId:
+        description: >
+          Apify key-value store remembering the Slack threads of the release PRs. The store is under the apify-platform
+          account and can be shared by repositories as long as they use a different `slackThreadRecordKeyPrefix`.
+        required: false
+        type: string
+        default: 3EfC58GUAEGruKLoY
+      slackThreadRecordKeyPrefix:
+        description: >
+          Prefix of the keys in the key-value store (the key is the prefix followed by the PR number). Has to be unique
+          for the repository when the store is shared, and the same in all release PR workflows of the repository.
+        required: false
+        type: string
+        default: ''
+      deployDutyScheduleId:
+        description: PagerDuty schedule of the deploy duty, who is also requested to review the release PR
+        required: false
+        type: string
+        default: P92FHSJ
+      onCallDutyScheduleId:
+        description: PagerDuty schedule of the on-call duty
+        required: false
+        type: string
+        default: PFPGIK6
+      qaDutyScheduleId:
+        description: PagerDuty schedule of the QA duty
+        required: false
+        type: string
+        default: P9KIL1S
+      qaTeamSlug:
+        description: GitHub team of QA, requested to review the release PR unless a member has already reviewed it. Empty to disable.
+        required: false
+        type: string
+        default: qa
+      qaSlackGroupId:
+        description: Slack group of QA tagged in the messages. Empty to disable.
+        required: false
+        type: string
+        default: S06U4RX8K4N
+      releaseAppId:
+        description: ID of the GitHub App (the `RELEASE_APP_ID` variable) with access to the organization members and teams
+        required: true
+        type: string
+      workflowsRef:
+        description: >
+          Branch or tag of apify/workflows the helper scripts are checked out from. It should be the same ref as the
+          one the workflow is referenced with (`uses: apify/workflows/...@<ref>`).
+        required: false
+        type: string
+        default: main
+    secrets:
+      slackToken:
+        description: Slack bot token
+        required: true
+      apifyApiToken:
+        description: Apify API token with access to the key-value store of the Slack threads
+        required: true
+      pagerDutyApiKey:
+        description: PagerDuty API key to look up the duties
+        required: true
+      releaseAppPrivateKey:
+        description: Private key of the GitHub App
+        required: true
+
+env:
+  # Key-value store that we use to remember started Slack threads for pending releases. This allows us to avoid double
+  # posting. The store is under the apify-platform account.
+  # Tip: To quickly erase the thread ID from the store during testing, you can use the following command:
+  # curl -X DELETE "https://api.apify.com/v2/key-value-stores/${SLACK_THREADS_STORE_ID}/records/${SLACK_THREAD_RECORD_KEY}?token=${APIFY_TOKEN}"
+  SLACK_THREADS_STORE_ID: ${{ inputs.slackThreadsStoreId }}
+  SLACK_THREAD_RECORD_KEY: ${{ inputs.slackThreadRecordKeyPrefix }}${{ github.event.number }} # PR number
+  APIFY_API_TOKEN: ${{ secrets.apifyApiToken }}
+
 jobs:
-  # Send an update to #engineering-releases.
-  #
-  # If there is no thread yet, and the deploy succeeds, we'll send a "release ready for testing" message, automatically
-  # tagging all commit authors in the release PR.
-  # If there is no thread yet, and the deploy fails, we'll send a warning instead. This will be just a standalone
-  # message, not starting a thread.
-  # If there already is a thread, we'll update it with the latest status.
-  #
-  # We're using a Key-value store to remember whether we have already started a thread.
+  # Waits for the staging workflow of the release PR, and evaluates the results of the steps of the release.
+  wait_for_staging_run:
+    name: Wait for the staging release
+    # Ignoring everything but release PRs (e.g. when the caller is run manually).
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04-arm64
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      skip: ${{ steps.wait.outputs.skip }}
+      checks: ${{ steps.wait.outputs.checks }}
+      jobs: ${{ steps.wait.outputs.jobs }}
+    steps:
+      - name: Check out the scripts
+        uses: actions/checkout@v6
+        with:
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
+          sparse-checkout: 'scripts'
+
+      - name: Wait for the staging release workflow
+        id: wait
+        uses: actions/github-script@v8.0.0
+        env:
+          STAGING_WORKFLOW_FILE: ${{ inputs.stagingWorkflowFile }}
+          STAGING_CHECKS: ${{ inputs.stagingChecks }}
+          STAGING_TIMEOUT_MINUTES: ${{ inputs.stagingTimeoutMinutes }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const { waitForStagingRun, getCheckResult } = require('./.workflows/scripts/release_ci/index.js');
+
+            const run = await waitForStagingRun({
+                github,
+                core,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflowFile: process.env.STAGING_WORKFLOW_FILE,
+                headSha: process.env.PR_HEAD_SHA,
+                timeoutMinutes: Number(process.env.STAGING_TIMEOUT_MINUTES),
+            });
+
+            core.info(`Staging release finished: ${run.runUrl} (${run.conclusion})`);
+
+            // A cancelled run (for example replaced by a newer commit) is not a result worth reporting.
+            if (run.conclusion === 'cancelled') {
+                core.notice('The staging release was cancelled, not sending any notification.');
+                core.setOutput('skip', 'true');
+                return;
+            }
+
+            const checks = JSON.parse(process.env.STAGING_CHECKS).map((check) => ({
+                ...check,
+                result: getCheckResult(run.jobs, check.jobPrefix),
+            }));
+
+            core.setOutput('skip', 'false');
+            core.setOutput('checks', JSON.stringify(checks));
+            core.setOutput('jobs', JSON.stringify({ jobs: run.jobs }));
+
   notify_committers:
     runs-on: ubuntu-22.04-arm64
     permissions:
       actions: read
       contents: read
       pull-requests: write
-    needs:
-      - get_values
-      - build
-      - deploy
-      - deploy_event_driven_daemons
-      - integration_tests
-      - event_driven_daemons_tests
-      - playwright_tests
-    # Not using always() here because that would send a notification even if the workflow was cancelled. Also ignoring
-    # workflow dispatches (manual executions) as those are not standard releases.
-    if: |
-      (success() || failure()) &&
-      github.event_name == 'pull_request'
+    needs: wait_for_staging_run
+    # Not sending anything for a cancelled staging release.
+    if: needs.wait_for_staging_run.outputs.skip == 'false'
     steps:
-      - name: checkout-repo # To get pending_release_slack_updates.js
+      - name: checkout-repo # To get the scripts, e.g. pending_release_slack_updates.js
         uses: actions/checkout@v6
         with:
-          # Make the checkout a small bit faster by only checking out the scripts directory.
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
           sparse-checkout: 'scripts'
-          sparse-checkout-cone-mode: false # Excludes files from project root
 
       - uses: actions/create-github-app-token@v3
         id: generate-privileged-token
         with:
-          app-id: ${{ vars.RELEASE_APP_ID }}
-          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          app-id: ${{ inputs.releaseAppId }}
+          private-key: ${{ secrets.releaseAppPrivateKey }}
 
       - name: Fetch changelog authors
         id: fetch-changelog-authors
         uses: apify/release-pr-action@v3.8.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          slack-token: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          slack-token: ${{ secrets.slackToken }}
           changelog-method: commits_compare
-          changelog-scopes: '{ "Console": ["app", "console"], "Api": ["api"] }'
+          changelog-scopes: ${{ inputs.changelogScopes }}
           fetch-author-slack-ids: true
           github-org-token: ${{ steps.generate-privileged-token.outputs.token }}
           release-name-method: 'tag'
@@ -61,7 +237,7 @@ jobs:
         continue-on-error: true
         with:
           script: |
-            const { fetchSlackReleaseThreadId } = require('./scripts/release_ci/index.js');
+            const { fetchSlackReleaseThreadId } = require('./.workflows/scripts/release_ci/index.js');
             const threadId = await fetchSlackReleaseThreadId({
                 apifyApiToken: process.env.APIFY_API_TOKEN,
                 apifyStoreId: process.env.SLACK_THREADS_STORE_ID,
@@ -76,31 +252,20 @@ jobs:
 
             core.setOutput('slack-thread-id', threadId);
 
-      # Fetch GitHub jobs in this workflow so that we can link to them in the Slack message.
-      # Keep only the fields the Slack update reads: the full payload (with steps) can exceed the 128 KiB
-      # per-env-var limit when passed as ACTIONS_JOBS, which makes the runner fail with "Argument list too long".
-      - name: fetch-jobs
-        id: fetch-jobs
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          JOBS=$(gh run --repo ${{ github.repository }} view ${{ github.run_id }} --json jobs --jq '{jobs: [.jobs[] | {name, conclusion, url}]} | tojson')
-          echo "jobs=${JOBS}" >> $GITHUB_OUTPUT
-
       - name: fetch-duty-slack-ids
         id: fetch-duty-slack-ids
         uses: actions/github-script@v8.0.0
         continue-on-error: true
         env:
-          PAGERDUTY_API_KEY: ${{ secrets.PAGERDUTY_API_KEY }}
-          DEPLOY_DUTY_SCHEDULE_ID: P92FHSJ
-          ON_CALL_DUTY_SCHEDULE_ID: PFPGIK6
-          QA_DUTY_SCHEDULE_ID: P9KIL1S
-          SLACK_API_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          PAGERDUTY_API_KEY: ${{ secrets.pagerDutyApiKey }}
+          DEPLOY_DUTY_SCHEDULE_ID: ${{ inputs.deployDutyScheduleId }}
+          ON_CALL_DUTY_SCHEDULE_ID: ${{ inputs.onCallDutyScheduleId }}
+          QA_DUTY_SCHEDULE_ID: ${{ inputs.qaDutyScheduleId }}
+          SLACK_API_TOKEN: ${{ secrets.slackToken }}
           GITHUB_TOKEN: ${{ steps.generate-privileged-token.outputs.token }}
         with:
           script: |
-            const { fetchPagerDutyScheduleUser } = require('./scripts/release_ci/index.js');
+            const { fetchPagerDutyScheduleUser } = require('./.workflows/scripts/release_ci/index.js');
             const { PAGERDUTY_API_KEY, DEPLOY_DUTY_SCHEDULE_ID, ON_CALL_DUTY_SCHEDULE_ID, QA_DUTY_SCHEDULE_ID, SLACK_API_TOKEN, GITHUB_TOKEN } = process.env;
 
             const commonOpts = {
@@ -111,9 +276,10 @@ jobs:
             };
 
             // allSettled (not all) so that one schedule's lookup failing does not drop the other duty tags.
+            // Schedules that are not configured are not looked up.
             const scheduleIds = [DEPLOY_DUTY_SCHEDULE_ID, ON_CALL_DUTY_SCHEDULE_ID, QA_DUTY_SCHEDULE_ID];
             const [deployDuty, onCallDuty, qaDuty] = (await Promise.allSettled(
-                scheduleIds.map((scheduleId) => fetchPagerDutyScheduleUser({ ...commonOpts, scheduleId })),
+                scheduleIds.map((scheduleId) => (scheduleId ? fetchPagerDutyScheduleUser({ ...commonOpts, scheduleId }) : null)),
             )).map((result, index) => {
                 if (result.status === 'fulfilled') return result.value;
                 core.warning(`PagerDuty duty lookup failed for schedule ${scheduleIds[index]}: ${String(result.reason)}`);
@@ -147,7 +313,7 @@ jobs:
           # -> Need to use a token with permissions to view organization teams.
           github-token: ${{ steps.generate-privileged-token.outputs.token }}
           script: |
-            const { fetchCodeOwnerLogins } = require('./scripts/release_ci/index.js');
+            const { fetchCodeOwnerLogins } = require('./.workflows/scripts/release_ci/index.js');
 
             const [codeowners, submittedReviews] = await Promise.all([
                 fetchCodeOwnerLogins({
@@ -211,11 +377,14 @@ jobs:
         env:
           CHANGELOG_AUTHORS: ${{ steps.fetch-changelog-authors.outputs.github-changelog-authors }}
           DEPLOY_DUTY_LOGIN: ${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-github-login }}
+          QA_TEAM_SLUG: ${{ inputs.qaTeamSlug }}
         with:
           # In order to assign teams as reviewers, we need an access token that has access to the organization.
           # The default actions github.token does not have that.
           github-token: ${{ steps.generate-privileged-token.outputs.token }}
           script: |
+            const qaTeamSlug = process.env.QA_TEAM_SLUG;
+
             const reviewers = JSON.parse(process.env.CHANGELOG_AUTHORS || '[]')
                 // Only take logins of the authors, that are in the `apify` organization.
                 // We can determine that by whether their `slackId` was found.
@@ -234,10 +403,12 @@ jobs:
                     repo: context.repo.repo,
                     pull_number: context.payload.number,
                 }),
-                github.paginate(github.rest.teams.listMembersInOrg, {
-                    org: 'apify',
-                    team_slug: 'qa',
-                }),
+                qaTeamSlug
+                    ? github.paginate(github.rest.teams.listMembersInOrg, {
+                          org: context.repo.owner,
+                          team_slug: qaTeamSlug,
+                      })
+                    : [],
                 github.paginate(github.rest.issues.listEventsForTimeline, {
                     owner: context.repo.owner,
                     repo: context.repo.repo,
@@ -294,11 +465,11 @@ jobs:
             // Request the team to review the release PR otherwise.
             // At least one of the members of the team must approve the PR.
             const teamReviewers = [];
-            if (!qaTeamMembers.some((member) => submittedReviewsLogins.has(member.login))) {
-                teamReviewers.push('qa');
+            if (qaTeamSlug && !qaTeamMembers.some((member) => submittedReviewsLogins.has(member.login))) {
+                teamReviewers.push(qaTeamSlug);
             }
 
-            await github.rest.pulls.requestReviewers({
+            const requestReviewers = (/** @type {string[]} */ teams) => github.rest.pulls.requestReviewers({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: context.payload.number,
@@ -323,34 +494,17 @@ jobs:
                     return (!user || reviewer !== user.login) &&
                         (!assignee || reviewer !== assignee.login);
                 }),
-                team_reviewers: teamReviewers,
+                team_reviewers: teams,
             });
 
-      # Resolve the Currents run URL for this release so the Slack message can link straight to it.
-      - name: fetch-currents-run-url
-        id: fetch-currents-run-url
-        uses: actions/github-script@v8.0.0
-        continue-on-error: true
-        env:
-          CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
-          CURRENTS_PROJECT_ID: ${{ secrets.CURRENTS_PLAYWRIGHT_PROJECT_ID }}
-          # Must match CURRENTS_CI_BUILD_ID in playwright_tests.yaml. On a partial re-run that does not
-          # re-execute Playwright, run_attempt won't match the recorded run and the link falls back to the dashboard.
-          CURRENTS_CI_BUILD_ID: reporter-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
-        with:
-          script: |
-            const { fetchCurrentsRunUrl } = require('./scripts/release_ci/index.js');
-            const { CURRENTS_API_KEY, CURRENTS_PROJECT_ID, CURRENTS_CI_BUILD_ID } = process.env;
+            try {
+                await requestReviewers(teamReviewers);
+            } catch (error) {
+                if (teamReviewers.length === 0) throw error;
 
-            const runUrl = await fetchCurrentsRunUrl({
-                core,
-                currentsApiKey: CURRENTS_API_KEY,
-                projectId: CURRENTS_PROJECT_ID,
-                ciBuildId: CURRENTS_CI_BUILD_ID,
-            });
-
-            if (runUrl) {
-                core.setOutput('currents-run-url', runUrl);
+                // The team can only be requested when it has access to the repository. Do not lose the other reviewers then.
+                core.warning(`Requesting reviews with the team "${qaTeamSlug}" failed (${error.message}), retrying without it.`);
+                await requestReviewers([]);
             }
 
       - name: create-slack-update
@@ -360,30 +514,37 @@ jobs:
           # It is insecure to inject PR title directly into the code, hence passing it as environment variables.
           # See why: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections
           PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_CHANGELOG_AUTHORS: ${{ steps.fetch-changelog-authors.outputs.github-changelog-authors }}
-          COMMIT_SHA: ${{ needs.get_values.outputs.short_commit_sha }}
-          ACTIONS_JOBS: ${{ steps.fetch-jobs.outputs.jobs  }}
+          STAGING_CHECKS: ${{ needs.wait_for_staging_run.outputs.checks }}
+          ACTIONS_JOBS: ${{ needs.wait_for_staging_run.outputs.jobs }}
+          SLACK_THREAD_ID: ${{ steps.fetch-slack-thread-id.outputs.slack-thread-id }}
+          DEPLOY_DUTY_SLACK_ID: ${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-slack-id }}
+          ON_CALL_DUTY_SLACK_ID: ${{ steps.fetch-duty-slack-ids.outputs.on-call-duty-slack-id }}
+          QA_DUTY_SLACK_ID: ${{ steps.fetch-duty-slack-ids.outputs.qa-duty-slack-id }}
+          QA_SLACK_GROUP_ID: ${{ inputs.qaSlackGroupId }}
+          SLACK_CONTEXT_LINKS: ${{ inputs.slackContextLinks }}
+          SLACK_BUTTONS: ${{ inputs.slackButtons }}
         with:
           script: |
-            const { createSlackUpdate } = require('./scripts/release_ci/index.js');
+            const { createSlackUpdate } = require('./.workflows/scripts/release_ci/index.js');
+
+            const checks = JSON.parse(process.env.STAGING_CHECKS);
 
             const { message, shouldStoreThreadId } = createSlackUpdate({
-              revision: process.env.COMMIT_SHA,
-              buildResult: '${{ needs.build.result }}',
-              deployResult: '${{ needs.deploy.result }}',
-              deployEventDrivenDaemonsResult: '${{ needs.deploy_event_driven_daemons.result }}',
-              integrationTestsResult: '${{ needs.integration_tests.result }}',
-              playwrightTestsResult: '${{ needs.playwright_tests.result }}',
-              eventDrivenDaemonsTestsResult: '${{ needs.event_driven_daemons_tests.result }}',
-              slackThreadId: '${{ steps.fetch-slack-thread-id.outputs.slack-thread-id }}',
+              deployChecks: checks.filter((check) => check.kind === 'deploy'),
+              testChecks: checks.filter((check) => check.kind !== 'deploy'),
+              slackThreadId: process.env.SLACK_THREAD_ID,
               prTitle: process.env.PR_TITLE,
-              prUrl: '${{ github.event.pull_request.html_url }}',
+              prUrl: process.env.PR_URL,
               changelogAuthors: JSON.parse(process.env.GITHUB_CHANGELOG_AUTHORS || '[]'),
-              jobs: JSON.parse(process.env.ACTIONS_JOBS || '[]'),
-              deployDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-slack-id }}',
-              onCallDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.on-call-duty-slack-id }}',
-              qaDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.qa-duty-slack-id }}',
-              currentsRunUrl: '${{ steps.fetch-currents-run-url.outputs.currents-run-url }}',
+              jobs: JSON.parse(process.env.ACTIONS_JOBS || '{"jobs": []}'),
+              deployDutySlackId: process.env.DEPLOY_DUTY_SLACK_ID,
+              onCallDutySlackId: process.env.ON_CALL_DUTY_SLACK_ID,
+              qaDutySlackId: process.env.QA_DUTY_SLACK_ID,
+              qaSlackGroupId: process.env.QA_SLACK_GROUP_ID,
+              contextLinks: JSON.parse(process.env.SLACK_CONTEXT_LINKS),
+              buttons: JSON.parse(process.env.SLACK_BUTTONS),
             });
 
             // Log the full message in case we need to debug it.
@@ -398,9 +559,9 @@ jobs:
         id: send-slack-message
         uses: slackapi/slack-github-action@v1.26.0
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
-          channel-id: C0AGAN0JM39 # #engineering-releases
+          channel-id: ${{ inputs.slackChannelId }}
           payload: ${{ steps.create-slack-update.outputs.message }}
 
       - name: store-slack-thread-id
@@ -412,35 +573,3 @@ jobs:
             -H "Content-Type: text/plain" \
             -H "Authorization: Bearer ${APIFY_API_TOKEN}" \
             --data "${SLACK_THREAD_ID}"
-
-      - name: Add link to Mezmo logtail to PR
-        uses: actions/github-script@v8.0.0
-        continue-on-error: true
-        env:
-          COMMIT_SHA: ${{ needs.get_values.outputs.short_commit_sha }}
-        with:
-          script: |
-            const { addMessageToPrBody } = require('./scripts/edit_pull_request_body.js');
-
-            const revision = process.env.COMMIT_SHA;
-            const errorUrl = new URL('https://app.mezmo.com/521d8cd6fa/logs/view');
-            errorUrl.searchParams.set('q', `_meta.version:${revision} ERROR OR level:ERROR -level:INFO -level:WARNING -level:DEBUG -level:SOFT_FAIL`);
-
-            const allUrl = new URL('https://app.mezmo.com/521d8cd6fa/logs/view');
-            allUrl.searchParams.set('q', `_meta.version:${revision}`);
-
-            const message = [
-                '## Check the errors',
-                '- [API Error Rate](<https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-api>)',
-                '- [Console Backend Error Rate](<https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-app-ui-backend>)',
-                `- [Mezmo Logs](<${allUrl.toString()}>)`,
-                `- [Mezmo Logs (errors only)](<${errorUrl.toString()}>)`,
-            ].join('\n');
-
-            await addMessageToPrBody({
-                github,
-                context,
-                message,
-                label: 'STAGING_MEZMO_LOGS',
-                removeOldMessages: true,
-            });

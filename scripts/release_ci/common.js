@@ -1,4 +1,25 @@
 /**
+ * Owner and name of the repository the workflow runs in (`GITHUB_REPOSITORY` is always set by GitHub Actions).
+ * The fallback is only used when running the scripts outside of GitHub Actions.
+ */
+export function getCurrentRepo() {
+    const [owner, name] = (process.env.GITHUB_REPOSITORY || 'apify/apify-core').split('/');
+
+    return { owner, name };
+}
+
+/**
+ * Key under which the Slack thread of a release PR is stored in the Apify key-value store. The store can be shared by
+ * more repositories, so they can use a different `prefix` to avoid clashes of PR numbers.
+ *
+ * @param {number | string} pullNumber
+ * @param {string} [prefix]
+ */
+export function getSlackThreadRecordKey(pullNumber, prefix = '') {
+    return `${prefix}${pullNumber}`;
+}
+
+/**
  * @param {Record<string, unknown>} obj
  * @param {string} key
  */
@@ -68,14 +89,16 @@ export async function fetchGithubOrgUsers(githubToken) {
         return cachedOrgUsers;
     }
 
+    const { owner, name } = getCurrentRepo();
+
     const query = `query GetOrganizationVerifiedEmails($after: String) {
-        repository(name: "apify-core", owner: "apify") {
+        repository(name: "${name}", owner: "${owner}") {
           collaborators(first: 100, after: $after) {
             edges {
               node {
                 login
                 name
-                organizationVerifiedDomainEmails(login: "apify") {}
+                organizationVerifiedDomainEmails(login: "${owner}") {}
               }
             }
             pageInfo {

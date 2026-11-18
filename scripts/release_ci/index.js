@@ -6,6 +6,7 @@ import { notifyPendingReviewersInReleasePRs } from './notify_pending_reviewers_i
 import { notifyReleaseFailure } from './notify_release_failure.js';
 import { notifyWhenReadyToMerge } from './notify_when_ready.js';
 import { createSlackUpdate } from './pending_release_slack_updates.js';
+import { getCheckResult, waitForStagingRun } from './staging_run.js';
 
 export {
     fetchSlackReleaseThreadId,
@@ -16,4 +17,6 @@ export {
     createSlackUpdate,
     notifyWhenReadyToMerge,
     notifyReleaseFailure,
+    getCheckResult,
+    waitForStagingRun,
 };

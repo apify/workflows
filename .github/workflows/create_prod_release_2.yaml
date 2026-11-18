@@ -1,17 +1,53 @@
-name: create prod release
+#
+# Reusable workflow for creation of a new release branch, the first step of the release to staging and production.
+# Successor of "create prod release", based on the workflow used in apify-core. Compared to it, it:
+#  - skips days when we do not release (see scripts/should_release_today.js) for scheduled runs,
+#  - posts a warning to Slack when a scheduled run cannot create the release.
+#
+# The caller defines the triggers, typically `workflow_dispatch` and a `schedule` (the workflow detects scheduled runs
+# using `github.event_name`), see examples in the README.
+#
+# Once the release branch is created, we finish here and let separate workflows create the release PR and deploy to
+# staging, as these need to run on the release branch.
+#
+name: create prod release 2
 
 on:
-  workflow_dispatch:
-
-  schedule:
-    # Schedule for 6:30 AM Prague time (CET/CEST), Monday to Thursday. Holidays are skipped using the 'check_date' job below.
-    # GitHub schedules are unreliable and often start with >30 minutes delay, so we start early to have the release ready by ~8 AM.
-    - cron: '30 6 * * MON-THU'
-      timezone: 'Europe/Prague'
+  workflow_call:
+    inputs:
+      releaseBranchPrefix:
+        description: Prefix used for release branch names
+        required: false
+        type: string
+        default: release
+      baseBranch:
+        description: Branch treated as production base (patch releases are cut from here)
+        required: false
+        type: string
+        default: master
+      slackChannelId:
+        description: Slack channel to post warnings about failed scheduled runs to (default is #engineering-releases)
+        required: false
+        type: string
+        default: C0AGAN0JM39
+      workflowsRef:
+        description: >
+          Branch or tag of apify/workflows the helper scripts are checked out from. It should be the same ref as the
+          one the workflow is referenced with (`uses: apify/workflows/...@<ref>`).
+        required: false
+        type: string
+        default: main
+    secrets:
+      serviceAccountGithubToken:
+        description: Token used to create the release branch, so that the branch triggers the follow-up workflows
+        required: true
+      slackToken:
+        description: Slack bot token used to post the warnings
+        required: true
 
 env:
-  RELEASE_BRANCH_PREFIX: "release"
-  BASE_BRANCH: "master"
+  RELEASE_BRANCH_PREFIX: ${{ inputs.releaseBranchPrefix }}
+  BASE_BRANCH: ${{ inputs.baseBranch }}
   CURRENT_BRANCH: ${{ github.head_ref || github.ref_name }}
 
 jobs:
@@ -24,6 +60,9 @@ jobs:
       - name: Check out should_release_today.js
         uses: actions/checkout@v4
         with:
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
           sparse-checkout: 'scripts'
 
       - name: Check date if we should release today
@@ -31,7 +70,7 @@ jobs:
         uses: actions/github-script@v7.0.1
         with:
           script: |
-            const { shouldReleaseToday } = require('./scripts/should_release_today.js');
+            const { shouldReleaseToday } = require('./.workflows/scripts/should_release_today.js');
             core.setOutput('should_release_today', shouldReleaseToday(new Date()));
 
   check_no_pending_releases:
@@ -67,9 +106,9 @@ jobs:
           steps.get-pending-release-pr.outputs.release_pr_found == 'true'
         uses: slackapi/slack-github-action@v1.26.0
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
-          channel-id: C0AGAN0JM39 # #engineering-releases
+          channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
               "blocks": [
@@ -138,9 +177,9 @@ jobs:
           steps.check-base-synced.outputs.is_base_synced == 'false'
         uses: slackapi/slack-github-action@v1.26.0
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.slackToken }}
         with:
-          channel-id: C0AGAN0JM39 # #engineering-releases
+          channel-id: ${{ inputs.slackChannelId }}
           payload: |
             {
               "blocks": [
@@ -187,13 +226,12 @@ jobs:
       - name: Check out bump_release_name.js
         uses: actions/checkout@v4
         with:
-          # This is not only faster, but also skips package.json. With package.json present, the npm install below would try
-          # to install all dependencies, which is unnecessary and slow.
+          repository: apify/workflows
+          ref: ${{ inputs.workflowsRef }}
+          path: .workflows
           sparse-checkout: 'scripts'
-          sparse-checkout-cone-mode: false # Excludes files from project root
 
       - name: Install Octokit
-        # Sparse checkout has no package.json or lockfile, so pnpm cannot run here. Use npm for this one-off install.
         run: npm install @octokit/rest@v19
 
       - name: Create release branch
@@ -201,7 +239,7 @@ jobs:
         with:
           script: |
             const { Octokit } = require('@octokit/rest');
-            const { bumpReleaseName } = require('./scripts/bump_release_name.js');
+            const { bumpReleaseName } = require('./.workflows/scripts/bump_release_name.js');
 
             // Get the latest release
             const releases = await github.rest.repos.listReleases({
@@ -219,13 +257,10 @@ jobs:
             // Create the release branch. We need to use a Personal Access Token here, so that creating the new branch
             // triggers the follow-up workflow on the branch. This doesn't work with the default GITHUB_TOKEN.
             core.info(`Creating new release branch: ${releaseBranchName}`);
-            const octokitServiceAcc = new Octokit({ auth: '${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}' });
+            const octokitServiceAcc = new Octokit({ auth: '${{ secrets.serviceAccountGithubToken }}' });
             await octokitServiceAcc.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: `refs/heads/${releaseBranchName}`,
               sha: '${{ github.sha }}',
             });
-
-  # Once the new release branch is created, we finish here and let a separate workflow create the release PR and deploy
-  # to staging. We can't do it here as the PR and deploy workflows need to run on the release branch.

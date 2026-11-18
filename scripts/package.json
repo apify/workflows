@@ -1,0 +1,12 @@
+{
+    "name": "workflows-scripts",
+    "private": true,
+    "type": "module",
+    "description": "Helper scripts used by the reusable release workflows (checked out and require()d from github-script steps)",
+    "scripts": {
+        "test": "vitest run"
+    },
+    "devDependencies": {
+        "vitest": "^3.2.4"
+    }
+}
