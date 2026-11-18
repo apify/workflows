@@ -186,7 +186,7 @@ jobs:
 
           # Create secret file for build
           if [ ! -z "${{ secrets.buildSecretEnvVars }}" ]; then
-              echo "${{ secrets.buildSecretEnvVars }}" | tr ',' '\n' > build-secret-env-vars.txt
+              echo "${{ secrets.buildSecretEnvVars }}" | tr ',' '\n' > "${RUNNER_TEMP}/build-secret-env-vars.txt"
           fi
 
       # NOTE: can be useful
@@ -270,7 +270,7 @@ jobs:
           network: ${{ inputs.enableVpn == 'true' && 'host' || '' }}
           push: true
           tags: ${{ inputs.registry }}/${{ inputs.repository }}:${{ inputs.imageTag }}
-          secret-files: SECRET_ENV_VARS=build-secret-env-vars.txt
+          secret-files: SECRET_ENV_VARS=${{ runner.temp }}/build-secret-env-vars.txt
           build-args: |
             ${{ env.BUILD_ARGS }}
             NPM_TOKEN=${{ secrets.npmToken }}
