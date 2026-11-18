@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: Get pending release PR
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { data: pullRequests } = await github.rest.pulls.list({
@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-22.04-arm64
     steps:
       - name: Check if develop is in sync with master
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const baseBranch = '${{ env.BASE_BRANCH }}';
@@ -93,7 +93,7 @@ jobs:
         run: npm install @octokit/rest@v19
 
       - name: Create release branch
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const { Octokit } = require('@octokit/rest');

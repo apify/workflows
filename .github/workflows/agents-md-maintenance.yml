@@ -69,7 +69,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout the PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 1
@@ -132,7 +132,7 @@ jobs:
       - name: Update AGENTS.md if this PR made it wrong
         id: agent
         if: steps.gate.outputs.run == 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@e5812cd75691ca7bbfc57c0ecf4441db3a1ab7dd # v1
         env:
           GH_TOKEN: ${{ github.token }}
         with:
