@@ -1,0 +1,231 @@
+name: create prod release
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Schedule for 6:30 AM Prague time (CET/CEST), Monday to Thursday. Holidays are skipped using the 'check_date' job below.
+    # GitHub schedules are unreliable and often start with >30 minutes delay, so we start early to have the release ready by ~8 AM.
+    - cron: '30 6 * * MON-THU'
+      timezone: 'Europe/Prague'
+
+env:
+  RELEASE_BRANCH_PREFIX: "release"
+  BASE_BRANCH: "master"
+  CURRENT_BRANCH: ${{ github.head_ref || github.ref_name }}
+
+jobs:
+  check_date:
+    name: Check date if we should release today
+    runs-on: ubuntu-22.04-arm64
+    outputs:
+      should_release_today: ${{ steps.check-date.outputs.should_release_today }}
+    steps:
+      - name: Check out should_release_today.js
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: 'scripts'
+
+      - name: Check date if we should release today
+        id: check-date
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const { shouldReleaseToday } = require('./scripts/should_release_today.js');
+            core.setOutput('should_release_today', shouldReleaseToday(new Date()));
+
+  check_no_pending_releases:
+    name: Check if there are no pending releases
+    needs: check_date
+    if: ${{ needs.check_date.outputs.should_release_today == 'true' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Get pending release PR
+        id: get-pending-release-pr
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+            });
+
+            const releasePRs = pullRequests.filter(pr => pr.head.ref.startsWith(process.env.RELEASE_BRANCH_PREFIX));
+
+            if (releasePRs.length > 0) {
+              core.setOutput('release_pr_found', 'true');
+              core.setOutput('pr_name', releasePRs[0].title);
+              core.setOutput('pr_url', releasePRs[0].html_url);
+            } else {
+              core.setOutput('release_pr_found', 'false');
+            }
+
+      - name: Send Slack message if a pending release PR is found
+        if: |
+          github.event_name == 'schedule' &&
+          steps.get-pending-release-pr.outputs.release_pr_found == 'true'
+        uses: slackapi/slack-github-action@v1.26.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+        with:
+          channel-id: C0AGAN0JM39 # #engineering-releases
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                      "type": "plain_text",
+                      "text": ":warning:  Scheduled deploy to staging failed  :warning:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                      "type": "mrkdwn",
+                      "text": "There is already a pending release PR: *<${{ steps.get-pending-release-pr.outputs.pr_url }}|${{ steps.get-pending-release-pr.outputs.pr_name }}>*\n\nPlease finish the existing release first, and then start a new one manually."
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "text": "This message was sent by the scheduled create_prod_release workflow.",
+                      "type": "mrkdwn"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Fail workflow if a pending release PR is found
+        if: ${{ steps.get-pending-release-pr.outputs.release_pr_found == 'true' }}
+        run: |
+          echo "Failing workflow as there is a pending release"
+          exit 1
+
+  check_base_synced:
+    name: Check if the current branch is in sync with the base branch
+    needs: check_no_pending_releases
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Check if the current branch is in sync with the base branch
+        id: check-base-synced
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const baseBranch = '${{ env.BASE_BRANCH }}'; // typically master
+            const currentBranch = '${{ env.CURRENT_BRANCH }}'; // typically develop
+
+            const { data: { status, behind_by } } = await github.rest.repos.compareCommitsWithBasehead({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              basehead: `${baseBranch}...${currentBranch}`,
+            });
+
+            core.info(`Branch comparison status: ${status}`);
+            core.info(`Branch comparison behind_by: ${behind_by}`);
+
+            core.setOutput('is_base_synced', behind_by === 0 ? 'true' : 'false');
+
+      - name: Send Slack message if current branch not in sync with base branch
+        if: |
+          github.event_name == 'schedule' &&
+          steps.check-base-synced.outputs.is_base_synced == 'false'
+        uses: slackapi/slack-github-action@v1.26.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+        with:
+          channel-id: C0AGAN0JM39 # #engineering-releases
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                      "type": "plain_text",
+                      "text": ":warning:  Scheduled deploy to staging failed  :warning:"
+                  }
+                },
+                {
+                  "type": "section",
+                  "text": {
+                      "type": "mrkdwn",
+                      "text": "`${{ env.CURRENT_BRANCH }}` is not in sync with `${{ env.BASE_BRANCH }}`.\n\nPlease manually merge the changes into `${{ env.CURRENT_BRANCH }}` first (do not squash!), and then start a new release manually. You can use the \"Merge Pull Request as Apify Service Account\" workflow to override branch protection."
+                  }
+                },
+                {
+                  "type": "divider"
+                },
+                {
+                  "type": "context",
+                  "elements": [
+                    {
+                      "text": "This message was sent by the scheduled create_prod_release workflow.",
+                      "type": "mrkdwn"
+                    }
+                  ]
+                }
+              ]
+            }
+
+      - name: Fail workflow if current branch not in sync with base branch
+        if: ${{ steps.check-base-synced.outputs.is_base_synced == 'false' }}
+        run: |
+          echo "Failing workflow as the current branch is not in sync with '${{ env.BASE_BRANCH }}'."
+          exit 1
+
+  create_release_branch:
+    name: Create release branch
+    needs: check_base_synced
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: Check out bump_release_name.js
+        uses: actions/checkout@v4
+        with:
+          # This is not only faster, but also skips package.json. With package.json present, the npm install below would try
+          # to install all dependencies, which is unnecessary and slow.
+          sparse-checkout: 'scripts'
+          sparse-checkout-cone-mode: false # Excludes files from project root
+
+      - name: Install Octokit
+        # Sparse checkout has no package.json or lockfile, so pnpm cannot run here. Use npm for this one-off install.
+        run: npm install @octokit/rest@v19
+
+      - name: Create release branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { Octokit } = require('@octokit/rest');
+            const { bumpReleaseName } = require('./scripts/bump_release_name.js');
+
+            // Get the latest release
+            const releases = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const { name: currentVersionName } = releases.data[0];
+            core.info(`Discovered last release name: ${currentVersionName}`); // for example v0.1156.2
+
+            // Bump the release version
+            const bumpMode = '${{ env.CURRENT_BRANCH }}' === 'master' ? 'patch' : 'minor';
+            const nextVersionName = bumpReleaseName(currentVersionName, bumpMode);
+            const releaseBranchName = `${process.env.RELEASE_BRANCH_PREFIX}/${nextVersionName}`;
+
+            // Create the release branch. We need to use a Personal Access Token here, so that creating the new branch
+            // triggers the follow-up workflow on the branch. This doesn't work with the default GITHUB_TOKEN.
+            core.info(`Creating new release branch: ${releaseBranchName}`);
+            const octokitServiceAcc = new Octokit({ auth: '${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}' });
+            await octokitServiceAcc.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/heads/${releaseBranchName}`,
+              sha: '${{ github.sha }}',
+            });
+
+  # Once the new release branch is created, we finish here and let a separate workflow create the release PR and deploy
+  # to staging. We can't do it here as the PR and deploy workflows need to run on the release branch.

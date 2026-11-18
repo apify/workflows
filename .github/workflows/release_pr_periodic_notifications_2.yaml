@@ -1,0 +1,72 @@
+name: Notify about release PR changes
+
+# This job finds the current release PR (or PRs) and notifies
+# the users, which have not yet submitted their review.
+#
+# The notification is sent to the #engineering-releases channel
+# as a reply to the release message thread.
+#
+# The following steps are performed by this job:
+#   1) lookup release PRs (opened PRs to master with branch name prefixed with `release/`),
+#   2) get the reviewers of the release PR, which have not submitted their review yet,
+#   3) lookup their emails via the Github API -> with that lookup their Slack ID,
+#   4) find the thread ID of the Slack release message and reply with a message tagging the users from previous step.
+#
+# This job is run periodically (on schedule), this should ease the job of the current deploy duty,
+# since he does not have to manually tag the unresponsive developers to approve the changes to release.
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Every working day at 11:00, 13:00, 15:00, 16:00 Prague time (CET/CEST).
+    - cron: '0 11,13,15,16 * * MON-FRI'
+      timezone: 'Europe/Prague'
+
+jobs:
+  notify:
+    runs-on: ubuntu-22.04-arm64
+    steps:
+      - name: checkout-repo
+        uses: actions/checkout@v4
+        with:
+          # Make the checkout a small bit faster by only checking out the scripts directory.
+          sparse-checkout: 'scripts'
+          sparse-checkout-cone-mode: false # Excludes files from project root
+
+      - name: Tag pending reviewers on Slack
+        uses: actions/github-script@v8.0.0
+        env:
+          # THIS IS A COPY FROM `release_staging.yaml`
+          #
+          # Key-value store that we use to remember started Slack threads for pending releases. This allows us to avoid double
+          # posting. The store is under the apify-platform account.
+          # Tip: To quickly erase the thread ID from the store during testing, you can use the following command:
+          # curl -X DELETE "https://api.apify.com/v2/key-value-stores/3EfC58GUAEGruKLoY/records/<PR_NUMBER>?token=${APIFY_TOKEN}"
+          SLACK_THREADS_STORE_ID: '3EfC58GUAEGruKLoY'
+          SLACK_CHANNEL_ID: 'C0AGAN0JM39' #engineering-releases
+          APIFY_API_TOKEN: ${{ secrets.APIFY_PLATFORM_SCOPED_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN }}
+          SLACK_API_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+        with:
+          script: |
+            const { notifyPendingReviewersInReleasePRs } = require('./scripts/release_ci/index.js');
+            const {
+                SLACK_THREADS_STORE_ID,
+                SLACK_CHANNEL_ID,
+                APIFY_API_TOKEN,
+                GITHUB_TOKEN,
+                SLACK_API_TOKEN,
+            } = process.env;
+
+            await notifyPendingReviewersInReleasePRs({
+                github,
+                core,
+                privilegedGithubToken: GITHUB_TOKEN,
+                slackApiToken: SLACK_API_TOKEN,
+                slackChannelId: SLACK_CHANNEL_ID,
+                apifyApiToken: APIFY_API_TOKEN,
+                apifyStoreId: SLACK_THREADS_STORE_ID,
+                repoOwner: context.repo.owner,
+                repo: context.repo.repo,
+            });

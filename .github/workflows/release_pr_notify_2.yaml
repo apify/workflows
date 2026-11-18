@@ -1,0 +1,446 @@
+name: notify release PR
+
+jobs:
+  # Send an update to #engineering-releases.
+  #
+  # If there is no thread yet, and the deploy succeeds, we'll send a "release ready for testing" message, automatically
+  # tagging all commit authors in the release PR.
+  # If there is no thread yet, and the deploy fails, we'll send a warning instead. This will be just a standalone
+  # message, not starting a thread.
+  # If there already is a thread, we'll update it with the latest status.
+  #
+  # We're using a Key-value store to remember whether we have already started a thread.
+  notify_committers:
+    runs-on: ubuntu-22.04-arm64
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write
+    needs:
+      - get_values
+      - build
+      - deploy
+      - deploy_event_driven_daemons
+      - integration_tests
+      - event_driven_daemons_tests
+      - playwright_tests
+    # Not using always() here because that would send a notification even if the workflow was cancelled. Also ignoring
+    # workflow dispatches (manual executions) as those are not standard releases.
+    if: |
+      (success() || failure()) &&
+      github.event_name == 'pull_request'
+    steps:
+      - name: checkout-repo # To get pending_release_slack_updates.js
+        uses: actions/checkout@v6
+        with:
+          # Make the checkout a small bit faster by only checking out the scripts directory.
+          sparse-checkout: 'scripts'
+          sparse-checkout-cone-mode: false # Excludes files from project root
+
+      - uses: actions/create-github-app-token@v3
+        id: generate-privileged-token
+        with:
+          app-id: ${{ vars.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Fetch changelog authors
+        id: fetch-changelog-authors
+        uses: apify/release-pr-action@v3.8.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          slack-token: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          changelog-method: commits_compare
+          changelog-scopes: '{ "Console": ["app", "console"], "Api": ["api"] }'
+          fetch-author-slack-ids: true
+          github-org-token: ${{ steps.generate-privileged-token.outputs.token }}
+          release-name-method: 'tag'
+
+      - name: Fetch Slack thread ID
+        id: fetch-slack-thread-id
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        with:
+          script: |
+            const { fetchSlackReleaseThreadId } = require('./scripts/release_ci/index.js');
+            const threadId = await fetchSlackReleaseThreadId({
+                apifyApiToken: process.env.APIFY_API_TOKEN,
+                apifyStoreId: process.env.SLACK_THREADS_STORE_ID,
+                apifyRecordKey: process.env.SLACK_THREAD_RECORD_KEY,
+            });
+
+            if (!threadId) {
+                core.warning("Failed to fetch Slack thread ID which is usually fine (it probably just doesn't exist yet)");
+
+                process.exit(0);
+            }
+
+            core.setOutput('slack-thread-id', threadId);
+
+      # Fetch GitHub jobs in this workflow so that we can link to them in the Slack message.
+      # Keep only the fields the Slack update reads: the full payload (with steps) can exceed the 128 KiB
+      # per-env-var limit when passed as ACTIONS_JOBS, which makes the runner fail with "Argument list too long".
+      - name: fetch-jobs
+        id: fetch-jobs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          JOBS=$(gh run --repo ${{ github.repository }} view ${{ github.run_id }} --json jobs --jq '{jobs: [.jobs[] | {name, conclusion, url}]} | tojson')
+          echo "jobs=${JOBS}" >> $GITHUB_OUTPUT
+
+      - name: fetch-duty-slack-ids
+        id: fetch-duty-slack-ids
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        env:
+          PAGERDUTY_API_KEY: ${{ secrets.PAGERDUTY_API_KEY }}
+          DEPLOY_DUTY_SCHEDULE_ID: P92FHSJ
+          ON_CALL_DUTY_SCHEDULE_ID: PFPGIK6
+          QA_DUTY_SCHEDULE_ID: P9KIL1S
+          SLACK_API_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.generate-privileged-token.outputs.token }}
+        with:
+          script: |
+            const { fetchPagerDutyScheduleUser } = require('./scripts/release_ci/index.js');
+            const { PAGERDUTY_API_KEY, DEPLOY_DUTY_SCHEDULE_ID, ON_CALL_DUTY_SCHEDULE_ID, QA_DUTY_SCHEDULE_ID, SLACK_API_TOKEN, GITHUB_TOKEN } = process.env;
+
+            const commonOpts = {
+                core,
+                pagerDutyApiKey: PAGERDUTY_API_KEY,
+                slackApiToken: SLACK_API_TOKEN,
+                githubToken: GITHUB_TOKEN,
+            };
+
+            // allSettled (not all) so that one schedule's lookup failing does not drop the other duty tags.
+            const scheduleIds = [DEPLOY_DUTY_SCHEDULE_ID, ON_CALL_DUTY_SCHEDULE_ID, QA_DUTY_SCHEDULE_ID];
+            const [deployDuty, onCallDuty, qaDuty] = (await Promise.allSettled(
+                scheduleIds.map((scheduleId) => fetchPagerDutyScheduleUser({ ...commonOpts, scheduleId })),
+            )).map((result, index) => {
+                if (result.status === 'fulfilled') return result.value;
+                core.warning(`PagerDuty duty lookup failed for schedule ${scheduleIds[index]}: ${String(result.reason)}`);
+                return null;
+            });
+
+            if (deployDuty) {
+                core.setOutput('deploy-duty-slack-id', deployDuty.slackId);
+                core.setOutput('deploy-duty-github-login', deployDuty.githubLogin);
+            }
+
+            if (onCallDuty) {
+                core.setOutput('on-call-duty-slack-id', onCallDuty.slackId);
+            }
+
+            if (qaDuty) {
+                core.setOutput('qa-duty-slack-id', qaDuty.slackId);
+            }
+
+      - name: Unassign CODEOWNERS
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_NUMBER: ${{ github.event.number }}
+          CHANGELOG_AUTHORS: ${{ steps.fetch-changelog-authors.outputs.github-changelog-authors }}
+          DEPLOY_DUTY_LOGIN: ${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-github-login }}
+        with:
+          # If a team is mentioned in the requested reviewers and we try to list it
+          # this step will fail on invalid permissions.
+          # -> Need to use a token with permissions to view organization teams.
+          github-token: ${{ steps.generate-privileged-token.outputs.token }}
+          script: |
+            const { fetchCodeOwnerLogins } = require('./scripts/release_ci/index.js');
+
+            const [codeowners, submittedReviews] = await Promise.all([
+                fetchCodeOwnerLogins({
+                    // This token is only used to fetch the file from the githubusercontent url.
+                    // It does not need to be privileged.
+                    githubToken: process.env.GITHUB_TOKEN,
+                    pullNumber: +process.env.PULL_NUMBER,
+                }),
+                github.paginate(github.rest.pulls.listReviews, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.payload.number,
+                }),
+            ]);
+
+            // Do not remove reviewers, that have already submitted a review.
+            const submittedReviewsLogins = new Set(
+                submittedReviews
+                    .map((review) => review.user?.login)
+                    .filter(Boolean),
+            );
+
+            // Do not remove the review request from changelog authors,
+            // i.e. from people, that have a commit in the release.
+            const changelogAuthors = new Set(
+                JSON.parse(process.env.CHANGELOG_AUTHORS || '[]')
+                    .map((author) => author.login),
+            );
+
+            const reviewersToRemove = Array.from(codeowners).filter((login) => {
+                return (
+                    !changelogAuthors.has(login) &&
+                    !submittedReviewsLogins.has(login) &&
+
+                    // Also, do not remove the review request
+                    // from the current deploy duty.
+                    login !== process.env.DEPLOY_DUTY_LOGIN
+                );
+            });
+
+            if (reviewersToRemove.length === 0) {
+                core.info('no reviewers found to be removed, exiting...');
+
+                process.exit(0);
+            }
+
+            core.info(`removing review requests from codeowners: [${reviewersToRemove.join(', ')}]`);
+
+            // The codeowners should have already seen all of the changes
+            // in the original PRs. No need to request reviews from them in the release PR.
+            await github.rest.pulls.removeRequestedReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.number,
+                reviewers: reviewersToRemove,
+            });
+
+      - name: Request changelog authors, QA and deploy duty as reviewers
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        env:
+          CHANGELOG_AUTHORS: ${{ steps.fetch-changelog-authors.outputs.github-changelog-authors }}
+          DEPLOY_DUTY_LOGIN: ${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-github-login }}
+        with:
+          # In order to assign teams as reviewers, we need an access token that has access to the organization.
+          # The default actions github.token does not have that.
+          github-token: ${{ steps.generate-privileged-token.outputs.token }}
+          script: |
+            const reviewers = JSON.parse(process.env.CHANGELOG_AUTHORS || '[]')
+                // Only take logins of the authors, that are in the `apify` organization.
+                // We can determine that by whether their `slackId` was found.
+                .filter((author) => typeof author.slackId !== 'undefined')
+                .map(({ login }) => login)
+                // Drop falsy logins so one bad entry can't 422 the whole requestReviewers call.
+                .filter(Boolean);
+
+            if (process.env.DEPLOY_DUTY_LOGIN) {
+                reviewers.push(process.env.DEPLOY_DUTY_LOGIN);
+            }
+
+            const [submittedReviews, qaTeamMembers, fullTimeline, commitsInPR] = await Promise.all([
+                github.paginate(github.rest.pulls.listReviews, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.payload.number,
+                }),
+                github.paginate(github.rest.teams.listMembersInOrg, {
+                    org: 'apify',
+                    team_slug: 'qa',
+                }),
+                github.paginate(github.rest.issues.listEventsForTimeline, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.payload.number,
+                }),
+                github.paginate(github.rest.pulls.listCommits, {
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: context.payload.number,
+                }),
+            ]);
+            const timeline = fullTimeline.filter((event) => ['review_requested', 'review_request_removed', 'committed'].includes(event.event));
+
+            // We don't want to request reviews again if the reviewer was manually removed,
+            // but only if they were not added again afterwards, or they didn't make a commit after being removed.
+            // The pull request timeline includes events like "review requested", "review request removed" and "committed".
+
+            // The "committed" event does not include the GitHub login of the committer, only their email, which might not be linked to a GitHub account.
+            // We can get the login from the list of commits in the pull request, which includes the author login.
+            for (const event of timeline) {
+                if (event.event === 'committed') {
+                    const commit = commitsInPR.find((commit) => commit.sha === event.sha);
+                    if (commit) {
+                        event.author = event.author || {};
+                        event.author.login = commit.author?.login;
+                    }
+                }
+                // Backfill created_at for events that don't have it, using the author's date if available.
+                event.created_at = event.created_at || event.author?.date;
+            }
+
+            // Sort timeline by created_at in descending order so that the last event is first (it's easier to work with).
+            timeline.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            // Find reviewers that were removed and not added again afterwards, or did not make a commit after being removed.
+            const removedReviewersLogins = new Set(reviewers.filter((reviewer) => {
+                // Find the last event in the timeline where the reviewer was removed, added, or made a commit.
+                const lastRemovedEvent = timeline.find((event) => event.event === 'review_request_removed' && event.requested_reviewer?.login === reviewer);
+                const lastAddedEvent = timeline.find((event) => event.event === 'review_requested' && event.requested_reviewer?.login === reviewer);
+                const lastCommitEvent = timeline.find((event) => event.event === 'committed' && event.author?.login === reviewer);
+
+                return lastRemovedEvent && (!lastAddedEvent || lastAddedEvent.created_at < lastRemovedEvent.created_at) && (!lastCommitEvent || lastCommitEvent.created_at < lastRemovedEvent.created_at);
+            }));
+
+            // Logins of reviewers, which should not be re-requested to review the PR.
+            // This would invalidate their previous review.
+            const submittedReviewsLogins = new Set(
+                submittedReviews
+                    .map((review) => review.user?.login)
+                    .filter(Boolean),
+            );
+
+            // Check if someone from the QA team has submitted their review.
+            // Request the team to review the release PR otherwise.
+            // At least one of the members of the team must approve the PR.
+            const teamReviewers = [];
+            if (!qaTeamMembers.some((member) => submittedReviewsLogins.has(member.login))) {
+                teamReviewers.push('qa');
+            }
+
+            await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.number,
+
+                reviewers: reviewers.filter((reviewer) => {
+                    // The reviewer hasn't already submitted a review
+                    // either approving the PR or not, does not matter.
+                    // -> They should not get re-requested.
+                    if (submittedReviewsLogins.has(reviewer)) {
+                        return false;
+                    }
+
+                    if (removedReviewersLogins.has(reviewer)) {
+                        return false;
+                    }
+
+                    const { user, assignee } = context.payload.pull_request;
+
+                    // Filter out assignees and PR creators.
+                    // It should never happen in the release PR,
+                    // but it is useful for testing on different PRs.
+                    return (!user || reviewer !== user.login) &&
+                        (!assignee || reviewer !== assignee.login);
+                }),
+                team_reviewers: teamReviewers,
+            });
+
+      # Resolve the Currents run URL for this release so the Slack message can link straight to it.
+      - name: fetch-currents-run-url
+        id: fetch-currents-run-url
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        env:
+          CURRENTS_API_KEY: ${{ secrets.CURRENTS_API_KEY }}
+          CURRENTS_PROJECT_ID: ${{ secrets.CURRENTS_PLAYWRIGHT_PROJECT_ID }}
+          # Must match CURRENTS_CI_BUILD_ID in playwright_tests.yaml. On a partial re-run that does not
+          # re-execute Playwright, run_attempt won't match the recorded run and the link falls back to the dashboard.
+          CURRENTS_CI_BUILD_ID: reporter-${{ github.repository }}-${{ github.run_id }}-${{ github.run_attempt }}
+        with:
+          script: |
+            const { fetchCurrentsRunUrl } = require('./scripts/release_ci/index.js');
+            const { CURRENTS_API_KEY, CURRENTS_PROJECT_ID, CURRENTS_CI_BUILD_ID } = process.env;
+
+            const runUrl = await fetchCurrentsRunUrl({
+                core,
+                currentsApiKey: CURRENTS_API_KEY,
+                projectId: CURRENTS_PROJECT_ID,
+                ciBuildId: CURRENTS_CI_BUILD_ID,
+            });
+
+            if (runUrl) {
+                core.setOutput('currents-run-url', runUrl);
+            }
+
+      - name: create-slack-update
+        id: create-slack-update
+        uses: actions/github-script@v8.0.0
+        env:
+          # It is insecure to inject PR title directly into the code, hence passing it as environment variables.
+          # See why: https://docs.github.com/en/actions/security-for-github-actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          GITHUB_CHANGELOG_AUTHORS: ${{ steps.fetch-changelog-authors.outputs.github-changelog-authors }}
+          COMMIT_SHA: ${{ needs.get_values.outputs.short_commit_sha }}
+          ACTIONS_JOBS: ${{ steps.fetch-jobs.outputs.jobs  }}
+        with:
+          script: |
+            const { createSlackUpdate } = require('./scripts/release_ci/index.js');
+
+            const { message, shouldStoreThreadId } = createSlackUpdate({
+              revision: process.env.COMMIT_SHA,
+              buildResult: '${{ needs.build.result }}',
+              deployResult: '${{ needs.deploy.result }}',
+              deployEventDrivenDaemonsResult: '${{ needs.deploy_event_driven_daemons.result }}',
+              integrationTestsResult: '${{ needs.integration_tests.result }}',
+              playwrightTestsResult: '${{ needs.playwright_tests.result }}',
+              eventDrivenDaemonsTestsResult: '${{ needs.event_driven_daemons_tests.result }}',
+              slackThreadId: '${{ steps.fetch-slack-thread-id.outputs.slack-thread-id }}',
+              prTitle: process.env.PR_TITLE,
+              prUrl: '${{ github.event.pull_request.html_url }}',
+              changelogAuthors: JSON.parse(process.env.GITHUB_CHANGELOG_AUTHORS || '[]'),
+              jobs: JSON.parse(process.env.ACTIONS_JOBS || '[]'),
+              deployDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.deploy-duty-slack-id }}',
+              onCallDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.on-call-duty-slack-id }}',
+              qaDutySlackId: '${{ steps.fetch-duty-slack-ids.outputs.qa-duty-slack-id }}',
+              currentsRunUrl: '${{ steps.fetch-currents-run-url.outputs.currents-run-url }}',
+            });
+
+            // Log the full message in case we need to debug it.
+            core.startGroup('Created message');
+            core.info(message);
+            core.endGroup();
+
+            core.setOutput('message', message);
+            core.setOutput('should-store-thread-id', shouldStoreThreadId);
+
+      - name: send-slack-message
+        id: send-slack-message
+        uses: slackapi/slack-github-action@v1.26.0
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_USER_OAUTH_ACCESS_TOKEN }}
+        with:
+          channel-id: C0AGAN0JM39 # #engineering-releases
+          payload: ${{ steps.create-slack-update.outputs.message }}
+
+      - name: store-slack-thread-id
+        if: steps.create-slack-update.outputs.should-store-thread-id == 'true'
+        env:
+          SLACK_THREAD_ID: ${{ steps.send-slack-message.outputs.ts }}
+        run: |
+          curl -s --retry 5 -X POST "https://api.apify.com/v2/key-value-stores/${SLACK_THREADS_STORE_ID}/records/${SLACK_THREAD_RECORD_KEY}" \
+            -H "Content-Type: text/plain" \
+            -H "Authorization: Bearer ${APIFY_API_TOKEN}" \
+            --data "${SLACK_THREAD_ID}"
+
+      - name: Add link to Mezmo logtail to PR
+        uses: actions/github-script@v8.0.0
+        continue-on-error: true
+        env:
+          COMMIT_SHA: ${{ needs.get_values.outputs.short_commit_sha }}
+        with:
+          script: |
+            const { addMessageToPrBody } = require('./scripts/edit_pull_request_body.js');
+
+            const revision = process.env.COMMIT_SHA;
+            const errorUrl = new URL('https://app.mezmo.com/521d8cd6fa/logs/view');
+            errorUrl.searchParams.set('q', `_meta.version:${revision} ERROR OR level:ERROR -level:INFO -level:WARNING -level:DEBUG -level:SOFT_FAIL`);
+
+            const allUrl = new URL('https://app.mezmo.com/521d8cd6fa/logs/view');
+            allUrl.searchParams.set('q', `_meta.version:${revision}`);
+
+            const message = [
+                '## Check the errors',
+                '- [API Error Rate](<https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-api>)',
+                '- [Console Backend Error Rate](<https://grafana.apify.dev/d/f89ad3e3-919a-420e-8f92-edb0f1c69512/mezmo-error-rate?orgId=1&from=now-6h&to=now&timezone=browser&var-environment=staging&var-app=apify-app-ui-backend>)',
+                `- [Mezmo Logs](<${allUrl.toString()}>)`,
+                `- [Mezmo Logs (errors only)](<${errorUrl.toString()}>)`,
+            ].join('\n');
+
+            await addMessageToPrBody({
+                github,
+                context,
+                message,
+                label: 'STAGING_MEZMO_LOGS',
+                removeOldMessages: true,
+            });
