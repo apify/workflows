@@ -89,6 +89,11 @@ on:
         type: string
         # Production EKS cluster DNS name to test the VPN connection
         default: BA6D21AB896DE795C7BF29050D03C3A8.gr7.us-east-1.eks.amazonaws.com
+      environment:
+        description: GitHub environment the job runs in. Its name becomes part of the OIDC token subject.
+        required: false
+        type: string
+        default: ''
 
     secrets:
       awsAccessKeyId:
@@ -123,6 +128,7 @@ env:
 jobs:
   build:
     runs-on: ${{ inputs.runner }}
+    environment: ${{ inputs.environment }}
     steps:
       - name: Send notification to slack
         if: inputs.slackChannelId != ''

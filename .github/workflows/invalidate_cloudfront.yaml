@@ -48,6 +48,11 @@ on:
         description: Revision (semver, short commit sha,..)
         required: false
         type: string
+      environment:
+        description: GitHub environment the job runs in. Its name becomes part of the OIDC token subject.
+        required: false
+        type: string
+        default: ''
 
     secrets:
       awsAccessKeyId:
@@ -63,6 +68,7 @@ on:
 jobs:
   invalidate:
     runs-on: ubuntu-22.04-arm64
+    environment: ${{ inputs.environment }}
     steps:
       - name: assume IAM role
         if: inputs.useOIDC == false
