@@ -9,7 +9,9 @@ on:
         required: false
         type: string
       useMergedPullRequestHead:
-        description: Fill the release_commit_sha output. Needs the pull-requests read permission.
+        description: >
+          Fill the release_commit_sha output, and fail when the current commit was not created by merging a pull request.
+          Needs the pull-requests read permission.
         required: false
         type: boolean
         default: false
@@ -43,7 +45,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     outputs:
       short_commit_sha: ${{ steps.get_context.outputs.short_commit_sha }}
-      release_commit_sha: ${{ steps.get_context.outputs.release_commit_sha }}
+      release_commit_sha: ${{ steps.get_release_commit.outputs.release_commit_sha }}
       clean_branch_name: ${{ steps.get_context.outputs.clean_branch_name }}
       clean_branch_name_with_suffix: ${{ steps.get_context.outputs.clean_branch_name_with_suffix }}
       commit_author: ${{ steps.get_commit_author.outputs.result }}
@@ -51,8 +53,6 @@ jobs:
         # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
       - name: get context
         id: get_context
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ inputs.commitSha }}" != "" ]; then
               COMMIT_SHA=${{ inputs.commitSha }}
@@ -66,19 +66,6 @@ jobs:
               BRANCH_NAME=${GITHUB_REF_NAME}
           fi
 
-          if [ "${{ inputs.useMergedPullRequestHead }}" = "true" ]; then
-              RELEASE_COMMIT_SHA=${COMMIT_SHA}
-              if [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ github.event_name }}" != "pull_request_target" ]; then
-                  RELEASE_COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc" \
-                      --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
-                  if [ -z "${RELEASE_COMMIT_SHA}" ]; then
-                      echo "No merged pull request found for ${GITHUB_SHA}"
-                      exit 1
-                  fi
-              fi
-              echo "release_commit_sha=${RELEASE_COMMIT_SHA::10}" >> $GITHUB_OUTPUT
-          fi
-
           _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
           _BRANCH_NAME=$(echo "${_BRANCH_NAME}" | tr '[:upper:]' '[:lower:]')
           CLEAN_BRANCH_NAME=$(echo ${_BRANCH_NAME} | cut -c 1-35)
@@ -89,6 +76,20 @@ jobs:
           echo "short_commit_sha=${COMMIT_SHA::10}" >> $GITHUB_OUTPUT
           echo "clean_branch_name=${CLEAN_BRANCH_NAME}" >> $GITHUB_OUTPUT
           echo "clean_branch_name_with_suffix=${CLEAN_BRANCH_NAME_WITH_SUFFIX}" >> $GITHUB_OUTPUT
+
+      - name: get release commit
+        id: get_release_commit
+        if: inputs.useMergedPullRequestHead == true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc" \
+              --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
+          if [ -z "${RELEASE_COMMIT_SHA}" ]; then
+              echo "No merged pull request found for ${GITHUB_SHA}"
+              exit 1
+          fi
+          echo "release_commit_sha=${RELEASE_COMMIT_SHA::10}" >> $GITHUB_OUTPUT
 
       - name: get last commit author
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
