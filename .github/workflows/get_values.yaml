@@ -9,9 +9,7 @@ on:
         required: false
         type: string
       useMergedPullRequestHead:
-        description: >
-          On non pull request events, use the head commit of the pull request whose merge created the current commit.
-          Needs the pull-requests read permission.
+        description: Fill the release_commit_sha output. Needs the pull-requests read permission.
         required: false
         type: boolean
         default: false
@@ -25,6 +23,11 @@ on:
       short_commit_sha:
         description: Short commit sha
         value: ${{ jobs.get_values.outputs.short_commit_sha }}
+      release_commit_sha:
+        description: >
+          Short sha of the head commit of the pull request whose merge created the current commit.
+          Empty unless useMergedPullRequestHead is set.
+        value: ${{ jobs.get_values.outputs.release_commit_sha }}
       clean_branch_name:
         description: Branch name stripped of non-alphanumeric characters, lowercased, and capped at length of 35
         value: ${{ jobs.get_values.outputs.clean_branch_name }}
@@ -40,6 +43,7 @@ jobs:
     runs-on: ${{ inputs.runner }}
     outputs:
       short_commit_sha: ${{ steps.get_context.outputs.short_commit_sha }}
+      release_commit_sha: ${{ steps.get_context.outputs.release_commit_sha }}
       clean_branch_name: ${{ steps.get_context.outputs.clean_branch_name }}
       clean_branch_name_with_suffix: ${{ steps.get_context.outputs.clean_branch_name_with_suffix }}
       commit_author: ${{ steps.get_commit_author.outputs.result }}
@@ -57,17 +61,22 @@ jobs:
           elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_target" ]; then
               COMMIT_SHA=${{ github.event.pull_request.head.sha }}
               BRANCH_NAME=${GITHUB_HEAD_REF}
-          elif [ "${{ inputs.useMergedPullRequestHead }}" = "true" ]; then
-              COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc" \
-                  --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
-              if [ -z "${COMMIT_SHA}" ]; then
-                  echo "No merged pull request found for ${GITHUB_SHA}"
-                  exit 1
-              fi
-              BRANCH_NAME=${GITHUB_REF_NAME}
           else
               COMMIT_SHA=${{ github.sha }}
               BRANCH_NAME=${GITHUB_REF_NAME}
+          fi
+
+          if [ "${{ inputs.useMergedPullRequestHead }}" = "true" ]; then
+              RELEASE_COMMIT_SHA=${COMMIT_SHA}
+              if [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ github.event_name }}" != "pull_request_target" ]; then
+                  RELEASE_COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc" \
+                      --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
+                  if [ -z "${RELEASE_COMMIT_SHA}" ]; then
+                      echo "No merged pull request found for ${GITHUB_SHA}"
+                      exit 1
+                  fi
+              fi
+              echo "release_commit_sha=${RELEASE_COMMIT_SHA::10}" >> $GITHUB_OUTPUT
           fi
 
           _BRANCH_NAME=${BRANCH_NAME//[^[:alnum:]]/}
