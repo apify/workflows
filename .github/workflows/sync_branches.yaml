@@ -20,40 +20,41 @@ on:
         description: Override the author of event
         required: false
         type: string
+      githubAppId:
+        description: ID or client ID of the GitHub App used to open and merge the pull request
+        required: true
+        type: string
 
     secrets:
       slackToken:
         description: Slack API token
         required: true
-      githubToken:
-        description: Github token to approve PR (GITHUB_TOKEN cannot open and approve PR)
+      githubAppPrivateKey:
+        description: Private key of the GitHub App used to open and merge the pull request
         required: true
 
 jobs:
   pull_request:
     runs-on: ubuntu-22.04-arm64
     steps:
-      # TODO: We need better way (probably using multiple steps with actions/github-script)
-      # 2026-05@vladfrangu: why is this still needed, and can it be bumped to newer versions?
-      - name: install octokit
-        run: npm i @octokit/rest@release-19.x
+      # The app must be a bypass actor for the base branch protection: the pull request is merged
+      # without approval and with a merge commit. The workflows permission is required when the
+      # synced changes include files in .github/workflows.
+      - name: create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ inputs.githubAppId }}
+          private-key: ${{ secrets.githubAppPrivateKey }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
 
       - name: open and merge pull request
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-        env:
-          GIT_HUB_TOKEN: ${{ secrets.githubToken }}
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            const { Octokit } = require('@octokit/rest');
-
-            // Create a new Octokit instance under Apify Service Account
-            // Apify Service Account does not trigger PR toolkit,
-            // does not need approval for PRs and does not need to wait for status checks
-            const serviceAccountOctokit = new Octokit({
-                auth: process.env.GIT_HUB_TOKEN,
-            });
-
             let headBranch = '';
             const eventName = process.env.GITHUB_EVENT_NAME;
             if (eventName === 'pull_request') {
@@ -65,7 +66,7 @@ jobs:
             }
 
             // Create pull request from headBranch to baseBranch (typically `master` to `develop`)
-            const createResp = await serviceAccountOctokit.rest.pulls.create({
+            const createResp = await github.rest.pulls.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 head: headBranch,
@@ -76,7 +77,7 @@ jobs:
             const pullRequestNumber = createResp.data.number;
 
             // Merge pull request
-            await serviceAccountOctokit.rest.pulls.merge({
+            await github.rest.pulls.merge({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pullRequestNumber,
