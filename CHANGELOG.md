@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/apify/workflows/compare/v1.4.0...v1.4.1) (2026-11-19)
+
+
+### Bug Fixes
+
+* validate the version number before the version bump ([#355](https://github.com/apify/workflows/issues/355)) ([4754f6a](https://github.com/apify/workflows/commit/4754f6a762fcf7727d0731dbf803c1a76a714879))
+
 ## [1.4.0](https://github.com/apify/workflows/compare/v1.3.0...v1.4.0) (2026-11-18)
 
 
