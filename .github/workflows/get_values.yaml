@@ -8,6 +8,13 @@ on:
         description: Commit SHA
         required: false
         type: string
+      useMergedPullRequestHead:
+        description: >
+          On non pull request events, use the head commit of the pull request whose merge created the current commit,
+          not the commit itself. Fails when there is none. Needs the pull-requests read permission.
+        required: false
+        type: boolean
+        default: false
       runner:
         description: Runner to use
         required: false
@@ -40,6 +47,8 @@ jobs:
         # Cannot use GITHUB_SHA because of https://github.community/t/github-sha-not-the-same-as-the-triggering-commit/18286/2
       - name: get context
         id: get_context
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "${{ inputs.commitSha }}" != "" ]; then
               COMMIT_SHA=${{ inputs.commitSha }}
@@ -48,6 +57,14 @@ jobs:
           elif [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_target" ]; then
               COMMIT_SHA=${{ github.event.pull_request.head.sha }}
               BRANCH_NAME=${GITHUB_HEAD_REF}
+          elif [ "${{ inputs.useMergedPullRequestHead }}" = "true" ]; then
+              COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc&per_page=100" \
+                  --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
+              if [ -z "${COMMIT_SHA}" ]; then
+                  echo "No merged pull request found for ${GITHUB_SHA}"
+                  exit 1
+              fi
+              BRANCH_NAME=${GITHUB_REF_NAME}
           else
               COMMIT_SHA=${{ github.sha }}
               BRANCH_NAME=${GITHUB_REF_NAME}
