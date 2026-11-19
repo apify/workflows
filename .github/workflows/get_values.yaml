@@ -83,7 +83,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          RELEASE_COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc" \
+          RELEASE_COMMIT_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/pulls?state=closed&base=${GITHUB_REF_NAME}&sort=updated&direction=desc&per_page=100" \
               --jq "map(select(.merge_commit_sha == \"${GITHUB_SHA}\"))[0].head.sha // empty")
           if [ -z "${RELEASE_COMMIT_SHA}" ]; then
               echo "No merged pull request found for ${GITHUB_SHA}"
