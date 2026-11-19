@@ -16,9 +16,13 @@ on:
         required: false
         type: string
         default: master
+      githubAppId:
+        description: ID or client ID of the GitHub App used to create the release branch
+        required: true
+        type: string
     secrets:
-      serviceAccountGithubToken:
-        description: Token used to create the release branch
+      githubAppPrivateKey:
+        description: Private key of the GitHub App used to create the release branch
         required: true
 
 env:
@@ -89,15 +93,21 @@ jobs:
     if: ${{ !failure() && !cancelled() }}
     runs-on: ubuntu-22.04-arm64
     steps:
-      - name: Install Octokit
-        run: npm install @octokit/rest@v19
+      # The default GITHUB_TOKEN cannot trigger workflows on the new release branch.
+      # The token has to be created in this job: job outputs that contain secrets are not passed to other jobs.
+      - name: Create GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: ${{ inputs.githubAppId }}
+          private-key: ${{ secrets.githubAppPrivateKey }}
+          permission-contents: write
 
       - name: Create release branch
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
+          github-token: ${{ steps.app-token.outputs.token }}
           script: |
-            const { Octokit } = require('@octokit/rest');
-
             function bumpReleaseName(currentReleaseName, mode) {
               const [_, major, minor, patch] = currentReleaseName.match(/v(\d+)\.(\d+)\.(\d+)/);
               if (mode === 'minor') return `v${major}.${parseInt(minor) + 1}.0`;
@@ -117,8 +127,7 @@ jobs:
             const releaseBranchName = `${process.env.RELEASE_BRANCH_PREFIX}/${nextVersionName}`;
 
             core.info(`Creating release branch: ${releaseBranchName} (${bumpMode} bump)`);
-            const octokitServiceAcc = new Octokit({ auth: '${{ secrets.serviceAccountGithubToken }}' });
-            await octokitServiceAcc.rest.git.createRef({
+            await github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: `refs/heads/${releaseBranchName}`,
