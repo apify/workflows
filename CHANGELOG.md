@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.0.0](https://github.com/apify/workflows/compare/v1.4.1...v2.0.0) (2026-11-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* the serviceAccountGithubToken secret is replaced by the githubAppId input and the githubAppPrivateKey secret. The workflow creates the installation token in the job that creates the release branch.
+
+### Features
+
+* add useMergedPullRequestHead input to get_values ([#357](https://github.com/apify/workflows/issues/357)) ([4573327](https://github.com/apify/workflows/commit/4573327c5c61e23869db978dabd0a2584916575b))
+* authenticate create prod release with a GitHub App ([#359](https://github.com/apify/workflows/issues/359)) ([adbc771](https://github.com/apify/workflows/commit/adbc77139667012fa3025099313c8991388f449a))
+
 ## [1.4.1](https://github.com/apify/workflows/compare/v1.4.0...v1.4.1) (2026-11-19)
 
 
