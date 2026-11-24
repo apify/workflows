@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/apify/workflows/compare/v2.0.0...v2.0.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* update release-pr-action to 3.9.0 ([#361](https://github.com/apify/workflows/issues/361)) ([a902a43](https://github.com/apify/workflows/commit/a902a4306ce3b3a0f95a0637903fb252a4115a96))
+
 ## [2.0.0](https://github.com/apify/workflows/compare/v1.4.1...v2.0.0) (2026-11-19)
 
 
