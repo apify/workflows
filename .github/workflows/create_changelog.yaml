@@ -62,7 +62,7 @@ jobs:
     steps:
       - name: get changelog
         id: changelog
-        uses: apify/release-pr-action@v3.5.3
+        uses: apify/release-pr-action@v3.9.0
         with:
           slack-token: ${{ secrets.slackToken }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
