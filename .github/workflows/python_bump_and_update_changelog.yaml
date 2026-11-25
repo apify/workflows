@@ -29,6 +29,14 @@ on:
         required: false
         type: string
         default: CHANGELOG.md
+      environment:
+        description: |
+          GitHub environment the job runs in. Required when the caller keeps APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN
+          in a repository environment, because `secrets: inherit` does not pass the caller's environment
+          secrets into this workflow.
+        required: false
+        type: string
+        default: ''
     secrets:
       APIFY_SERVICE_ACCOUNT_GITHUB_TOKEN:
         required: true
@@ -40,6 +48,7 @@ on:
 jobs:
   bump_and_update_changelog:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     outputs:
       changelog_commitish: ${{ steps.commit.outputs.commit_long_sha }}
 
